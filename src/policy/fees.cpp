@@ -665,6 +665,28 @@ void CBlockPolicyEstimator::processBlock(unsigned int nBlockHeight,
     shortStats->UpdateMovingAverages();
     longStats->UpdateMovingAverages();
 
+    // Do not consider transactions that were CPFP'd.
+    // For each mempool transaction that was included in a block, if its individual feerate is higher
+    // than its ancestor score it incentivized the inclusion of some of its parents in the block.
+    // Remove all such parents whose feerate is lower than the child's of the tracking before updating
+    // the data points.
+    for (const auto& tx_info : txs_removed_for_block) {
+        CFeeRate individual_feerate{tx_info.m_fee, static_cast<uint32_t>(tx_info.m_virtual_transaction_size)};
+        CFeeRate ancestor_score{tx_info.nModFeesWithAncestors, static_cast<uint32_t>(tx_info.nSizeWithAncestors)};
+
+        if (individual_feerate > ancestor_score) {
+            for (const CTransactionRef& parent : tx_info.m_parents) {
+                std::map<uint256, TxStatsInfo>::iterator pos = mapMemPoolTxs.find(parent->GetHash());
+                if (pos == mapMemPoolTxs.end()) {
+                    // This transaction wasn't being tracked for fee estimation
+                    continue;
+                }
+                CAmount parent_feerate_perk = pos->second.m_fee_per_k;
+                if (parent_feerate_perk < individual_feerate.GetFeePerK()) _removeTx(parent->GetHash(), /* inBlock = */ true);
+            }
+        }
+    }
+
     unsigned int countedTxs = 0;
     // Update averages with data points from current block
     for (const auto& tx_info : txs_removed_for_block) {
