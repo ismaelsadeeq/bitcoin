@@ -515,6 +515,36 @@ class PSBTTest(BitcoinTestFramework):
         assert_raises_rpc_error(-4, "Insufficient funds", wunsafe.walletcreatefundedpsbt, [], [{self.nodes[0].getnewaddress(): 1}])
         wunsafe.walletcreatefundedpsbt([], [{self.nodes[0].getnewaddress(): 1}], 0, {"include_unsafe": True})
 
+        # Test if finalizepsbt allows creation of a consensus-invalid transaction
+        # where the output values are greater than the input value.
+
+        node1_addr = self.nodes[1].getnewaddress()
+        txid = self.nodes[0].sendtoaddress(node1_addr, 2)
+        blockhash = self.generate(self.nodes[0], 6)[0]
+        vout = find_output(self.nodes[1], txid, 2, blockhash=blockhash)
+
+        # Create a PSBT spending node 1 output.
+        psbt = self.nodes[0].createpsbt([{"txid":txid,  "vout":vout}], {self.nodes[0].getnewaddress():3})
+
+        # Process the PSBT
+        processed_psbt = self.nodes[1].walletprocesspsbt(psbt)
+
+        # Check that the input witness is complete.
+        assert_equal(processed_psbt["complete"], True)
+
+        # Decode the PSBT and ensure that the output value is greater than the input 
+        # with a negative fee.
+        decoded_psbt = self.nodes[1].decodepsbt(processed_psbt["psbt"])
+
+        assert_equal(decoded_psbt["fee"], -1)
+
+        # Try finalizing such a PSBT.
+        finalized_psbt = self.nodes[1].finalizepsbt(processed_psbt["psbt"])
+        assert_equal(finalized_psbt["complete"], True)
+
+        # Ensure that the mempool would not accept that transaction hex.
+        assert_equal(self.nodes[0].testmempoolaccept([finalized_psbt["hex"]])[0]["allowed"], False)
+
         # BIP 174 Test Vectors
 
         # Check that unknown values are just passed through
