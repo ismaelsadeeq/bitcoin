@@ -173,6 +173,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
              Ticks<MillisecondsDouble>(time_2 - time_1),
              Ticks<MillisecondsDouble>(time_2 - time_start));
 
+    pblocktemplate->vFeeratePerSize = std::move(feerate_per_size);
+
     return std::move(pblocktemplate);
 }
 
@@ -353,11 +355,11 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
         // contain anything that is inBlock.
         assert(!inBlock.count(iter->GetSharedTx()->GetHash()));
 
-        uint64_t packageSize = iter->GetSizeWithAncestors();
+        uint32_t packageSize = static_cast<uint32_t>(iter->GetSizeWithAncestors());
         CAmount packageFees = iter->GetModFeesWithAncestors();
         int64_t packageSigOpsCost = iter->GetSigOpCostWithAncestors();
         if (fUsingModified) {
-            packageSize = modit->nSizeWithAncestors;
+            packageSize = static_cast<uint32_t>modit->nSizeWithAncestors;
             packageFees = modit->nModFeesWithAncestors;
             packageSigOpsCost = modit->nSigOpCostWithAncestors;
         }
@@ -414,6 +416,7 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
         }
 
         ++nPackagesSelected;
+        feerate_per_size.emplace_back(CFeeRate{packageFees, packageSize}, packageSize);
 
         // Update transactions that depend on each of these
         nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx);
