@@ -87,11 +87,26 @@ class MiniMiner
     /** Map of txid to its descendants. Should be inclusive. */
     std::map<uint256, std::vector<MockEntryMap::iterator>> m_descendant_set_by_txid;
 
+    std::vector<CTxMemPool::txiter> cluster;
+
+    std::vector<uint256> txids_needed;
+
+    CFeeRate mempool_min_fee_rate;
+
     /** Consider this ancestor package "mined" so remove all these entries from our data structures. */
     void DeleteAncestorPackage(const std::set<MockEntryMap::iterator, IteratorComparator>& ancestors);
 
     /** Perform some checks. */
     void SanityCheck() const;
+
+private:
+    bool GetCluster(const CTxMemPool& mempool);
+
+    bool GetClusterUnChecked(const CTxMemPool& mempool);
+
+    void AddEntries(const CTxMemPool& mempool);
+
+    void BuildDescendantCache(const CTxMemPool& mempool);
 
 public:
     /** Returns true if CalculateBumpFees may be called, false if not. */
@@ -104,6 +119,8 @@ public:
     std::set<uint256> GetMockTemplateTxids() const { return m_in_block; }
 
     MiniMiner(const CTxMemPool& mempool, const std::vector<COutPoint>& outpoints);
+
+    MiniMiner(const CTxMemPool& mempool, const std::vector<uint256>& txids);
 
     /** Construct a new block template and, for each outpoint corresponding to a transaction that
      * did not make it into the block, calculate the cost of bumping those transactions (and their

@@ -1212,7 +1212,7 @@ std::vector<CTxMemPool::txiter> CTxMemPool::GatherClusters(const std::vector<uin
     // i = index of where the list of entries to process starts
     for (size_t i{0}; i < clustered_txs.size(); ++i) {
         // DoS protection: if there are 500 or more entries to process, just quit.
-        if (clustered_txs.size() > 500) return {};
+        if (clustered_txs.size() > CLUSTER_LIMIT) return {};
         const txiter& tx_iter = clustered_txs.at(i);
         for (const auto& entries : {tx_iter->GetMemPoolParentsConst(), tx_iter->GetMemPoolChildrenConst()}) {
             for (const CTxMemPoolEntry& entry : entries) {

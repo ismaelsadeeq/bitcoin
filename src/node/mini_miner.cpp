@@ -58,19 +58,122 @@ MiniMiner::MiniMiner(const CTxMemPool& mempool, const std::vector<COutPoint>& ou
     if (m_requested_outpoints_by_txid.empty()) return;
 
     // Calculate the cluster and construct the entry map.
-    std::vector<uint256> txids_needed;
     txids_needed.reserve(m_requested_outpoints_by_txid.size());
     for (const auto& [txid, _]: m_requested_outpoints_by_txid) {
         txids_needed.push_back(txid);
     }
-    const auto cluster = mempool.GatherClusters(txids_needed);
+    if (!GetCluster(mempool)) {
+        return;
+    }
+
+    AddEntries(mempool);
+
+    BuildDescendantCache(mempool);
+
+    // Release the mempool lock; we now have all the information we need for a subset of the entries
+    // we care about. We will solely operate on the MiniMinerMempoolEntry map from now on.
+    Assume(m_in_block.empty());
+    Assume(m_requested_outpoints_by_txid.size() <= outpoints.size());
+    SanityCheck();
+}
+
+MiniMiner::MiniMiner(const CTxMemPool& mempool, const std::vector<uint256>& txids) : txids_needed{txids}
+{
+    LOCK(mempool.cs);
+    mempool_min_fee_rate = mempool.GetMinFee();
+
+    if (!GetClusterUnChecked(mempool)) {
+        return;
+    }
+    AddEntries(mempool);
+
+    BuildDescendantCache(mempool);
+
+    // Release the mempool lock; we now have all the information we need for a subset of the entries
+    // we care about. We will solely ope7rate on the MiniMinerMempoolEntry map from now on.
+    Assume(m_in_block.empty());
+    SanityCheck();
+}
+
+// Compare by min(ancestor feerate, individual feerate), then iterator
+//
+// Under the ancestor-based mining approach, high-feerate children can pay for parents, but high-feerate
+// parents do not incentive inclusion of their children. Therefore the mining algorithm only considers
+// transactions for inclusion on basis of the minimum of their own feerate or their ancestor feerate.
+struct AncestorFeerateComparator {
+    template <typename I>
+    bool operator()(const I& a, const I& b) const
+    {
+        auto min_feerate = [](const MiniMinerMempoolEntry& e) -> CFeeRate {
+            const CAmount ancestor_fee{e.GetModFeesWithAncestors()};
+            const int64_t ancestor_size{e.GetSizeWithAncestors()};
+            const CAmount tx_fee{e.GetModifiedFee()};
+            const int64_t tx_size{e.GetTxSize()};
+            // Comparing ancestor feerate with individual feerate:
+            //     ancestor_fee / ancestor_size <= tx_fee / tx_size
+            // Avoid division and possible loss of precision by
+            // multiplying both sides by the sizes:
+            return ancestor_fee * tx_size < tx_fee * ancestor_size ?
+                       CFeeRate(ancestor_fee, ancestor_size) :
+                       CFeeRate(tx_fee, tx_size);
+        };
+        CFeeRate a_feerate{min_feerate(a->second)};
+        CFeeRate b_feerate{min_feerate(b->second)};
+        if (a_feerate != b_feerate) {
+            return a_feerate > b_feerate;
+        }
+        // Use txid as tiebreaker for stable sorting
+        return a->first < b->first;
+    }
+};
+
+bool MiniMiner::GetCluster(const CTxMemPool& mempool)
+{
+    AssertLockHeld(mempool.cs);
+    cluster = mempool.GatherClusters(txids_needed);
     if (cluster.empty()) {
         // An empty cluster means that at least one of the transactions is missing from the mempool
         // (should not be possible given processing above) or DoS limit was hit.
         m_ready_to_calculate = false;
-        return;
+        return false;
+    }
+    return true;
+}
+
+bool MiniMiner::GetClusterUnChecked(const CTxMemPool& mempool)
+{
+    AssertLockHeld(mempool.cs);
+
+    if (txids_needed.empty()) {
+        m_ready_to_calculate = false;
+        return false;
     }
 
+    // GatherClusters has a DoS limit of 500 transactions,
+    // we batch the calls to avoid hitting the limit.
+    const int total_size = txids_needed.size();
+    int start_index  = 0;
+
+    while (start_index < total_size) {
+        std::vector<uint256> txid_batch;
+        int end_index = std::min(start_index + CLUSTER_LIMIT, total_size);
+        std::copy(txids_needed.begin() + start_index, txids_needed.begin() + end_index, std::back_inserter(txid_batch));
+        auto cluster_batch  = mempool.GatherClusters(txid_batch);
+        auto cluster_end = cluster.end();
+        cluster.insert(cluster_end, cluster_batch.begin(), cluster_batch.end());
+        start_index += CLUSTER_LIMIT;
+    }
+    if (cluster.empty()) {
+        // An empty cluster means that at least one of the transactions is missing from the mempool
+        m_ready_to_calculate = false;
+        return false;
+    }
+    return true;
+}
+
+void MiniMiner::AddEntries(const CTxMemPool& mempool)
+{
+    AssertLockHeld(mempool.cs);
     // Add every entry to m_entries_by_txid and m_entries, except the ones that will be replaced.
     for (const auto& txiter : cluster) {
         if (!m_to_be_replaced.count(txiter->GetTx().GetHash())) {
@@ -88,7 +191,11 @@ MiniMiner::MiniMiner(const CTxMemPool& mempool, const std::vector<COutPoint>& ou
             }
         }
     }
+}
 
+void MiniMiner::BuildDescendantCache(const CTxMemPool& mempool)
+{
+    AssertLockHeld(mempool.cs);
     // Build the m_descendant_set_by_txid cache.
     for (const auto& txiter : cluster) {
         const auto& txid = txiter->GetTx().GetHash();
@@ -116,45 +223,7 @@ MiniMiner::MiniMiner(const CTxMemPool& mempool, const std::vector<COutPoint>& ou
             m_descendant_set_by_txid.emplace(txid, cached_descendants);
         }
     }
-
-    // Release the mempool lock; we now have all the information we need for a subset of the entries
-    // we care about. We will solely operate on the MiniMinerMempoolEntry map from now on.
-    Assume(m_in_block.empty());
-    Assume(m_requested_outpoints_by_txid.size() <= outpoints.size());
-    SanityCheck();
 }
-
-// Compare by min(ancestor feerate, individual feerate), then iterator
-//
-// Under the ancestor-based mining approach, high-feerate children can pay for parents, but high-feerate
-// parents do not incentive inclusion of their children. Therefore the mining algorithm only considers
-// transactions for inclusion on basis of the minimum of their own feerate or their ancestor feerate.
-struct AncestorFeerateComparator
-{
-    template<typename I>
-    bool operator()(const I& a, const I& b) const {
-        auto min_feerate = [](const MiniMinerMempoolEntry& e) -> CFeeRate {
-            const CAmount ancestor_fee{e.GetModFeesWithAncestors()};
-            const int64_t ancestor_size{e.GetSizeWithAncestors()};
-            const CAmount tx_fee{e.GetModifiedFee()};
-            const int64_t tx_size{e.GetTxSize()};
-            // Comparing ancestor feerate with individual feerate:
-            //     ancestor_fee / ancestor_size <= tx_fee / tx_size
-            // Avoid division and possible loss of precision by
-            // multiplying both sides by the sizes:
-            return ancestor_fee * tx_size < tx_fee * ancestor_size ?
-                       CFeeRate(ancestor_fee, ancestor_size) :
-                       CFeeRate(tx_fee, tx_size);
-        };
-        CFeeRate a_feerate{min_feerate(a->second)};
-        CFeeRate b_feerate{min_feerate(b->second)};
-        if (a_feerate != b_feerate) {
-            return a_feerate > b_feerate;
-        }
-        // Use txid as tiebreaker for stable sorting
-        return a->first < b->first;
-    }
-};
 
 void MiniMiner::DeleteAncestorPackage(const std::set<MockEntryMap::iterator, IteratorComparator>& ancestors)
 {

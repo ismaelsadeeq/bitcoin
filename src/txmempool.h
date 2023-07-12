@@ -52,6 +52,8 @@ static const uint32_t MEMPOOL_HEIGHT = 0x7FFFFFFF;
  */
 bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
+static const int CLUSTER_LIMIT{500};
+
 // extracts a transaction hash from CTxMemPoolEntry or CTransactionRef
 struct mempoolentry_txid
 {
