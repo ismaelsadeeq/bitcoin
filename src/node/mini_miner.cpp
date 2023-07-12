@@ -284,6 +284,10 @@ void MiniMiner::BuildMockTemplate(const CFeeRate& target_feerate)
         Assume(best_iter != m_entries.end());
         const auto ancestor_package_size = (*best_iter)->second.GetSizeWithAncestors();
         const auto ancestor_package_fee = (*best_iter)->second.GetModFeesWithAncestors();
+
+        const uint32_t package_size = static_cast<uint32_t>(ancestor_package_size);
+        size_per_fee_rate[CFeeRate(ancestor_package_fee, package_size)] += package_size;
+
         // Stop here. Everything that didn't "make it into the block" has bumpfee.
         if (ancestor_package_fee < target_feerate.GetFee(ancestor_package_size)) {
             break;
@@ -436,5 +440,11 @@ std::optional<CAmount> MiniMiner::CalculateTotalBumpFees(const CFeeRate& target_
     const auto ancestor_package_fee = std::accumulate(ancestors.cbegin(), ancestors.cend(), CAmount{0},
         [](CAmount sum, const auto it) {return sum + it->second.GetModifiedFee();});
     return target_feerate.GetFee(ancestor_package_size) - ancestor_package_fee;
+}
+
+std::map<CFeeRate, uint32_t> MiniMiner::GetMockTemplatFeeStats()
+{
+    BuildMockTemplate(mempool_min_fee_rate);
+    return size_per_fee_rate;
 }
 } // namespace node

@@ -58,6 +58,9 @@ class MiniMiner
     // mempool entries (i.e. cluster size too large) or bump fees have already been calculated.
     bool m_ready_to_calculate{true};
 
+
+    std::map<CFeeRate, uint32_t> size_per_fee_rate;
+
     // Set once per lifetime, fill in during initialization.
     // txids of to-be-replaced transactions
     std::set<uint256> m_to_be_replaced;
@@ -132,6 +135,8 @@ public:
      * not make it into the block to the target feerate. Returns the total bump fee, or std::nullopt
      * if it cannot be calculated. */
     std::optional<CAmount> CalculateTotalBumpFees(const CFeeRate& target_feerate);
+
+    std::map<CFeeRate, uint32_t> GetMockTemplatFeeStats();
 };
 } // namespace node
 
