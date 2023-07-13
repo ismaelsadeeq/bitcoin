@@ -11,6 +11,7 @@
 #include <core_io.h>
 #include <kernel/mempool_entry.h>
 #include <node/mempool_persist_args.h>
+#include <node/mini_miner.h>
 #include <policy/rbf.h>
 #include <policy/settings.h>
 #include <primitives/transaction.h>
@@ -910,6 +911,56 @@ static RPCHelpMan submitpackage()
     };
 }
 
+static RPCHelpMan getmempoolhistogram()
+{
+    return RPCHelpMan{"getmempoolhistogram",
+                "\nReturns mempool histogram statistics.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::ARR, "", "",
+                    {
+                        {
+                            RPCResult::Type::OBJ, "", "",
+                            {
+                                {RPCResult::Type::NUM, "feerate", "The feerate (in BTC/kvb)"},
+                                {RPCResult::Type::NUM, "vsize", "Number of vbytes at that feerate"},
+                            }
+                        },
+                    }
+                },
+                RPCExamples{
+                    HelpExampleCli("getmempoolhistogram", "")
+            + HelpExampleRpc("getmempoolhistogram", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{ 
+    std::map<CFeeRate, uint32_t> stats;
+    {
+        NodeContext& node = EnsureAnyNodeContext(request.context);
+        const CTxMemPool& mempool = EnsureMemPool(node);
+        std::vector<uint256> txids;
+        {
+            LOCK2(cs_main, mempool.cs);
+            const auto mempool_txs = mempool.infoAll();
+                for (const auto& transaction_info : mempool_txs) {
+                    txids.push_back(transaction_info.tx->GetHash());
+                }
+        }
+        stats = node::MiniMiner(mempool, txids).GetMockTemplatFeeStats();
+    }
+
+    UniValue ret(UniValue::VARR);
+    for (const auto& item : stats) {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("feerate", ValueFromAmount(item.first.GetFee(1000)));
+        obj.pushKV("vsize", item.second);
+        ret.push_back(std::move(obj));
+    }
+    return ret;
+},
+    };
+}
+
 void RegisterMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -918,6 +969,7 @@ void RegisterMempoolRPCCommands(CRPCTable& t)
         {"blockchain", &getmempoolancestors},
         {"blockchain", &getmempooldescendants},
         {"blockchain", &getmempoolentry},
+        {"blockchain", &getmempoolhistogram},
         {"blockchain", &gettxspendingprevout},
         {"blockchain", &getmempoolinfo},
         {"blockchain", &getrawmempool},
