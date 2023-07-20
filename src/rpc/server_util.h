@@ -10,6 +10,7 @@
 class ArgsManager;
 class CBlockPolicyEstimator;
 class CConnman;
+class CMemPoolPolicyEstimator;
 class CTxMemPool;
 class ChainstateManager;
 class PeerManager;
@@ -29,6 +30,8 @@ ChainstateManager& EnsureChainman(const node::NodeContext& node);
 ChainstateManager& EnsureAnyChainman(const std::any& context);
 CBlockPolicyEstimator& EnsureFeeEstimator(const node::NodeContext& node);
 CBlockPolicyEstimator& EnsureAnyFeeEstimator(const std::any& context);
+CMemPoolPolicyEstimator& EnsureMemPoolFeeEstimator(const node::NodeContext& node);
+CMemPoolPolicyEstimator& EnsureAnyMemPoolFeeEstimator(const std::any& context);
 CConnman& EnsureConnman(const node::NodeContext& node);
 PeerManager& EnsurePeerman(const node::NodeContext& node);
 
