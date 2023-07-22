@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <logging.h>
 #include <policy/mempool_fees.h>
 
 #include <node/miner.h>
@@ -20,6 +21,13 @@ CMemPoolPolicyEstimator::~CMemPoolPolicyEstimator() = default;
 
 CFeeRate CMemPoolPolicyEstimator::EstimateFeeWithMemPool(CTxMemPool& mempool, unsigned int confTarget) const
 {
+    {
+        if (!mempool.GetLoadTried()) {
+            LogPrintf("Mempool did not finish loading, can't get accurate fee rate estimate.\n");
+            return CFeeRate(0);
+        }
+    }
+
     std::map<CFeeRate, uint64_t> mempool_fee_stats;
     {
         LOCK(mempool.cs);
