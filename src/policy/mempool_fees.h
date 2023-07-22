@@ -14,6 +14,10 @@
 
 class Chainstate;
 class CTxMemPool;
+class CTxMemPoolEntry;
+
+// All high fee rate txs in the mempool are expected to confirm in the next 2 blocks.
+static const int HighFeeConfTarget{2};
 
 
 /**
@@ -47,6 +51,15 @@ public:
      * @return The estimated fee rate.
      */
     CFeeRate EstimateFeeWithMemPool(CTxMemPool& mempool, unsigned int confTarget) const;
+
+    /**
+     * Process a new mempool entry add or and adjust its confirmation target based on the
+     * estimated fee rate.
+     *
+     * @param mempool The reference to the mempool containing the entry.
+     * @param entry The mempool entry to be processed.
+     */
+    void ProcessMemPoolEntry(CTxMemPool& mempool, const CTxMemPoolEntry& entry);
 
 private:
     /**

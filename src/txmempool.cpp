@@ -13,6 +13,7 @@
 #include <consensus/validation.h>
 #include <logging.h>
 #include <policy/fees.h>
+#include <policy/mempool_fees.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <reverse_iterator.h>
@@ -463,6 +464,11 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
     m_total_fee += entry.GetFee();
     if (minerPolicyEstimator) {
         minerPolicyEstimator->processTransaction(entry, validFeeEstimate);
+    }
+
+    if (minerMemPoolPolicyEstimator) {
+        // if there is mempool fee estimator, process the new entry, for mempool fee estimation sanity check.
+        minerMemPoolPolicyEstimator->ProcessMemPoolEntry(*this, entry);
     }
 
     vTxHashes.emplace_back(tx.GetWitnessHash(), newit);

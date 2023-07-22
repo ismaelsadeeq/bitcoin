@@ -81,3 +81,27 @@ CFeeRate CMemPoolPolicyEstimator::CalculateMedianFeeRate(
         return mid_it->first;
     }
 }
+
+void CMemPoolPolicyEstimator::ProcessMemPoolEntry(CTxMemPool& mempool, const CTxMemPoolEntry& entry)
+{
+    // Estimate the fee rate required for the tx to confirm in the next 2 blocks
+    CFeeRate estimate = EstimateFeeWithMemPool(mempool, HighFeeConfTarget);
+
+    if (estimate == CFeeRate(0)) {
+        // If the estimate is zero (no txs in mempool), do nothing.
+        return;
+    }
+
+    // Calculate the ancestor tx fee rate (including the current tx)
+    CFeeRate tx_ancestor_fee_rate = CFeeRate(entry.GetModFeesWithAncestors(), entry.GetSizeWithAncestors());
+
+    if (estimate < tx_ancestor_fee_rate) {
+        // If the estimated fee rate is lower than the ancestor tx's fee rate,
+        // set the confirmation target to 0.
+        entry.SetConfTarget(0);
+        return;
+    }
+
+    // Set the confirmation target for the tx to 2 (expected to confirm in the next 2 blocks).
+    entry.SetConfTarget(HighFeeConfTarget);
+}

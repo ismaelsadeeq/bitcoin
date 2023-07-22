@@ -99,6 +99,8 @@ private:
     CAmount nModFeesWithAncestors;
     int64_t nSigOpCostWithAncestors;
 
+    mutable unsigned int confirmationTarget{0};
+
 public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmount fee,
                     int64_t time, unsigned int entry_height,
@@ -171,6 +173,13 @@ public:
 
     mutable size_t vTxHashesIdx; //!< Index in mempool's vTxHashes
     mutable Epoch::Marker m_epoch_marker; //!< epoch when last touched, useful for graph algorithms
+
+    unsigned int GetConfirmationTarget() const { return confirmationTarget; }
+
+    void SetConfTarget(unsigned int target) const
+    {
+        confirmationTarget = target;
+    }
 };
 
 #endif // BITCOIN_KERNEL_MEMPOOL_ENTRY_H

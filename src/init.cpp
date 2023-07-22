@@ -1544,6 +1544,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     if (node.chainman && node.mempool) {
         node.mempool_fee_estimator = std::make_unique<CMemPoolPolicyEstimator>(node.chainman->ActiveChainstate());
+        node.mempool->setMemPoolPolicyEstimator(*node.mempool_fee_estimator);
     }
 
     assert(!node.peerman);
