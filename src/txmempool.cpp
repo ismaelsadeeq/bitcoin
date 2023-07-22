@@ -517,6 +517,31 @@ bool CTxMemPool::CheckMemPoolIsInSync()
     return previousBlockInSync;
 }
 
+void CTxMemPool::CheckFailedEntries()
+{
+    AssertLockHeld(cs);
+    auto it = mapTx.get<ancestor_score>().begin();
+    auto iter = mapTx.project<0>(it);
+
+    //  Increment the `nfailedEntries` counter for in mempool high fee rate txs that failed
+    // to make it to their confirmation target block (based on the mempool fee estimator).
+    while ((it != mapTx.get<ancestor_score>().end()) && (iter->GetConfirmationTarget() > 0)) {
+        unsigned int blocksPassed = currentBlockHeight - iter->GetHeight();
+        if (blocksPassed <= iter->GetConfirmationTarget()) {
+            ++it;
+            iter = mapTx.project<0>(it);
+            continue;
+        }
+        iter->FailedToEnter();
+        if (minerMemPoolPolicyEstimator) {
+            // Check whether it is still a high fee rate tx.
+            minerMemPoolPolicyEstimator->ProcessMemPoolEntry(*this, *iter);
+        }
+        ++it;
+        iter = mapTx.project<0>(it);
+    }
+}
+
 void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
 {
     // We increment mempool sequence value no matter removal reason
@@ -700,6 +725,8 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     }
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = true;
+    // Check all high fee rate txs that fail to be confirmed in their confirmation target and increment there `nfailedEntries` count.
+    CheckFailedEntries();
 }
 
 void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendheight) const

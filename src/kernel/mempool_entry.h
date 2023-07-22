@@ -100,6 +100,7 @@ private:
     int64_t nSigOpCostWithAncestors;
 
     mutable unsigned int confirmationTarget{0};
+    mutable unsigned int nfailedEntries{0};
 
 public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmount fee,
@@ -179,6 +180,12 @@ public:
     void SetConfTarget(unsigned int target) const
     {
         confirmationTarget = target;
+    }
+    unsigned int GetFailedEntries() const { return nfailedEntries; }
+
+    void FailedToEnter() const
+    {
+        ++nfailedEntries;
     }
 };
 

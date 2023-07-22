@@ -435,6 +435,9 @@ public:
     // txs that suppose to confirm in the next two blocks and did not confirm are very high (up to a blocks).
     bool CheckMemPoolIsInSync() EXCLUSIVE_LOCKS_REQUIRED(cs);
 
+    // Check for high fee rate txs that failed to reach their intended confirmation target and increment their 'nfailedEntries' counter.
+    void CheckFailedEntries() EXCLUSIVE_LOCKS_REQUIRED(cs);
+
 private:
     typedef std::map<txiter, setEntries, CompareIteratorByHash> cacheMap;
 
