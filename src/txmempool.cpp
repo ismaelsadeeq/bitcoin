@@ -481,6 +481,42 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
     );
 }
 
+bool CTxMemPool::CheckMemPoolIsInSync()
+{
+    LOCK(cs);
+    int64_t size{0};
+    auto it = mapTx.get<ancestor_score>().begin();
+    auto iter = mapTx.project<0>(it);
+
+    // Calculate the size of all high fee rate unconfirmed txs that have passed there
+    // intended confirmation target (based on the mempool fee estimator).
+    while ((it != mapTx.get<ancestor_score>().end()) && (iter->GetConfirmationTarget() > 0)) {
+        unsigned int blocksPassed = currentBlockHeight - iter->GetHeight();
+        if (blocksPassed <= (iter->GetConfirmationTarget())) {
+            ++it;
+            iter = mapTx.project<0>(it);
+            continue;
+        }
+        size += iter->GetSizeWithAncestors();
+        if (minerMemPoolPolicyEstimator) {
+            // Check whether it is still a high fee rate tx.
+            minerMemPoolPolicyEstimator->ProcessMemPoolEntry(*this, *iter);
+        }
+        ++it;
+        iter = mapTx.project<0>(it);
+    }
+
+    // If the size of txs that have passed their confirmation target according to the mempool based fee confirmation
+    // is more than 1 blocks then it is most likely that our mempool is not in sync with miners mempool.
+    // Else our high fee txs are confirming, and our mempool might be in sync.
+    if (size > (DEFAULT_BLOCK_MAX_WEIGHT)) {
+        return true;
+    }
+
+    // If the above check passed then return whether our mempool has most of the txs in the previous block or not.
+    return previousBlockInSync;
+}
+
 void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
 {
     // We increment mempool sequence value no matter removal reason
@@ -629,14 +665,25 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight)
 {
     AssertLockHeld(cs);
+    currentBlockHeight = nBlockHeight;
     std::vector<const CTxMemPoolEntry*> entries;
+    unsigned int sizeOfTransactionsNotTheMemPool{0};
     for (const auto& tx : vtx)
     {
         uint256 hash = tx->GetHash();
 
         indexed_transaction_set::iterator i = mapTx.find(hash);
-        if (i != mapTx.end())
+        if (i != mapTx.end()) {
             entries.push_back(&*i);
+            sizeOfTransactionsNotTheMemPool += static_cast<unsigned int>(entries.back()->GetTxSize());
+        }
+    }
+    if ((sizeOfTransactionsNotTheMemPool < (DEFAULT_BLOCK_MAX_WEIGHT / 2)) && !previousBlockInSync) {
+        // If the size of txs is less than half of a block weight size, the mempool might be in sync with miners mempool.
+        previousBlockInSync = true;
+    } else if (previousBlockInSync) {
+        // Else it is obviously not in sync.
+        previousBlockInSync = false;
     }
     // Before the txs in the new block have been removed from the mempool, update policy estimates
     if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}

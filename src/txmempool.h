@@ -344,6 +344,13 @@ protected:
 
     CFeeRate GetMinFee(size_t sizelimit) const;
 
+    // Indicates whether the mempool is in sync with miners mempool.
+    // It does that by checking whether most of the txs in the previous block are in the mempool or not.
+    bool previousBlockInSync;
+
+    // The height of the latest block.
+    unsigned int currentBlockHeight;
+
 public:
 
     static const int ROLLING_FEE_HALFLIFE = 60 * 60 * 12; // public only for testing
@@ -423,6 +430,10 @@ public:
     {
         minerMemPoolPolicyEstimator = &mempoolPolicyEstimator;
     }
+
+    // Check whether the mempool is in sync with the global miners mempool using `previousBlockInSync` or if the of high fee rate
+    // txs that suppose to confirm in the next two blocks and did not confirm are very high (up to a blocks).
+    bool CheckMemPoolIsInSync() EXCLUSIVE_LOCKS_REQUIRED(cs);
 
 private:
     typedef std::map<txiter, setEntries, CompareIteratorByHash> cacheMap;
