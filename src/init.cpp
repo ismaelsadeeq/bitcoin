@@ -55,6 +55,7 @@
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/fees_args.h>
+#include <policy/mempool_fees.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <protocol.h>
@@ -342,6 +343,7 @@ void Shutdown(NodeContext& node)
     UnregisterAllValidationInterfaces();
     GetMainSignals().UnregisterBackgroundSignalScheduler();
     node.kernel.reset();
+    node.mempool_fee_estimator.reset();
     node.mempool.reset();
     node.fee_estimator.reset();
     node.chainman.reset();
@@ -1537,6 +1539,12 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     }
 
     ChainstateManager& chainman = *Assert(node.chainman);
+
+    assert(!node.mempool_fee_estimator);
+
+    if (node.chainman && node.mempool) {
+        node.mempool_fee_estimator = std::make_unique<CMemPoolPolicyEstimator>(node.chainman->ActiveChainstate());
+    }
 
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman, node.banman.get(),
