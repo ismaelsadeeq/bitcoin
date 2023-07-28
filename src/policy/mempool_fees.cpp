@@ -26,8 +26,11 @@ CFeeRate CMemPoolPolicyEstimator::EstimateFeeWithMemPool(CTxMemPool& mempool, un
             LogPrintf("Mempool did not finish loading, can't get accurate fee rate estimate.\n");
             return CFeeRate(0);
         }
+        if (!mempool.CheckMemPoolIsInSync()) {
+            LogPrintf("CMemPoolPolicyEstimator: Mempool is not in sync with miners mempool \n");
+            return CFeeRate(0);
+        }
     }
-
     std::map<CFeeRate, uint64_t> mempool_fee_stats;
     {
         LOCK(mempool.cs);

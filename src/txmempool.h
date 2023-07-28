@@ -342,6 +342,9 @@ protected:
 
     CFeeRate GetMinFee(size_t sizelimit) const;
 
+    // Indicates whether the mempool is in sync with miners mempool.
+    bool previousBlockInSync{false};
+
 public:
 
     static const int ROLLING_FEE_HALFLIFE = 60 * 60 * 12; // public only for testing
@@ -416,6 +419,9 @@ public:
     using Limits = kernel::MemPoolLimits;
 
     uint64_t CalculateDescendantMaximum(txiter entry) const EXCLUSIVE_LOCKS_REQUIRED(cs);
+
+    bool CheckMemPoolIsInSync() const;
+
 private:
     typedef std::map<txiter, setEntries, CompareIteratorByHash> cacheMap;
 
