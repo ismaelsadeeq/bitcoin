@@ -126,12 +126,27 @@ class AddrmanTest(BitcoinTestFramework):
             match=ErrorMatch.FULL_REGEX,
         )
 
+        self.log.info("Check that corrupt addrman cannot be read (large len_tried)")
+        write_addrman(peers_dat, len_tried=max_len_tried + 1)
+        self.nodes[0].assert_start_raises_init_error(
+            expected_msg=init_error(f"Corrupt AddrMan serialization: nTried={max_len_tried + 1}, should be in \\[0, {max_len_tried}\\]:.*"),
+            match=ErrorMatch.FULL_REGEX,
+        )
+
         self.log.info("Check that corrupt addrman cannot be read (len_new)")
         self.stop_node(0)
         max_len_n_new = ADDRMAN_NEW_BUCKET_COUNT * ADDRMAN_BUCKET_SIZE
         write_addrman(peers_dat, len_new=-1)
         self.nodes[0].assert_start_raises_init_error(
             expected_msg=init_error(f"Corrupt AddrMan serialization: nNew=-1, should be in \\[0, {max_len_n_new}\\]:.*"),
+            match=ErrorMatch.FULL_REGEX,
+        )
+
+        self.log.info("Check that corrupt addrman cannot be read (large len_new)")
+        self.stop_node(0)
+        write_addrman(peers_dat, len_new=max_len_n_new + 1)
+        self.nodes[0].assert_start_raises_init_error(
+            expected_msg=init_error(f"Corrupt AddrMan serialization: nNew={max_len_n_new + 1}, should be in \\[0, {max_len_n_new}\\]:.*"),
             match=ErrorMatch.FULL_REGEX,
         )
 
