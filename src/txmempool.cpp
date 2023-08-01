@@ -620,6 +620,38 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 /**
  * Called when a block is connected. Removes from mempool and updates the miner fee estimator.
  */
+void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, std::vector<CFeeRate>& vtx_feerates)
+{
+    AssertLockHeld(cs);
+    auto size = vtx_feerates.size();
+    if (size <= 1 || !GetLoadTried()) {
+        removeForBlock(vtx, nBlockHeight);
+        return;
+    }
+    std::sort(vtx_feerates.begin(), vtx_feerates.end(),  [](const CFeeRate& a, const CFeeRate& b){
+        return a.GetFeePerK() > b.GetFeePerK();
+    });
+    CAmount median_feerate;
+    if (size % 2 == 0 ) {
+        auto mid = size / 2;
+        median_feerate = (vtx_feerates[mid].GetFeePerK() + vtx_feerates[mid - 1].GetFeePerK()) / 2;
+    } else {
+        auto mid = size / 2;
+        median_feerate = vtx_feerates[mid - 1].GetFeePerK();
+    }
+    {
+        indexed_transaction_set::index<ancestor_score>::type::iterator mi = mapTx.get<ancestor_score>().begin();
+        while (mi != mapTx.get<ancestor_score>().end()) {
+            auto iter = mapTx.project<0>(mi);
+            if (fee_rate.GetFeePerK() >= median_feerate) {
+                iter->failedToEnter();
+            }
+            ++mi;
+        }
+    }
+    removeForBlock(vtx, nBlockHeight);
+}
+
 void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight)
 {
     AssertLockHeld(cs);
@@ -662,6 +694,19 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     blockSinceLastRollingFeeBump = true;
 }
 
+std::vector<CTxMemPool::txiter> CTxMemPool::GetfailedEntriesIters() const
+{
+    indexed_transaction_set::index<ancestor_score>::type::iterator mi = mapTx.get<ancestor_score>().begin();
+    std::vector<txiter> failedTxs;
+    while (mi != mapTx.get<ancestor_score>().end()) {
+        auto iter = mapTx.project<0>(mi);
+        if (iter->getFailedEntries() >= MAXIMUM_FAILED_ENTRIES) {
+            failedTxs.push_back(iter);
+        }
+        ++mi;
+    }   
+    return failedTxs; 
+}
 void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendheight) const
 {
     if (m_check_ratio == 0) return;

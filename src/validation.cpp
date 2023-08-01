@@ -2814,8 +2814,10 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     // num_blocks_total may be zero until the ConnectBlock() call below.
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms\n",
              Ticks<MillisecondsDouble>(time_2 - time_1));
+    std::vector<CFeeRate> vtx_feerates;
     {
         CCoinsViewCache view(&CoinsTip());
+        vtx_feerates = GetBlockFeeRates(view, blockConnecting.vtx);
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view);
         GetMainSignals().BlockChecked(blockConnecting, state);
         if (!rv) {
@@ -2851,7 +2853,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
              Ticks<MillisecondsDouble>(time_chainstate) / num_blocks_total);
     // Remove conflicting transactions from the mempool.;
     if (m_mempool) {
-        m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
+        m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight, vtx_feerates);
         disconnectpool.removeForBlock(blockConnecting.vtx);
     }
     // Update m_chain & related variables.

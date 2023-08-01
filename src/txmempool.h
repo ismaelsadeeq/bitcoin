@@ -47,6 +47,8 @@ class Chainstate;
 /** Fake height value used in Coin to signify they are only in the memory pool (since 0.8) */
 static const uint32_t MEMPOOL_HEIGHT = 0x7FFFFFFF;
 
+static const unsigned int MAXIMUM_FAILED_ENTRIES{5};
+
 /**
  * Test whether the LockPoints height and time are still valid on the current chain
  */
@@ -507,6 +509,8 @@ public:
      * */
     void removeForReorg(CChain& chain, std::function<bool(txiter)> filter_final_and_mature) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
     void removeConflicts(const CTransaction& tx) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, std::vector<CFeeRate>& vtx_fee) EXCLUSIVE_LOCKS_REQUIRED(cs);
+
     void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     bool CompareDepthAndScore(const uint256& hasha, const uint256& hashb, bool wtxid=false);
@@ -753,6 +757,7 @@ public:
         return m_sequence_number;
     }
 
+    std::vector<txiter> GetfailedEntriesIters() const EXCLUSIVE_LOCKS_REQUIRED(cs);
 private:
     /** UpdateForDescendants is used by UpdateTransactionsFromBlock to update
      *  the descendants for a single transaction that has been added to the
