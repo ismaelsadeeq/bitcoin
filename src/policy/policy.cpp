@@ -306,3 +306,25 @@ int64_t GetVirtualTransactionInputSize(const CTxIn& txin, int64_t nSigOpCost, un
 {
     return GetVirtualTransactionSize(GetTransactionInputWeight(txin), nSigOpCost, bytes_per_sigop);
 }
+
+CAmount GetInputValues(const CCoinsViewCache& mapInputs, const std::vector<CTxIn>& inputs)
+{
+    CAmount txInsValue{0};
+    for (auto& in: inputs){
+        CTxOut output = mapInputs.AccessCoin(in.prevout).out;
+        txInsValue += output.nValue;
+    }
+    return txInsValue;
+}
+
+std::vector<CFeeRate> GetBlockFeeRates(const CCoinsViewCache& mapInputs, const std::vector<CTransactionRef>& vtxs)
+{
+    std::vector<CFeeRate> fee_rates;
+    for(auto& vtx: vtxs){
+        const CTransaction& tx = *vtx;
+        CAmount fee = GetInputValues(mapInputs, tx.vin) - tx.GetValueOut();
+        auto vsize = GetVirtualTransactionSize(tx);
+        fee_rates.push_back(CFeeRate(fee, static_cast<uint64_t>(vsize)));
+    }
+    return fee_rates;
+}

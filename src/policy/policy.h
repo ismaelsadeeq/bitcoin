@@ -148,4 +148,8 @@ static inline int64_t GetVirtualTransactionInputSize(const CTxIn& tx)
     return GetVirtualTransactionInputSize(tx, 0, 0);
 }
 
+CAmount GetInputValues(const CCoinsViewCache& mapInputs, const std::vector<CTxIn>& inputs);
+
+std::vector<CFeeRate> GetBlockFeeRates(const CCoinsViewCache& mapInputs, const std::vector<CTransactionRef>& vtx);
+
 #endif // BITCOIN_POLICY_POLICY_H
