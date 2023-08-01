@@ -34,7 +34,8 @@ CFeeRate CMemPoolPolicyEstimator::EstimateFeeWithMemPool(CTxMemPool& mempool, un
     std::map<CFeeRate, uint64_t> mempool_fee_stats;
     {
         LOCK(mempool.cs);
-        mempool_fee_stats = GetMempoolHistogram(*m_chainstate, mempool);
+        std::vector<CTxMemPool::txiter> tx_to_exlude = mempool.GetfailedEntriesIters();
+        mempool_fee_stats = GetMempoolHistogram(*m_chainstate, mempool, tx_to_exlude);
     }
     if (mempool_fee_stats.empty()) {
         return CFeeRate(0); // Return an appropriate default value (no txs in the mempool)

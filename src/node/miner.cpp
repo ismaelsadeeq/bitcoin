@@ -108,7 +108,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 {
     const auto time_start{SteadyClock::now()};
 
-    resetBlock();
+    if(!excludeTx) { resetBlock(); };
 
     pblocktemplate.reset(new CBlockTemplate());
 
@@ -436,12 +436,24 @@ std::map<CFeeRate, uint64_t> BlockAssembler::GetFeeRateStats()
     return std::move(size_per_feerate);
 }
 
-std::map<CFeeRate, uint64_t> GetMempoolHistogram(Chainstate& chainstate, const CTxMemPool& mempool)
+void BlockAssembler::ExcludeTransactions(std::vector<CTxMemPool::txiter>& tx_iters)
+{
+    for (auto& iter: tx_iters)
+    {
+        inBlock.insert(iter);
+    }
+    excludeTx = true;
+}
+std::map<CFeeRate, uint64_t> GetMempoolHistogram(Chainstate& chainstate, const CTxMemPool& mempool, std::vector<CTxMemPool::txiter>& tx_iters)
 {
     BlockAssembler::Options options;
     options.nBlockMaxWeight = std::nullopt;
     BlockAssembler assembler(chainstate, &mempool, options);
+    if (tx_iters.size() > 0) {
+        assembler.ExcludeTransactions(tx_iters);
+    }
     assembler.CreateNewBlock(CScript{});
+    assembler.DoNotExclude();
     return assembler.GetFeeRateStats();
 }
 } // namespace node

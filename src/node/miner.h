@@ -151,6 +151,7 @@ private:
     const CChainParams& chainparams;
     const CTxMemPool* const m_mempool;
     Chainstate& m_chainstate;
+    bool excludeTx{false};
 
 public:
     struct Options {
@@ -173,6 +174,12 @@ public:
     /** Return a map from feerates to vbyte, indicating how many vbytes were
      *  included in the block at which feerate. This can only be called once. */
     std::map<CFeeRate, uint64_t> GetFeeRateStats();
+
+    void ExcludeTransactions(std::vector<CTxMemPool::txiter>& tx_iters);
+
+    void DoNotExclude() {
+        excludeTx = false;
+    }
 
 private:
     const Options m_options;
@@ -209,7 +216,7 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
 
 /** Get feerate statistics for the whole mempool. */
-std::map<CFeeRate, uint64_t> GetMempoolHistogram(Chainstate& chainstate, const CTxMemPool& mempool);
+std::map<CFeeRate, uint64_t> GetMempoolHistogram(Chainstate& chainstate, const CTxMemPool& mempool, std::vector<CTxMemPool::txiter>& tx_iters);
 
 /** Apply -blockmintxfee and -blockmaxweight options from ArgsManager to BlockAssembler options. */
 void ApplyArgsManOptions(const ArgsManager& gArgs, BlockAssembler::Options& options);

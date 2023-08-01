@@ -643,6 +643,7 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         indexed_transaction_set::index<ancestor_score>::type::iterator mi = mapTx.get<ancestor_score>().begin();
         while (mi != mapTx.get<ancestor_score>().end()) {
             auto iter = mapTx.project<0>(mi);
+            auto fee_rate = CFeeRate(iter->GetModFeesWithAncestors(), iter->GetSizeWithAncestors());
             if (fee_rate.GetFeePerK() >= median_feerate) {
                 iter->failedToEnter();
             }
