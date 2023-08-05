@@ -671,12 +671,12 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
             vsize_of_txs_not_in_mempool += tx_vsize;
         }
     }
-    if ((vsize_of_txs_not_in_mempool < (total_block_vsize / 2)) && !previousBlockInSync) {
+    if ((vsize_of_txs_not_in_mempool < (total_block_vsize / 2)) && !previousBlockRoughlySynced) {
         // If the size of txs in the block that are not in our mempool is less than half of the block size
         // our mempool is not in sync with miners mempool, fee estimate with the mempool txs will not be desirable.
-        previousBlockInSync = true;
-    } else if (previousBlockInSync) {
-        previousBlockInSync = false;
+        previousBlockRoughlySynced = true;
+    } else if (previousBlockRoughlySynced) {
+        previousBlockRoughlySynced = false;
     }
     // Before the txs in the new block have been removed from the mempool, update policy estimates
     if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
@@ -1239,10 +1239,10 @@ bool CTxMemPool::GetLoadTried() const
     return m_load_tried;
 }
 
-bool CTxMemPool::CheckMemPoolIsInSync() const
+bool CTxMemPool::RoughlySynced() const
 {
     LOCK(cs);
-    return previousBlockInSync;
+    return previousBlockRoughlySynced;
 }
 
 void CTxMemPool::SetLoadTried(bool load_tried)

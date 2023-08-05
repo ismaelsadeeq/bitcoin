@@ -344,8 +344,8 @@ protected:
 
     CFeeRate GetMinFee(size_t sizelimit) const;
 
-    // Indicates whether the mempool is in sync with miners mempool.
-    bool previousBlockInSync{false};
+    // Indicates whether the mempool is roughly in sync with miners mempool.
+    bool previousBlockRoughlySynced{false};
 
 public:
 
@@ -422,7 +422,7 @@ public:
 
     uint64_t CalculateDescendantMaximum(txiter entry) const EXCLUSIVE_LOCKS_REQUIRED(cs);
 
-    bool CheckMemPoolIsInSync() const;
+    bool RoughlySynced() const;
 
 private:
     typedef std::map<txiter, setEntries, CompareIteratorByHash> cacheMap;

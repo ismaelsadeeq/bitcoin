@@ -123,7 +123,7 @@ static RPCHelpMan estimatesfeewithmempool()
             const unsigned int conf_target = request.params[0].getInt<unsigned int>();
             CFeeRate feeRate;
             {
-                LOCK(cs_main);
+                LOCK2(cs_main, mempool.cs);
                 feeRate = fee_estimator.EstimateFeeWithMemPool(mempool, conf_target);
             }
             UniValue result(UniValue::VOBJ);

@@ -93,8 +93,6 @@ BlockAssembler::BlockAssembler(Chainstate& chainstate, const CTxMemPool* mempool
 
 void BlockAssembler::resetBlock()
 {
-    inBlock.clear();
-
     // Reserve space for coinbase tx
     nBlockWeight = 4000;
     nBlockSigOpsCost = 400;
@@ -104,11 +102,21 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
+void BlockAssembler::resetAndClearInBlock()
+{
+    inBlock.clear();
+    resetBlock();
+}
+
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 {
     const auto time_start{SteadyClock::now()};
 
-    if(!excludeTx) { resetBlock(); };
+    if(excludeTxs) {
+        resetBlock(); 
+    } else {
+        resetAndClearInBlock();
+    }
 
     pblocktemplate.reset(new CBlockTemplate());
 
@@ -442,18 +450,19 @@ void BlockAssembler::ExcludeTransactions(std::vector<CTxMemPool::txiter>& tx_ite
     {
         inBlock.insert(iter);
     }
-    excludeTx = true;
+    excludeTxs = true;
 }
 std::map<CFeeRate, uint64_t> GetMempoolHistogram(Chainstate& chainstate, const CTxMemPool& mempool, std::vector<CTxMemPool::txiter>& tx_iters)
 {
     BlockAssembler::Options options;
     options.nBlockMaxWeight = std::nullopt;
     BlockAssembler assembler(chainstate, &mempool, options);
-    if (tx_iters.size() > 0) {
-        assembler.ExcludeTransactions(tx_iters);
-    }
+
+    // if (tx_iters.size() > 0) {
+    //     assembler.ExcludeTransactions(tx_iters);
+    // }
     assembler.CreateNewBlock(CScript{});
-    assembler.DoNotExclude();
+    // assembler.DoNotExclude();
     return assembler.GetFeeRateStats();
 }
 } // namespace node

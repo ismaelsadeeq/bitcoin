@@ -151,7 +151,8 @@ private:
     const CChainParams& chainparams;
     const CTxMemPool* const m_mempool;
     Chainstate& m_chainstate;
-    bool excludeTx{false};
+    
+    bool excludeTxs{false};
 
 public:
     struct Options {
@@ -178,7 +179,7 @@ public:
     void ExcludeTransactions(std::vector<CTxMemPool::txiter>& tx_iters);
 
     void DoNotExclude() {
-        excludeTx = false;
+        excludeTxs = false;
     }
 
 private:
@@ -187,6 +188,8 @@ private:
     // utility functions
     /** Clear the block's state and prepare for assembling a new block */
     void resetBlock();
+
+    void resetAndClearInBlock();
     /** Add a tx to the block */
     void AddToBlock(CTxMemPool::txiter iter);
 

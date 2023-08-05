@@ -21,19 +21,16 @@ CMemPoolPolicyEstimator::~CMemPoolPolicyEstimator() = default;
 
 CFeeRate CMemPoolPolicyEstimator::EstimateFeeWithMemPool(CTxMemPool& mempool, unsigned int confTarget) const
 {
-    {
-        if (!mempool.GetLoadTried()) {
-            LogPrintf("Mempool did not finish loading, can't get accurate fee rate estimate.\n");
-            return CFeeRate(0);
-        }
-        if (!mempool.CheckMemPoolIsInSync()) {
-            LogPrintf("CMemPoolPolicyEstimator: Mempool is not in sync with miners mempool \n");
-            return CFeeRate(0);
-        }
+    if (!mempool.GetLoadTried()) {
+        LogPrintf("Mempool did not finish loading, can't get accurate fee rate estimate.\n");
+        return CFeeRate(0);
     }
+    if (!mempool.RoughlySynced()) {
+        LogPrintf("CMemPoolPolicyEstimator: Mempool is not in sync with miners mempool \n");
+        return CFeeRate(0);
+    } 
     std::map<CFeeRate, uint64_t> mempool_fee_stats;
     {
-        LOCK(mempool.cs);
         std::vector<CTxMemPool::txiter> tx_to_exlude = mempool.GetfailedEntriesIters();
         mempool_fee_stats = GetMempoolHistogram(*m_chainstate, mempool, tx_to_exlude);
     }
