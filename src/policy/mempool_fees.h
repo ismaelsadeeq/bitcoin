@@ -20,6 +20,8 @@ class CTxMemPoolEntry;
 // based on the mempool transactions
 static constexpr std::chrono::minutes APPROX_TIME_TO_GENERATE_BLK{5};
 
+static const unsigned int MAXIMUM_FAILED_ENTRIES{5};
+
 /**
  * MemPoolPolicyEstimator estimates the fee rate that a tx should pay
  * to be included in a confirmation target based on the mempool
@@ -50,7 +52,7 @@ public:
     void BuildExpectedBlockTemplate(Chainstate& chainstate, const CTxMemPool* mempool);
 
     // Update our sanity check when ever we receive a new block, so that we wont make inaccurate estimate.
-    void processBlock(unsigned int nBlockHeight, bool block_roughly_synced);
+    void processBlock(unsigned int nBlockHeight, std::vector<const CTxMemPoolEntry*>& entries, bool block_roughly_synced);
 
     bool RoughlySynced() const; // Tells us whether our mempool is rougly in sync with miners mempool.
 

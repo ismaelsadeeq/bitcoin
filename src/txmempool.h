@@ -749,6 +749,8 @@ public:
         return m_sequence_number;
     }
 
+    std::vector<txiter> GetfailedEntriesIters() const EXCLUSIVE_LOCKS_REQUIRED(cs);
+
 private:
     /** UpdateForDescendants is used by UpdateTransactionsFromBlock to update
      *  the descendants for a single transaction that has been added to the

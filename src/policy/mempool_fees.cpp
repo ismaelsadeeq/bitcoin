@@ -103,13 +103,28 @@ void MemPoolPolicyEstimator::BuildExpectedBlockTemplate(Chainstate& chainstate, 
     block_template = std::nullopt;
 }
 
-void MemPoolPolicyEstimator::processBlock(unsigned int nBlockHeight, bool block_roughly_synced)
+void MemPoolPolicyEstimator::processBlock(unsigned int nBlockHeight, std::vector<const CTxMemPoolEntry*>& entries, bool block_roughly_synced)
 {
     MemPoolPolicyEstimator::block_info new_blk_info = {nBlockHeight, block_roughly_synced};
     recordBlockStatus(new_blk_info);
+    if (!block_template) {
+        return;
+    }
+
+    std::map<CTransactionRef, const CTxMemPoolEntry*> entry_map;
+    for (const CTxMemPoolEntry* entry : entries) {
+        entry_map[entry->GetSharedTx()] = entry;
+    }
+    for (const CTransactionRef& tx : block_template->vtx) {
+        auto entry = entry_map.find(tx);
+        if (entry != entry_map.end()) {
+            entry->second->failedToEnter();
+        }
+    }
 }
 
-void MemPoolPolicyEstimator::recordBlockStatus(MemPoolPolicyEstimator::block_info& new_blk_info) {
+void MemPoolPolicyEstimator::recordBlockStatus(MemPoolPolicyEstimator::block_info& new_blk_info)
+{
     // Ensure blocks are in order; if not, reset with the new block
     if (!top_block_in_order()) {
         top_blocks = {new_blk_info};

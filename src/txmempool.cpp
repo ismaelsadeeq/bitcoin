@@ -645,7 +645,9 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     // the block is rougly in sync wwith our mempool.
     bool block_roughly_synced = txs_not_in_mempool_vsize < (block_vsize / 2);
 
-    if (mempoolPolicyEstimator) {mempoolPolicyEstimator->processBlock(nBlockHeight, block_roughly_synced);}
+    if (mempoolPolicyEstimator) {
+        mempoolPolicyEstimator->processBlock(nBlockHeight, entries, block_roughly_synced);
+    }
 
     // Before the txs in the new block have been removed from the mempool, update policy estimates
     if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
@@ -664,6 +666,27 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     blockSinceLastRollingFeeBump = true;
 }
 
+std::vector<CTxMemPool::txiter> CTxMemPool::GetfailedEntriesIters() const
+{
+    AssertLockHeld(cs);
+    indexed_transaction_set::index<ancestor_score>::type::iterator mi = mapTx.get<ancestor_score>().begin();
+    std::vector<txiter> failedTxs;
+    while (mi != mapTx.get<ancestor_score>().end()) {
+        auto iter = mapTx.project<0>(mi);
+        if (iter->getFailedEntries() >= MAXIMUM_FAILED_ENTRIES) {
+            // If a tx continously fail to enter to block after we expect it to be mined for some number of times
+            // exclude it and all it's descendants from mempool policy fee estimation.
+            setEntries setAllRemoves;
+            CalculateDescendants(iter, setAllRemoves);
+            for (txiter it : setAllRemoves) {
+                failedTxs.push_back(it);
+            }
+        }
+        ++mi;
+    }
+
+    return failedTxs;
+}
 void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendheight) const
 {
     if (m_check_ratio == 0) return;
