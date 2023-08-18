@@ -22,6 +22,7 @@ struct TestMemPoolEntryHelper {
     bool spendsCoinbase{false};
     unsigned int sigOpCost{4};
     LockPoints lp;
+    unsigned int failedEntries{0};
 
     CTxMemPoolEntry FromTx(const CMutableTransaction& tx) const;
     CTxMemPoolEntry FromTx(const CTransactionRef& tx) const;

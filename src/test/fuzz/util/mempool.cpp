@@ -26,5 +26,6 @@ CTxMemPoolEntry ConsumeTxMemPoolEntry(FuzzedDataProvider& fuzzed_data_provider, 
     const unsigned int entry_height = fuzzed_data_provider.ConsumeIntegral<unsigned int>();
     const bool spends_coinbase = fuzzed_data_provider.ConsumeBool();
     const unsigned int sig_op_cost = fuzzed_data_provider.ConsumeIntegralInRange<unsigned int>(0, MAX_BLOCK_SIGOPS_COST);
-    return CTxMemPoolEntry{MakeTransactionRef(tx), fee, time, entry_height, spends_coinbase, sig_op_cost, {}};
+    const unsigned int failedEntries = fuzzed_data_provider.ConsumeIntegral<unsigned int>();
+    return CTxMemPoolEntry{MakeTransactionRef(tx), fee, time, entry_height, spends_coinbase, sig_op_cost, {}, failedEntries};
 }

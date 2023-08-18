@@ -98,12 +98,13 @@ private:
     int64_t nSizeWithAncestors;
     CAmount nModFeesWithAncestors;
     int64_t nSigOpCostWithAncestors;
+    mutable unsigned int nFailedEntries;
 
 public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmount fee,
                     int64_t time, unsigned int entry_height,
                     bool spends_coinbase,
-                    int64_t sigops_cost, LockPoints lp)
+                    int64_t sigops_cost, LockPoints lp, unsigned int failedEntries)
         : tx{tx},
           nFee{fee},
           nTxWeight{GetTransactionWeight(*tx)},
@@ -118,7 +119,8 @@ public:
           nModFeesWithDescendants{nFee},
           nSizeWithAncestors{GetTxSize()},
           nModFeesWithAncestors{nFee},
-          nSigOpCostWithAncestors{sigOpCost} {}
+          nSigOpCostWithAncestors{sigOpCost},
+          nFailedEntries{failedEntries} {}
 
     const CTransaction& GetTx() const { return *this->tx; }
     CTransactionRef GetSharedTx() const { return this->tx; }

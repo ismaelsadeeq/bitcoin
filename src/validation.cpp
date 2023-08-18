@@ -306,9 +306,10 @@ void Chainstate::MaybeUpdateMempoolForReorg(
     while (it != disconnectpool.queuedTx.get<insertion_order>().rend()) {
         // ignore validation errors in resurrected transactions
         if (!fAddToMempool || (*it)->IsCoinBase() ||
-            AcceptToMemoryPool(*this, *it, GetTime(),
-                /*bypass_limits=*/true, /*test_accept=*/false).m_result_type !=
-                    MempoolAcceptResult::ResultType::VALID) {
+            AcceptToMemoryPool(*this, *it, GetTime(), /*failedEntries*/ 0,
+                               /*bypass_limits=*/true, /*test_accept=*/false)
+                    .m_result_type !=
+                MempoolAcceptResult::ResultType::VALID) {
             // If the transaction doesn't make it in to the mempool, remove any
             // transactions that depend on it (which would now be orphans).
             m_mempool->removeRecursive(**it, MemPoolRemovalReason::REORG);
@@ -442,6 +443,7 @@ public:
     struct ATMPArgs {
         const CChainParams& m_chainparams;
         const int64_t m_accept_time;
+        unsigned int m_failed_entries;
         const bool m_bypass_limits;
         /*
          * Return any outpoints which were not previously present in the coins
@@ -467,58 +469,67 @@ public:
         const bool m_package_feerates;
 
         /** Parameters for single transaction mempool validation. */
-        static ATMPArgs SingleAccept(const CChainParams& chainparams, int64_t accept_time,
+        static ATMPArgs SingleAccept(const CChainParams& chainparams, int64_t accept_time, unsigned int failedEntries,
                                      bool bypass_limits, std::vector<COutPoint>& coins_to_uncache,
-                                     bool test_accept) {
-            return ATMPArgs{/* m_chainparams */ chainparams,
-                            /* m_accept_time */ accept_time,
-                            /* m_bypass_limits */ bypass_limits,
-                            /* m_coins_to_uncache */ coins_to_uncache,
-                            /* m_test_accept */ test_accept,
-                            /* m_allow_replacement */ true,
-                            /* m_package_submission */ false,
-                            /* m_package_feerates */ false,
+                                     bool test_accept)
+        {
+            return ATMPArgs{
+                /* m_chainparams */ chainparams,
+                /* m_accept_time */ accept_time,
+                /* m_failed_entries */ failedEntries,
+                /* m_bypass_limits */ bypass_limits,
+                /* m_coins_to_uncache */ coins_to_uncache,
+                /* m_test_accept */ test_accept,
+                /* m_allow_replacement */ true,
+                /* m_package_submission */ false,
+                /* m_package_feerates */ false,
             };
         }
 
         /** Parameters for test package mempool validation through testmempoolaccept. */
         static ATMPArgs PackageTestAccept(const CChainParams& chainparams, int64_t accept_time,
                                           std::vector<COutPoint>& coins_to_uncache) {
-            return ATMPArgs{/* m_chainparams */ chainparams,
-                            /* m_accept_time */ accept_time,
-                            /* m_bypass_limits */ false,
-                            /* m_coins_to_uncache */ coins_to_uncache,
-                            /* m_test_accept */ true,
-                            /* m_allow_replacement */ false,
-                            /* m_package_submission */ false, // not submitting to mempool
-                            /* m_package_feerates */ false,
+            return ATMPArgs{
+                /* m_chainparams */ chainparams,
+                /* m_accept_time */ accept_time,
+                /* m_failed_entries */ 0,
+                /* m_bypass_limits */ false,
+                /* m_coins_to_uncache */ coins_to_uncache,
+                /* m_test_accept */ true,
+                /* m_allow_replacement */ false,
+                /* m_package_submission */ false, // not submitting to mempool
+                /* m_package_feerates */ false,
             };
         }
 
         /** Parameters for child-with-unconfirmed-parents package validation. */
         static ATMPArgs PackageChildWithParents(const CChainParams& chainparams, int64_t accept_time,
                                                 std::vector<COutPoint>& coins_to_uncache) {
-            return ATMPArgs{/* m_chainparams */ chainparams,
-                            /* m_accept_time */ accept_time,
-                            /* m_bypass_limits */ false,
-                            /* m_coins_to_uncache */ coins_to_uncache,
-                            /* m_test_accept */ false,
-                            /* m_allow_replacement */ false,
-                            /* m_package_submission */ true,
-                            /* m_package_feerates */ true,
+            return ATMPArgs{
+                /* m_chainparams */ chainparams,
+                /* m_accept_time */ accept_time,
+                /* m_failed_entries */ 0,
+                /* m_bypass_limits */ false,
+                /* m_coins_to_uncache */ coins_to_uncache,
+                /* m_test_accept */ false,
+                /* m_allow_replacement */ false,
+                /* m_package_submission */ true,
+                /* m_package_feerates */ true,
             };
         }
 
         /** Parameters for a single transaction within a package. */
         static ATMPArgs SingleInPackageAccept(const ATMPArgs& package_args) {
-            return ATMPArgs{/* m_chainparams */ package_args.m_chainparams,
-                            /* m_accept_time */ package_args.m_accept_time,
-                            /* m_bypass_limits */ false,
-                            /* m_coins_to_uncache */ package_args.m_coins_to_uncache,
-                            /* m_test_accept */ package_args.m_test_accept,
-                            /* m_allow_replacement */ true,
-                            /* m_package_submission */ false,
-                            /* m_package_feerates */ false, // only 1 transaction
+            return ATMPArgs{
+                /* m_chainparams */ package_args.m_chainparams,
+                /* m_accept_time */ package_args.m_accept_time,
+                /* m_failed_entries */ 0,
+                /* m_bypass_limits */ false,
+                /* m_coins_to_uncache */ package_args.m_coins_to_uncache,
+                /* m_test_accept */ package_args.m_test_accept,
+                /* m_allow_replacement */ true,
+                /* m_package_submission */ false,
+                /* m_package_feerates */ false, // only 1 transaction
             };
         }
 
@@ -527,6 +538,7 @@ public:
         // mixing up the order of the arguments. Use static functions above instead.
         ATMPArgs(const CChainParams& chainparams,
                  int64_t accept_time,
+                 unsigned int failedEntries,
                  bool bypass_limits,
                  std::vector<COutPoint>& coins_to_uncache,
                  bool test_accept,
@@ -535,6 +547,7 @@ public:
                  bool package_feerates)
             : m_chainparams{chainparams},
               m_accept_time{accept_time},
+              m_failed_entries{failedEntries},
               m_bypass_limits{bypass_limits},
               m_coins_to_uncache{coins_to_uncache},
               m_test_accept{test_accept},
@@ -689,6 +702,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     const int64_t nAcceptTime = args.m_accept_time;
     const bool bypass_limits = args.m_bypass_limits;
     std::vector<COutPoint>& coins_to_uncache = args.m_coins_to_uncache;
+    unsigned int failedEntries = args.m_failed_entries;
 
     // Alias what we need out of ws
     TxValidationState& state = ws.m_state;
@@ -836,7 +850,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     entry.reset(new CTxMemPoolEntry(ptx, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(),
-                                    fSpendsCoinbase, nSigOpsCost, lock_points.value()));
+                                    fSpendsCoinbase, nSigOpsCost, lock_points.value(), failedEntries));
     ws.m_vsize = entry->GetTxSize();
 
     if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST)
@@ -1485,7 +1499,7 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptPackage(const Package& package, 
 } // anon namespace
 
 MempoolAcceptResult AcceptToMemoryPool(Chainstate& active_chainstate, const CTransactionRef& tx,
-                                       int64_t accept_time, bool bypass_limits, bool test_accept)
+                                       int64_t accept_time, unsigned int failedEntries, bool bypass_limits, bool test_accept)
     EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
 {
     AssertLockHeld(::cs_main);
@@ -1494,7 +1508,7 @@ MempoolAcceptResult AcceptToMemoryPool(Chainstate& active_chainstate, const CTra
     CTxMemPool& pool{*active_chainstate.GetMempool()};
 
     std::vector<COutPoint> coins_to_uncache;
-    auto args = MemPoolAccept::ATMPArgs::SingleAccept(chainparams, accept_time, bypass_limits, coins_to_uncache, test_accept);
+    auto args = MemPoolAccept::ATMPArgs::SingleAccept(chainparams, accept_time, failedEntries, bypass_limits, coins_to_uncache, test_accept);
     MempoolAcceptResult result = MemPoolAccept(pool, active_chainstate).AcceptSingleTransaction(tx, args);
     if (result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
         // Remove coins that were not present in the coins cache before calling
@@ -4028,7 +4042,7 @@ MempoolAcceptResult ChainstateManager::ProcessTransaction(const CTransactionRef&
         state.Invalid(TxValidationResult::TX_NO_MEMPOOL, "no-mempool");
         return MempoolAcceptResult::Failure(state);
     }
-    auto result = AcceptToMemoryPool(active_chainstate, tx, GetTime(), /*bypass_limits=*/ false, test_accept);
+    auto result = AcceptToMemoryPool(active_chainstate, tx, GetTime(), /*failedEntries*/ 0, /*bypass_limits=*/false, test_accept);
     active_chainstate.GetMempool()->check(active_chainstate.CoinsTip(), active_chainstate.m_chain.Height() + 1);
     return result;
 }
