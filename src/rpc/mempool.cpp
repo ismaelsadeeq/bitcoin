@@ -941,7 +941,8 @@ static RPCHelpMan getmempoolhistogram()
         const CTxMemPool& mempool = EnsureMemPool(node);
         ChainstateManager& chainman = EnsureChainman(node);
         LOCK2(cs_main, mempool.cs);
-        stats = node::GetMempoolHistogram(chainman.ActiveChainstate(), mempool);
+        std::vector<CTxMemPool::txiter> tx_to_exclude;
+        stats = node::GetMempoolHistogram(chainman.ActiveChainstate(), mempool, tx_to_exclude);
     }
 
     UniValue ret(UniValue::VARR);
