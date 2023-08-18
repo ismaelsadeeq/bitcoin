@@ -55,6 +55,7 @@
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/fees_args.h>
+#include <policy/mempool_fees.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <protocol.h>
@@ -342,6 +343,7 @@ void Shutdown(NodeContext& node)
     UnregisterAllValidationInterfaces();
     GetMainSignals().UnregisterBackgroundSignalScheduler();
     node.kernel.reset();
+    node.mempool_fee_estimator.reset();
     node.mempool.reset();
     node.fee_estimator.reset();
     node.chainman.reset();
@@ -1227,6 +1229,10 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         CBlockPolicyEstimator* fee_estimator = node.fee_estimator.get();
         node.scheduler->scheduleEvery([fee_estimator] { fee_estimator->FlushFeeEstimates(); }, FEE_FLUSH_INTERVAL);
     }
+
+    assert(!node.mempool_fee_estimator);
+
+    node.mempool_fee_estimator = std::make_unique<MemPoolPolicyEstimator>();
 
     // Check port numbers
     for (const std::string port_option : {
