@@ -13,6 +13,7 @@
 #include <consensus/validation.h>
 #include <logging.h>
 #include <policy/fees.h>
+#include <policy/mempool_fees.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <reverse_iterator.h>
@@ -388,6 +389,7 @@ void CTxMemPoolEntry::UpdateAncestorState(int32_t modifySize, CAmount modifyFee,
 CTxMemPool::CTxMemPool(const Options& opts)
     : m_check_ratio{opts.check_ratio},
       minerPolicyEstimator{opts.estimator},
+      mempoolPolicyEstimator{opts.mempool_estimator},
       m_max_size_bytes{opts.max_size_bytes},
       m_expiry{opts.expiry},
       m_incremental_relay_feerate{opts.incremental_relay_feerate},
@@ -624,14 +626,27 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
 {
     AssertLockHeld(cs);
     std::vector<const CTxMemPoolEntry*> entries;
+    unsigned int txs_not_in_mempool_vsize{0};
+    unsigned int block_vsize{0};
     for (const auto& tx : vtx)
     {
         uint256 hash = tx->GetHash();
-
+        unsigned int tx_vsize = static_cast<unsigned int>(GetVirtualTransactionSize(*tx));
+        block_vsize += tx_vsize;
         indexed_transaction_set::iterator i = mapTx.find(hash);
-        if (i != mapTx.end())
+        if (i != mapTx.end()) {
             entries.push_back(&*i);
+        } else {
+            txs_not_in_mempool_vsize += tx_vsize;
+        }
     }
+
+    // If the size of the blocks txs in our mempool is more than half of the block size
+    // the block is rougly in sync wwith our mempool.
+    bool block_roughly_synced = txs_not_in_mempool_vsize < (block_vsize / 2);
+
+    if (mempoolPolicyEstimator) {mempoolPolicyEstimator->processBlock(nBlockHeight, block_roughly_synced);}
+
     // Before the txs in the new block have been removed from the mempool, update policy estimates
     if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
     for (const auto& tx : vtx)

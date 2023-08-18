@@ -1449,8 +1449,10 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     assert(!node.mempool);
     assert(!node.chainman);
 
+    MemPoolPolicyEstimator* mempool_fee_estimator = node.mempool_fee_estimator.get();
     CTxMemPool::Options mempool_opts{
         .estimator = node.fee_estimator.get(),
+        .mempool_estimator = mempool_fee_estimator,
         .check_ratio = chainparams.DefaultConsistencyChecks() ? 1 : 0,
     };
     auto result{ApplyArgsManOptions(args, chainparams, mempool_opts)};

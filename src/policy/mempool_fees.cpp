@@ -17,10 +17,14 @@ MemPoolPolicyEstimator::MemPoolPolicyEstimator()
 
 MemPoolPolicyEstimator::~MemPoolPolicyEstimator() = default;
 
-CFeeRate MemPoolPolicyEstimator::EstimateFeeWithMemPool(Chainstate& chainstate, const CTxMemPool& mempool, unsigned int confTarget) const
+CFeeRate MemPoolPolicyEstimator::EstimateFeeWithMemPool(Chainstate& chainstate,const CTxMemPool& mempool, unsigned int confTarget) const
 {
     if (!mempool.GetLoadTried()) {
         LogPrintf("Mempool did not finish loading, can't get accurate fee rate estimate.\n");
+        return CFeeRate(0);
+    }
+    if (!RoughlySynced()) {
+        LogPrintf("MemPoolPolicyEstimator: Mempool is roughly not in sync with miners mempool \n");
         return CFeeRate(0);
     }
     std::map<CFeeRate, uint64_t> mempool_fee_stats;
@@ -84,3 +88,49 @@ CFeeRate MemPoolPolicyEstimator::CalculateMedianFeeRate(
     }
 }
 
+void MemPoolPolicyEstimator::processBlock(unsigned int nBlockHeight, bool block_roughly_synced)
+{
+    MemPoolPolicyEstimator::block_info new_blk_info = {nBlockHeight, block_roughly_synced};
+    recordBlockStatus(new_blk_info);
+}
+
+void MemPoolPolicyEstimator::recordBlockStatus(MemPoolPolicyEstimator::block_info& new_blk_info) {
+    // Ensure blocks are in order; if not, reset with the new block
+    if (!top_block_in_order()) {
+        top_blocks = {new_blk_info};
+        return;
+    }
+
+    if (top_blocks.size() < 3) {
+        top_blocks.push_back(new_blk_info);
+    } else {
+        top_blocks[0] = top_blocks[1];
+        top_blocks[1] = top_blocks[2];
+        top_blocks[2] = new_blk_info;
+    }
+}
+
+bool MemPoolPolicyEstimator::top_block_in_order() const
+{
+    if (top_blocks.empty() || top_blocks.size() > 3) {
+        return false;
+    }
+    unsigned int expected_height = top_blocks[0].height + 1;
+    for (size_t i = 1; i < top_blocks.size(); ++i) {
+        if (expected_height != top_blocks[i].height) {
+            return false;
+        }
+        ++expected_height;
+    }
+    return true;
+}
+
+bool MemPoolPolicyEstimator::RoughlySynced() const
+{
+    if (!top_block_in_order()){
+        return false;
+    }
+    return std::all_of(top_blocks.begin(), top_blocks.end(), [](const auto& blk) {
+        return blk.roughly_synced;
+    });
+}

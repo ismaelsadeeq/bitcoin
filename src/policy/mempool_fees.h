@@ -13,7 +13,7 @@
 
 class Chainstate;
 class CTxMemPool;
-
+class CTxMemPoolEntry;
 
 /**
  * MemPoolPolicyEstimator estimates the fee rate that a tx should pay
@@ -42,6 +42,11 @@ public:
      */
     CFeeRate EstimateFeeWithMemPool(Chainstate& chainstate, const CTxMemPool& mempool, unsigned int confTarget) const;
 
+    // Update our sanity check when ever we receive a new block, so that we wont make inaccurate estimate.
+    void processBlock(unsigned int nBlockHeight, bool block_roughly_synced);
+
+    bool RoughlySynced() const; // Tells us whether our mempool is rougly in sync with miners mempool.
+
 private:
     /**
      * Calculate the fee rate estimate for a block of txs.
@@ -62,5 +67,18 @@ private:
      */
     CFeeRate CalculateMedianFeeRate(std::map<CFeeRate, uint64_t>::reverse_iterator& start_it, std::map<CFeeRate, uint64_t>::reverse_iterator& end_it) const;
 
+    // Determine whether the last that we tracked are sequencial.
+    bool top_block_in_order() const;
+
+private:
+    struct block_info {
+        unsigned int height;
+        bool roughly_synced;
+    };
+    //  Tracks the last three blocks that was mined whether they are roughly in sync with the mempool or not.
+    std::vector<block_info> top_blocks;
+
+    // Whenever we receive a new block we record it's status if its in sync or not.
+    void recordBlockStatus(block_info& new_blk_info);
 };
 #endif // BITCOIN_POLICY_MEMPOOL_FEES_H

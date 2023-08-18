@@ -206,6 +206,7 @@ struct ancestor_score {};
 struct index_by_wtxid {};
 
 class CBlockPolicyEstimator;
+class MemPoolPolicyEstimator;
 
 /**
  * Information about a mempool transaction.
@@ -321,6 +322,7 @@ protected:
     const int m_check_ratio; //!< Value n means that 1 times in n we check.
     std::atomic<unsigned int> nTransactionsUpdated{0}; //!< Used by getblocktemplate to trigger CreateNewBlock() invocation
     CBlockPolicyEstimator* const minerPolicyEstimator;
+    MemPoolPolicyEstimator* const mempoolPolicyEstimator;
 
     uint64_t totalTxSize GUARDED_BY(cs){0};      //!< sum of all mempool tx's virtual sizes. Differs from serialized tx size since witness data is discounted. Defined in BIP 141.
     CAmount m_total_fee GUARDED_BY(cs){0};       //!< sum of all mempool tx's fees (NOT modified fee)
