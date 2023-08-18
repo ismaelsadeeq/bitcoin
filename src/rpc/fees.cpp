@@ -7,6 +7,7 @@
 #include <node/context.h>
 #include <policy/feerate.h>
 #include <policy/fees.h>
+#include <policy/mempool_fees.h>
 #include <rpc/protocol.h>
 #include <rpc/request.h>
 #include <rpc/server.h>
@@ -15,6 +16,7 @@
 #include <txmempool.h>
 #include <univalue.h>
 #include <util/fees.h>
+#include <validation.h>
 #include <validationinterface.h>
 
 #include <algorithm>
@@ -91,6 +93,58 @@ static RPCHelpMan estimatesmartfee()
                 result.pushKV("errors", errors);
             }
             result.pushKV("blocks", feeCalc.returnedTarget);
+            return result;
+        },
+    };
+}
+
+static RPCHelpMan estimatefeewithmempool()
+{
+    return RPCHelpMan{
+        "estimatefeewithmempool",
+        "\nEstimates the approximate fee per kilobyte needed for a transaction to begin\n"
+        "confirmation within conf_target blocks if possible Uses virtual transaction size as defined\n"
+        "in BIP 141 (witness data is discounted). By default caches values for 30 seconds to avoid\n"
+        "repeatedly running expensive block-building algorithm.\n",
+        {
+            {"conf_target", RPCArg::Type::NUM, RPCArg::Optional::NO, "Confirmation target in blocks"},
+            {"force", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED, "Force run block-building algorithm, bypassing any cached values."},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::NUM, "5th Percentile", /*optional=*/true, "estimate fee rate in " + CURRENCY_UNIT + "/kvB (only present if no errors were encountered)"},
+                {RPCResult::Type::NUM, "25th Percentile", /*optional=*/true, "estimate fee rate in " + CURRENCY_UNIT + "/kvB (only present if no errors were encountered)"},
+                {RPCResult::Type::NUM, "50th Percentile", /*optional=*/true, "estimate fee rate in " + CURRENCY_UNIT + "/kvB (only present if no errors were encountered)"},
+                {RPCResult::Type::NUM, "75th Percentile", /*optional=*/true, "estimate fee rate in " + CURRENCY_UNIT + "/kvB (only present if no errors were encountered)"},
+                {RPCResult::Type::ARR, "errors", /*optional=*/true, "Errors encountered during processing (if there are any)",
+                    {{RPCResult::Type::STR, "", "error"},}
+                },
+            }},
+        RPCExamples{HelpExampleCli("estimatesfeewithmempool", "2") + HelpExampleRpc("estimatesfeewithmempool", "2")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            MemPoolPolicyEstimator& fee_estimator = EnsureAnyMemPoolFeeEstimator(request.context);
+            const NodeContext& node = EnsureAnyNodeContext(request.context);
+            CTxMemPool& mempool = EnsureMemPool(node);
+            ChainstateManager& chainman = EnsureChainman(node);
+            Chainstate& chainstate = chainman.ActiveChainstate();
+            const unsigned int conf_target = request.params[0].getInt<unsigned int>();
+            bool force{false};
+            if (!request.params[1].isNull()) force = request.params[1].get_bool();
+            MempoolFeeEstimationResult fee_estimates;
+            std::string err_message;
+            fee_estimates = fee_estimator.EstimateFeeWithMemPool(chainstate, mempool, conf_target, force, err_message);
+            UniValue result(UniValue::VOBJ);
+            UniValue errors(UniValue::VARR);
+            if (!fee_estimates.empty()) {
+                result.pushKV("5th Percentile", ValueFromAmount(fee_estimates.p5.GetFeePerK()));
+                result.pushKV("25th Percentile", ValueFromAmount(fee_estimates.p25.GetFeePerK()));
+                result.pushKV("50th Percentile", ValueFromAmount(fee_estimates.p50.GetFeePerK()));
+                result.pushKV("75th Percentile", ValueFromAmount(fee_estimates.p75.GetFeePerK()));
+            } else {
+                errors.push_back(err_message.c_str());
+                result.pushKV("errors", errors);
+            }
             return result;
         },
     };
@@ -220,6 +274,7 @@ void RegisterFeeRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"util", &estimatesmartfee},
+        {"util", &estimatefeewithmempool},
         {"hidden", &estimaterawfee},
     };
     for (const auto& c : commands) {
