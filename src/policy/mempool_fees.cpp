@@ -9,6 +9,7 @@
 #include <policy/mempool_fees.h>
 #include <policy/policy.h>
 
+using node::BlockAssembler;
 using node::GetMempoolHistogram;
 
 MemPoolPolicyEstimator::MemPoolPolicyEstimator()
@@ -86,6 +87,20 @@ CFeeRate MemPoolPolicyEstimator::CalculateMedianFeeRate(
         auto mid_it = std::next(start_it, (size / 2) + 1);
         return mid_it->first;
     }
+}
+
+void MemPoolPolicyEstimator::BuildExpectedBlockTemplate(Chainstate& chainstate, const CTxMemPool* mempool)
+{
+    if (mempool->GetLoadTried() && RoughlySynced()) {
+        // Generate expected block template only if mempool finish loading and we are rougly in sync with miners
+        // in order to roughly generate the next block template that will likely be mined.
+        auto blocktemplate = BlockAssembler(chainstate, mempool).CreateNewBlock(CScript{});
+        if (blocktemplate.get()) {
+            block_template = blocktemplate->block;
+            return;
+        }
+    }
+    block_template = std::nullopt;
 }
 
 void MemPoolPolicyEstimator::processBlock(unsigned int nBlockHeight, bool block_roughly_synced)

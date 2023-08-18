@@ -1546,6 +1546,13 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     ChainstateManager& chainman = *Assert(node.chainman);
 
+    if (node.chainman && node.mempool) {
+        // Generate block template periodically
+        CTxMemPool* mempool = node.mempool.get();
+        Chainstate& chainstate = node.chainman->ActiveChainstate();
+        node.scheduler->scheduleEvery([mempool_fee_estimator, &chainstate, mempool] { mempool_fee_estimator->BuildExpectedBlockTemplate(chainstate, mempool); }, APPROX_TIME_TO_GENERATE_BLK);
+    }
+
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman, node.banman.get(),
                                      chainman, *node.mempool, ignores_incoming_txs);

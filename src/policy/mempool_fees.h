@@ -10,10 +10,15 @@
 #include <optional>
 
 #include <policy/feerate.h>
+#include <primitives/block.h>
 
 class Chainstate;
 class CTxMemPool;
 class CTxMemPoolEntry;
+
+// In Every five minutes we build a block template that we expect to be mined
+// based on the mempool transactions
+static constexpr std::chrono::minutes APPROX_TIME_TO_GENERATE_BLK{5};
 
 /**
  * MemPoolPolicyEstimator estimates the fee rate that a tx should pay
@@ -41,6 +46,8 @@ public:
      * @return The estimated fee rate.
      */
     CFeeRate EstimateFeeWithMemPool(Chainstate& chainstate, const CTxMemPool& mempool, unsigned int confTarget) const;
+
+    void BuildExpectedBlockTemplate(Chainstate& chainstate, const CTxMemPool* mempool);
 
     // Update our sanity check when ever we receive a new block, so that we wont make inaccurate estimate.
     void processBlock(unsigned int nBlockHeight, bool block_roughly_synced);
@@ -71,6 +78,7 @@ private:
     bool top_block_in_order() const;
 
 private:
+    std::optional<CBlock> block_template{std::nullopt};
     struct block_info {
         unsigned int height;
         bool roughly_synced;
