@@ -52,7 +52,7 @@ void initialize_tx_pool()
     SyncWithValidationInterfaceQueue();
 }
 
-struct TransactionsDelta final : public CValidationInterface {
+struct TransactionsDelta final : public MempoolInterface {
     std::set<CTransactionRef>& m_removed;
     std::set<CTransactionRef>& m_added;
 
@@ -237,7 +237,7 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
         std::set<CTransactionRef> removed;
         std::set<CTransactionRef> added;
         auto txr = std::make_shared<TransactionsDelta>(removed, added);
-        RegisterSharedValidationInterface(txr);
+        RegisterSharedMempoolInterface(txr);
         const bool bypass_limits = fuzzed_data_provider.ConsumeBool();
 
         // Make sure ProcessNewPackage on one transaction works.
@@ -256,7 +256,7 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
         const auto res = WITH_LOCK(::cs_main, return AcceptToMemoryPool(chainstate, tx, GetTime(), bypass_limits, /*test_accept=*/false));
         const bool accepted = res.m_result_type == MempoolAcceptResult::ResultType::VALID;
         SyncWithValidationInterfaceQueue();
-        UnregisterSharedValidationInterface(txr);
+        UnregisterSharedMempoolInterface(txr);
 
         Assert(accepted != added.empty());
         Assert(accepted == res.m_state.IsValid());

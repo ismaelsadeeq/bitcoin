@@ -418,7 +418,7 @@ bool FillBlock(const CBlockIndex* index, const FoundBlock& block, UniqueLock<Rec
     return true;
 }
 
-class NotificationsProxy : public CValidationInterface
+class NotificationsProxy : public CValidationInterface, public MempoolInterface
 {
 public:
     explicit NotificationsProxy(std::shared_ptr<Chain::Notifications> notifications)
@@ -455,12 +455,14 @@ public:
         : m_proxy(std::make_shared<NotificationsProxy>(std::move(notifications)))
     {
         RegisterSharedValidationInterface(m_proxy);
+        RegisterSharedMempoolInterface(m_proxy);
     }
     ~NotificationsHandlerImpl() override { disconnect(); }
     void disconnect() override
     {
         if (m_proxy) {
             UnregisterSharedValidationInterface(m_proxy);
+            UnregisterSharedMempoolInterface(m_proxy);
             m_proxy.reset();
         }
     }

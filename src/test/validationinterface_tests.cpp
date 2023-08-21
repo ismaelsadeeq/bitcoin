@@ -82,10 +82,10 @@ BOOST_AUTO_TEST_CASE(unregister_all_during_call)
     RegisterSharedValidationInterface(std::make_shared<TestInterface>(
         [&] {
             // First call should decrements reference count 2 -> 1
-            UnregisterAllValidationInterfaces();
+            UnregisterAllValidationAndMempoolInterfaces();
             BOOST_CHECK(!destroyed);
             // Second call should not decrement reference count 1 -> 0
-            UnregisterAllValidationInterfaces();
+            UnregisterAllValidationAndMempoolInterfaces();
             BOOST_CHECK(!destroyed);
         },
         [&] { destroyed = true; }));
