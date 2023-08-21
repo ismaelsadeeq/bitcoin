@@ -4,6 +4,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <consensus/validation.h>
+#include <mainsignalsinterfaces.h>
 #include <primitives/block.h>
 #include <scheduler.h>
 #include <test/util/setup_common.h>

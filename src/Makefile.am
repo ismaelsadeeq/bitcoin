@@ -195,7 +195,9 @@ BITCOIN_CORE_H = \
   key_io.h \
   logging.h \
   logging/timer.h \
+  mainsignalsinterfaces.h \
   mapport.h \
+  mempoolinterface.h \
   memusage.h \
   merkleblock.h \
   net.h \
@@ -400,6 +402,7 @@ libbitcoin_node_a_SOURCES = \
   kernel/context.cpp \
   kernel/cs_main.cpp \
   kernel/mempool_persist.cpp \
+  mainsignalsinterfaces.cpp \
   mapport.cpp \
   net.cpp \
   net_processing.cpp \
@@ -460,7 +463,6 @@ libbitcoin_node_a_SOURCES = \
   txorphanage.cpp \
   txrequest.cpp \
   validation.cpp \
-  validationinterface.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
 
@@ -940,6 +942,7 @@ libbitcoinkernel_la_SOURCES = \
   kernel/mempool_persist.cpp \
   key.cpp \
   logging.cpp \
+  mainsignalsinterfaces.cpp \
   node/blockstorage.cpp \
   node/chainstate.cpp \
   node/utxo_snapshot.cpp \
@@ -989,7 +992,6 @@ libbitcoinkernel_la_SOURCES = \
   util/time.cpp \
   util/tokenpipe.cpp \
   validation.cpp \
-  validationinterface.cpp \
   versionbits.cpp \
   warnings.cpp
 

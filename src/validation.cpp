@@ -25,6 +25,7 @@
 #include <kernel/notifications_interface.h>
 #include <logging.h>
 #include <logging/timer.h>
+#include <mainsignalsinterfaces.h>
 #include <node/blockstorage.h>
 #include <node/utxo_snapshot.h>
 #include <policy/policy.h>
@@ -54,7 +55,6 @@
 #include <util/time.h>
 #include <util/trace.h>
 #include <util/translation.h>
-#include <validationinterface.h>
 #include <warnings.h>
 
 #include <algorithm>
@@ -3079,7 +3079,7 @@ static void LimitValidationInterfaceQueue() LOCKS_EXCLUDED(cs_main) {
     AssertLockNotHeld(cs_main);
 
     if (GetMainSignals().CallbacksPending() > 10) {
-        SyncWithValidationInterfaceQueue();
+        SyncWithInterfaceQueue();
     }
 }
 

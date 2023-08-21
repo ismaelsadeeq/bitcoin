@@ -13,7 +13,6 @@
 #include <util/chaintype.h>
 #include <util/fs.h>
 #include <validation.h>
-#include <validationinterface.h>
 
 using node::SnapshotMetadata;
 

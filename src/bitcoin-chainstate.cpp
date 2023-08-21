@@ -19,6 +19,7 @@
 
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <mainsignalsinterfaces.h>
 #include <node/blockstorage.h>
 #include <node/caches.h>
 #include <node/chainstate.h>

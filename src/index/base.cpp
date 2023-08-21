@@ -8,6 +8,7 @@
 #include <interfaces/chain.h>
 #include <kernel/chain.h>
 #include <logging.h>
+#include <mainsignalsinterfaces.h>
 #include <node/abort.h>
 #include <node/blockstorage.h>
 #include <node/context.h>
@@ -355,7 +356,7 @@ bool BaseIndex::BlockUntilSyncedToCurrentChain() const
     }
 
     LogPrintf("%s: %s is catching up on block notifications\n", __func__, GetName());
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
     return true;
 }
 

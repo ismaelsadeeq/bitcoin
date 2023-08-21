@@ -19,7 +19,9 @@
 #include <kernel/chain.h>
 #include <kernel/mempool_entry.h>
 #include <logging.h>
+#include <mainsignalsinterfaces.h>
 #include <mapport.h>
+#include <mempoolinterface.h>
 #include <net.h>
 #include <net_processing.h>
 #include <netaddress.h>
@@ -418,7 +420,7 @@ bool FillBlock(const CBlockIndex* index, const FoundBlock& block, UniqueLock<Rec
     return true;
 }
 
-class NotificationsProxy : public CValidationInterface
+class NotificationsProxy : public CValidationInterface, public MempoolInterface
 {
 public:
     explicit NotificationsProxy(std::shared_ptr<Chain::Notifications> notifications)
@@ -455,12 +457,14 @@ public:
         : m_proxy(std::make_shared<NotificationsProxy>(std::move(notifications)))
     {
         RegisterSharedValidationInterface(m_proxy);
+        RegisterSharedMempoolInterface(m_proxy);
     }
     ~NotificationsHandlerImpl() override { disconnect(); }
     void disconnect() override
     {
         if (m_proxy) {
             UnregisterSharedValidationInterface(m_proxy);
+            UnregisterSharedMempoolInterface(m_proxy);
             m_proxy.reset();
         }
     }
@@ -737,7 +741,7 @@ public:
     void waitForNotificationsIfTipChanged(const uint256& old_tip) override
     {
         if (!old_tip.IsNull() && old_tip == WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip()->GetBlockHash())) return;
-        SyncWithValidationInterfaceQueue();
+        SyncWithInterfaceQueue();
     }
     std::unique_ptr<Handler> handleRpc(const CRPCCommand& command) override
     {

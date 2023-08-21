@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/consensus.h>
+#include <mainsignalsinterfaces.h>
 #include <net.h>
 #include <net_processing.h>
 #include <primitives/transaction.h>
@@ -24,7 +25,6 @@
 #include <util/check.h>
 #include <util/time.h>
 #include <validation.h>
-#include <validationinterface.h>
 #include <version.h>
 
 
@@ -55,7 +55,7 @@ void initialize_process_message()
     for (int i = 0; i < 2 * COINBASE_MATURITY; i++) {
         MineBlock(g_setup->m_node, CScript() << OP_TRUE);
     }
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 }
 
 FUZZ_TARGET(process_message, .init = initialize_process_message)
@@ -89,6 +89,6 @@ FUZZ_TARGET(process_message, .init = initialize_process_message)
     } catch (const std::ios_base::failure&) {
     }
     g_setup->m_node.peerman->SendMessages(&p2p_node);
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
     g_setup->m_node.connman->StopNodes();
 }

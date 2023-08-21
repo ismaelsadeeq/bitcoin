@@ -4,6 +4,7 @@
 //
 #include <chainparams.h>
 #include <consensus/validation.h>
+#include <mainsignalsinterfaces.h>
 #include <node/kernel_notifications.h>
 #include <node/utxo_snapshot.h>
 #include <random.h>
@@ -16,7 +17,6 @@
 #include <timedata.h>
 #include <uint256.h>
 #include <validation.h>
-#include <validationinterface.h>
 
 #include <tinyformat.h>
 
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(chainstatemanager)
     BOOST_CHECK_EQUAL(exp_tip, exp_tip2);
 
     // Let scheduler events finish running to avoid accessing memory that is going to be unloaded
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 }
 
 //! Test rebalancing the caches associated with each chainstate.
@@ -373,7 +373,7 @@ struct SnapshotTestSetup : TestChain100Setup {
                 cs->ForceFlushStateToDisk();
             }
             // Process all callbacks referring to the old manager before wiping it.
-            SyncWithValidationInterfaceQueue();
+            SyncWithInterfaceQueue();
             LOCK(::cs_main);
             chainman.ResetChainstates();
             BOOST_CHECK_EQUAL(chainman.GetAll().size(), 0);

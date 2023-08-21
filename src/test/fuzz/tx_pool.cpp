@@ -3,6 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/validation.h>
+#include <mainsignalsinterfaces.h>
+#include <mempoolinterface.h>
 #include <node/context.h>
 #include <node/mempool_args.h>
 #include <node/miner.h>
@@ -16,7 +18,6 @@
 #include <test/util/txmempool.h>
 #include <util/rbf.h>
 #include <validation.h>
-#include <validationinterface.h>
 
 using node::BlockAssembler;
 using node::NodeContext;
@@ -49,10 +50,10 @@ void initialize_tx_pool()
                               g_outpoints_coinbase_init_immature;
         outpoints.push_back(prevout);
     }
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 }
 
-struct TransactionsDelta final : public CValidationInterface {
+struct TransactionsDelta final : public MempoolInterface {
     std::set<CTransactionRef>& m_removed;
     std::set<CTransactionRef>& m_added;
 
@@ -106,7 +107,7 @@ void Finish(FuzzedDataProvider& fuzzed_data_provider, MockedTxPool& tx_pool, Cha
         assert(all_txids.size() < info_all.size());
         WITH_LOCK(::cs_main, tx_pool.check(chainstate.CoinsTip(), chainstate.m_chain.Height() + 1));
     }
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 }
 
 void MockTime(FuzzedDataProvider& fuzzed_data_provider, const Chainstate& chainstate)
@@ -237,7 +238,7 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
         std::set<CTransactionRef> removed;
         std::set<CTransactionRef> added;
         auto txr = std::make_shared<TransactionsDelta>(removed, added);
-        RegisterSharedValidationInterface(txr);
+        RegisterSharedMempoolInterface(txr);
         const bool bypass_limits = fuzzed_data_provider.ConsumeBool();
 
         // Make sure ProcessNewPackage on one transaction works.
@@ -255,8 +256,8 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
 
         const auto res = WITH_LOCK(::cs_main, return AcceptToMemoryPool(chainstate, tx, GetTime(), bypass_limits, /*test_accept=*/false));
         const bool accepted = res.m_result_type == MempoolAcceptResult::ResultType::VALID;
-        SyncWithValidationInterfaceQueue();
-        UnregisterSharedValidationInterface(txr);
+        SyncWithInterfaceQueue();
+        UnregisterSharedMempoolInterface(txr);
 
         Assert(accepted != added.empty());
         Assert(accepted == res.m_state.IsValid());

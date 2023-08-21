@@ -7,6 +7,7 @@
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
+#include <mainsignalsinterfaces.h>
 #include <node/miner.h>
 #include <pow.h>
 #include <random.h>
@@ -159,7 +160,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     bool ignored;
     // Connect the genesis block and drain any outstanding events
     BOOST_CHECK(Assert(m_node.chainman)->ProcessNewBlock(std::make_shared<CBlock>(Params().GenesisBlock()), true, true, &ignored));
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 
     // subscribe to events (this subscriber will validate event ordering)
     const CBlockIndex* initial_tip = nullptr;
@@ -197,7 +198,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     for (auto& t : threads) {
         t.join();
     }
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 
     UnregisterSharedValidationInterface(sub);
 

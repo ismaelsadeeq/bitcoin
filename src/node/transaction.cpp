@@ -5,14 +5,14 @@
 
 #include <consensus/validation.h>
 #include <index/txindex.h>
+#include <mainsignalsinterfaces.h>
 #include <net.h>
 #include <net_processing.h>
 #include <node/blockstorage.h>
 #include <node/context.h>
+#include <node/transaction.h>
 #include <txmempool.h>
 #include <validation.h>
-#include <validationinterface.h>
-#include <node/transaction.h>
 
 #include <future>
 
@@ -101,7 +101,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
                 // with a transaction to/from their wallet, immediately call some
                 // wallet RPC, and get a stale result because callbacks have not
                 // yet been processed.
-                CallFunctionInValidationInterfaceQueue([&promise] {
+                CallFunctionInInterfaceQueue([&promise] {
                     promise.set_value();
                 });
                 callback_set = true;

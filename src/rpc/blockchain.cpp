@@ -21,6 +21,7 @@
 #include <index/coinstatsindex.h>
 #include <kernel/coinstats.h>
 #include <logging/timer.h>
+#include <mainsignalsinterfaces.h>
 #include <net.h>
 #include <net_processing.h>
 #include <node/blockstorage.h>
@@ -43,7 +44,6 @@
 #include <util/strencodings.h>
 #include <util/translation.h>
 #include <validation.h>
-#include <validationinterface.h>
 #include <versionbits.h>
 #include <warnings.h>
 
@@ -386,19 +386,17 @@ static RPCHelpMan waitforblockheight()
 
 static RPCHelpMan syncwithvalidationinterfacequeue()
 {
-    return RPCHelpMan{"syncwithvalidationinterfacequeue",
-                "\nWaits for the validation interface queue to catch up on everything that was there when we entered this function.\n",
-                {},
-                RPCResult{RPCResult::Type::NONE, "", ""},
-                RPCExamples{
-                    HelpExampleCli("syncwithvalidationinterfacequeue","")
-            + HelpExampleRpc("syncwithvalidationinterfacequeue","")
-                },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-{
-    SyncWithValidationInterfaceQueue();
-    return UniValue::VNULL;
-},
+    return RPCHelpMan{
+        "syncwithvalidationinterfacequeue",
+        "\nWaits for the validation interface queue to catch up on everything that was there when we entered this function.\n",
+        {},
+        RPCResult{RPCResult::Type::NONE, "", ""},
+        RPCExamples{
+            HelpExampleCli("syncwithvalidationinterfacequeue", "") + HelpExampleRpc("syncwithvalidationinterfacequeue", "")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            SyncWithInterfaceQueue();
+            return UniValue::VNULL;
+        },
     };
 }
 

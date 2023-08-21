@@ -16,6 +16,7 @@
 #include <node/context.h>
 #include <node/psbt.h>
 #include <node/transaction.h>
+#include <numeric>
 #include <policy/packages.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
@@ -31,6 +32,7 @@
 #include <script/sign.h>
 #include <script/signingprovider.h>
 #include <script/standard.h>
+#include <stdint.h>
 #include <uint256.h>
 #include <undo.h>
 #include <util/bip32.h>
@@ -39,10 +41,6 @@
 #include <util/string.h>
 #include <util/vector.h>
 #include <validation.h>
-#include <validationinterface.h>
-
-#include <numeric>
-#include <stdint.h>
 
 #include <univalue.h>
 

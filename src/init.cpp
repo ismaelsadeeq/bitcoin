@@ -34,7 +34,9 @@
 #include <interfaces/init.h>
 #include <interfaces/node.h>
 #include <logging.h>
+#include <mainsignalsinterfaces.h>
 #include <mapport.h>
+#include <mempoolinterface.h>
 #include <net.h>
 #include <net_permissions.h>
 #include <net_processing.h>
@@ -335,12 +337,14 @@ void Shutdown(NodeContext& node)
 #if ENABLE_ZMQ
     if (g_zmq_notification_interface) {
         UnregisterValidationInterface(g_zmq_notification_interface.get());
+        UnregisterMempoolInterface(g_zmq_notification_interface.get());
         g_zmq_notification_interface.reset();
     }
 #endif
 
     node.chain_clients.clear();
     UnregisterAllValidationInterfaces();
+    UnregisterAllMempoolInterfaces();
     GetMainSignals().UnregisterBackgroundSignalScheduler();
     node.kernel.reset();
     node.mempool.reset();
@@ -1410,6 +1414,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     if (g_zmq_notification_interface) {
         RegisterValidationInterface(g_zmq_notification_interface.get());
+        RegisterMempoolInterface(g_zmq_notification_interface.get());
     }
 #endif
 

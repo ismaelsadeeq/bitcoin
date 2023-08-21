@@ -8,6 +8,7 @@
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <key_io.h>
+#include <mainsignalsinterfaces.h>
 #include <node/context.h>
 #include <pow.h>
 #include <primitives/transaction.h>
@@ -101,7 +102,7 @@ COutPoint MineBlock(const NodeContext& node, std::shared_ptr<CBlock>& block)
     const bool duplicate{!new_block && processed};
     assert(!duplicate);
     UnregisterValidationInterface(&bvsc);
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
     const bool was_valid{bvsc.m_state && bvsc.m_state->IsValid()};
     assert(old_height + was_valid == WITH_LOCK(chainman.GetMutex(), return chainman.ActiveHeight()));
 

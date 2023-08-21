@@ -4,13 +4,13 @@
 
 #include <bench/bench.h>
 #include <interfaces/chain.h>
+#include <mainsignalsinterfaces.h>
 #include <node/chainstate.h>
 #include <node/context.h>
 #include <test/util/mining.h>
 #include <test/util/setup_common.h>
-#include <wallet/test/util.h>
-#include <validationinterface.h>
 #include <wallet/receive.h>
+#include <wallet/test/util.h>
 #include <wallet/wallet.h>
 
 #include <optional>
@@ -39,7 +39,7 @@ static void WalletBalance(benchmark::Bench& bench, const bool set_dirty, const b
         generatetoaddress(test_setup->m_node, address_mine.value_or(ADDRESS_WATCHONLY));
         generatetoaddress(test_setup->m_node, ADDRESS_WATCHONLY);
     }
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 
     auto bal = GetBalance(wallet); // Cache
 

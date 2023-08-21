@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/consensus.h>
+#include <mainsignalsinterfaces.h>
 #include <net.h>
 #include <net_processing.h>
 #include <protocol.h>
@@ -15,7 +16,6 @@
 #include <test/util/setup_common.h>
 #include <test/util/validation.h>
 #include <validation.h>
-#include <validationinterface.h>
 
 namespace {
 const TestingSetup* g_setup;
@@ -30,7 +30,7 @@ void initialize_process_messages()
     for (int i = 0; i < 2 * COINBASE_MATURITY; i++) {
         MineBlock(g_setup->m_node, CScript() << OP_TRUE);
     }
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 }
 
 FUZZ_TARGET(process_messages, .init = initialize_process_messages)
@@ -76,6 +76,6 @@ FUZZ_TARGET(process_messages, .init = initialize_process_messages)
         }
         g_setup->m_node.peerman->SendMessages(&random_node);
     }
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
     g_setup->m_node.connman->StopNodes();
 }

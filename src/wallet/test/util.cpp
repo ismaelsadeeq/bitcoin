@@ -7,6 +7,7 @@
 #include <chain.h>
 #include <key.h>
 #include <key_io.h>
+#include <mainsignalsinterfaces.h>
 #include <streams.h>
 #include <test/util/setup_common.h>
 #include <wallet/context.h>
@@ -71,7 +72,7 @@ std::shared_ptr<CWallet> TestLoadWallet(WalletContext& context)
 
 void TestUnloadWallet(std::shared_ptr<CWallet>&& wallet)
 {
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
     wallet->m_chain_notifications_handler.reset();
     UnloadWallet(std::move(wallet));
 }

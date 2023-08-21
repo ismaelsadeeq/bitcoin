@@ -14,6 +14,7 @@
 #include <interfaces/ipc.h>
 #include <kernel/cs_main.h>
 #include <logging.h>
+#include <mainsignalsinterfaces.h>
 #include <node/context.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
@@ -90,7 +91,7 @@ static RPCHelpMan mockscheduler()
 
     const NodeContext& node_context{EnsureAnyNodeContext(request.context)};
     CHECK_NONFATAL(node_context.scheduler)->MockForward(std::chrono::seconds{delta_seconds});
-    SyncWithValidationInterfaceQueue();
+    SyncWithInterfaceQueue();
 
     return UniValue::VNULL;
 },
