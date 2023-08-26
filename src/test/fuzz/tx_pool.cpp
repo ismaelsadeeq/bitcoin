@@ -21,6 +21,8 @@
 using node::BlockAssembler;
 using node::NodeContext;
 
+struct NewMempoolTransactionInfo;
+
 namespace {
 
 const TestingSetup* g_setup;
@@ -59,7 +61,7 @@ struct TransactionsDelta final : public CValidationInterface {
     explicit TransactionsDelta(std::set<CTransactionRef>& r, std::set<CTransactionRef>& a)
         : m_removed{r}, m_added{a} {}
 
-    void TransactionAddedToMempool(const CTransactionRef& tx, uint64_t /* mempool_sequence */) override
+    void TransactionAddedToMempool(const CTransactionRef& tx, const NewMempoolTransactionInfo& tx_info, uint64_t /* mempool_sequence */) override
     {
         Assert(m_added.insert(tx).second);
     }
