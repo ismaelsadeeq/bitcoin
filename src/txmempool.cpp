@@ -461,8 +461,9 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
     nTransactionsUpdated++;
     totalTxSize += entry.GetTxSize();
     m_total_fee += entry.GetFee();
+    NewMempoolTransactionInfo tx_info = {entry.GetFee(), entry.GetTxSize(), entry.GetHeight()};
     if (minerPolicyEstimator) {
-        minerPolicyEstimator->processTransaction(entry, validFeeEstimate);
+        minerPolicyEstimator->processTransaction(entry.GetSharedTx(), tx_info, validFeeEstimate);
     }
 
     vTxHashes.emplace_back(tx.GetWitnessHash(), newit);

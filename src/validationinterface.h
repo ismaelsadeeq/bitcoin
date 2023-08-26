@@ -207,7 +207,7 @@ public:
 
 
     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
-    void TransactionAddedToMempool(const CTransactionRef& tx, const NewMempoolTransactionInfo&, uint64_t mempool_sequence);
+    void TransactionAddedToMempool(const CTransactionRef&, const NewMempoolTransactionInfo&, uint64_t mempool_sequence);
     void TransactionRemovedFromMempool(const CTransactionRef&, MemPoolRemovalReason, uint64_t mempool_sequence);
     void MempoolTransactionsRemovedForConnectedBlock(const std::vector<CTransactionRef>&, unsigned int nBlockHeight);
     void BlockConnected(const std::shared_ptr<const CBlock> &, const CBlockIndex *pindex);
