@@ -481,13 +481,16 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     // We increment mempool sequence value no matter removal reason
     // even if not directly reported below.
     uint64_t mempool_sequence = GetAndIncrementSequence();
-
+    const uint256 hash = it->GetTx().GetHash();
     if (reason != MemPoolRemovalReason::BLOCK) {
         // Notify clients that a transaction has been removed from the mempool
         // for any reason except being included in a block. Clients interested
         // in transactions included in blocks can subscribe to the BlockConnected
         // notification.
         GetMainSignals().TransactionRemovedFromMempool(it->GetSharedTx(), reason, mempool_sequence);
+        if (minerPolicyEstimator) {
+            minerPolicyEstimator->removeTx(hash, false);
+        }
     }
     TRACE5(mempool, removed,
         it->GetTx().GetHash().data(),
@@ -496,8 +499,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         it->GetFee(),
         std::chrono::duration_cast<std::chrono::duration<std::uint64_t>>(it->GetTime()).count()
     );
-
-    const uint256 hash = it->GetTx().GetHash();
     for (const CTxIn& txin : it->GetTx().vin)
         mapNextTx.erase(txin.prevout);
 
@@ -518,7 +519,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     cachedInnerUsage -= memusage::DynamicUsage(it->GetMemPoolParentsConst()) + memusage::DynamicUsage(it->GetMemPoolChildrenConst());
     mapTx.erase(it);
     nTransactionsUpdated++;
-    if (minerPolicyEstimator) {minerPolicyEstimator->removeTx(hash, false);}
 }
 
 // Calculates descendants of entry that are not already in setDescendants, and adds to
@@ -624,17 +624,6 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight)
 {
     AssertLockHeld(cs);
-    std::vector<const CTxMemPoolEntry*> entries;
-    for (const auto& tx : vtx)
-    {
-        uint256 hash = tx->GetHash();
-
-        indexed_transaction_set::iterator i = mapTx.find(hash);
-        if (i != mapTx.end())
-            entries.push_back(&*i);
-    }
-    // Before the txs in the new block have been removed from the mempool, update policy estimates
-    if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
     std::vector<CTransactionRef> txs_removed_for_block;
     txs_removed_for_block.reserve(vtx.size());
     for (const auto& tx : vtx)
@@ -648,6 +637,10 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         }
         removeConflicts(*tx);
         ClearPrioritisation(tx->GetHash());
+    }
+    // Before the txs in the new block have been removed from the mempool, update policy estimates
+    if (minerPolicyEstimator) {
+        minerPolicyEstimator->processBlock(nBlockHeight, txs_removed_for_block);
     }
     GetMainSignals().MempoolTransactionsRemovedForConnectedBlock(txs_removed_for_block, nBlockHeight);
     lastRollingFeeUpdate = GetTime();
