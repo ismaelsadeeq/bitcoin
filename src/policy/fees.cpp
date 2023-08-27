@@ -502,11 +502,6 @@ void TxConfirmStats::removeTx(unsigned int entryHeight, unsigned int nBestSeenHe
     }
 }
 
-// This function is called from CTxMemPool::removeUnchecked to ensure
-// txs removed from the mempool for any reason are no longer
-// tracked. Txs that were part of a block have already been removed in
-// processBlockTx to ensure they are never double tracked, but it is
-// of no harm to try to remove them again.
 bool CBlockPolicyEstimator::removeTx(uint256 hash, bool inBlock)
 {
     LOCK(m_cs_fee_estimator);
@@ -566,7 +561,7 @@ CBlockPolicyEstimator::CBlockPolicyEstimator(const fs::path& estimation_filepath
 
 CBlockPolicyEstimator::~CBlockPolicyEstimator() = default;
 
-void CBlockPolicyEstimator::processTransaction(const CTransactionRef& tx, const NewMempoolTransactionInfo& tx_info, bool validForFeeEstimation)
+void CBlockPolicyEstimator::processTransaction(const CTransactionRef& tx, const NewMempoolTransactionInfo& tx_info)
 {
     LOCK(m_cs_fee_estimator);
     unsigned int txHeight = tx_info.txHeight;
@@ -583,6 +578,7 @@ void CBlockPolicyEstimator::processTransaction(const CTransactionRef& tx, const 
         // It will be synced next time a block is processed.
         return;
     }
+    bool validForFeeEstimation = !tx_info.m_from_disconnected_block && !tx_info.m_submitted_in_package && tx_info.m_chainstate_is_current && tx_info.m_has_no_mempool_parents;
     // Only want to be updating estimates when our blockchain is synced,
     // otherwise we'll miscalculate how many blocks its taking to get included.
     if (!validForFeeEstimation) {
@@ -635,7 +631,7 @@ bool CBlockPolicyEstimator::processBlockTx(unsigned int nBlockHeight, const CTra
 }
 
 void CBlockPolicyEstimator::processBlock(unsigned int nBlockHeight,
-                                         std::vector<CTransactionRef>& txs_removed_for_block)
+                                         const std::vector<CTransactionRef>& txs_removed_for_block)
 {
     LOCK(m_cs_fee_estimator);
     if (nBlockHeight <= nBestSeenHeight) {
@@ -1035,6 +1031,21 @@ std::chrono::hours CBlockPolicyEstimator::GetFeeEstimatorFileAge()
     auto file_time = std::filesystem::last_write_time(m_estimation_filepath);
     auto now = std::filesystem::file_time_type::clock::now();
     return std::chrono::duration_cast<std::chrono::hours>(now - file_time);
+}
+
+void CBlockPolicyEstimator::TransactionAddedToMempool(const CTransactionRef& tx, const NewMempoolTransactionInfo& tx_info, uint64_t mempool_sequence)
+{
+    processTransaction(tx, tx_info);
+}
+
+void CBlockPolicyEstimator::TransactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason, uint64_t mempool_sequence)
+{
+    removeTx(tx->GetHash(), false);
+}
+
+void CBlockPolicyEstimator::MempoolTransactionsRemovedForConnectedBlock(const std::vector<CTransactionRef>& txs_removed_for_block, unsigned int nBlockHeight)
+{
+    processBlock(nBlockHeight, txs_removed_for_block);
 }
 
 static std::set<double> MakeFeeSet(const CFeeRate& min_incremental_fee,

@@ -1196,10 +1196,15 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
             results.emplace(ws.m_ptx->GetWitnessHash(),
                 MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize,
                                              ws.m_base_fees, effective_feerate, effective_feerate_wtxids));
+            const CTransaction& tx = *ws.m_ptx;
             NewMempoolTransactionInfo tx_info = {
                 ws.m_base_fees,
                 ws.m_vsize,
-                ws.m_entry->GetHeight()};
+                ws.m_entry->GetHeight(),
+                args.m_bypass_limits,
+                args.m_package_submission,
+                IsCurrentForFeeEstimation(m_active_chainstate),
+                m_pool.HasNoInputsOf(tx)};
             GetMainSignals().TransactionAddedToMempool(ws.m_ptx, tx_info, m_pool.GetAndIncrementSequence());
         } else {
             all_submitted = false;
@@ -1238,10 +1243,15 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
 
     if (!Finalize(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
+    const CTransaction& tx = *ws.m_ptx;
     NewMempoolTransactionInfo tx_info = {
         ws.m_base_fees,
         ws.m_vsize,
-        ws.m_entry->GetHeight()};
+        ws.m_entry->GetHeight(),
+        args.m_bypass_limits,
+        args.m_package_submission,
+        IsCurrentForFeeEstimation(m_active_chainstate),
+        m_pool.HasNoInputsOf(tx)};
     GetMainSignals().TransactionAddedToMempool(ws.m_ptx, tx_info, m_pool.GetAndIncrementSequence());
 
     return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees,

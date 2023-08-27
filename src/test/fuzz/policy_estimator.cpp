@@ -12,6 +12,7 @@
 #include <test/fuzz/util/mempool.h>
 #include <test/util/setup_common.h>
 #include <txmempool.h>
+#include <validationinterface.h>
 
 #include <cstdint>
 #include <optional>
@@ -42,8 +43,9 @@ FUZZ_TARGET(policy_estimator, .init = initialize_policy_estimator)
                 }
                 const CTransaction tx{*mtx};
                 const CTxMemPoolEntry entry = ConsumeTxMemPoolEntry(fuzzed_data_provider, tx);
-                const NewMempoolTransactionInfo tx_info = {entry.GetFee(), entry.GetTxSize(), entry.GetHeight()};
-                block_policy_estimator.processTransaction(entry.GetSharedTx(), tx_info, fuzzed_data_provider.ConsumeBool());
+                const NewMempoolTransactionInfo tx_info = {entry.GetFee(), entry.GetTxSize(), entry.GetHeight(),
+                                                           fuzzed_data_provider.ConsumeBool(), fuzzed_data_provider.ConsumeBool(), fuzzed_data_provider.ConsumeBool(), fuzzed_data_provider.ConsumeBool()};
+                block_policy_estimator.processTransaction(entry.GetSharedTx(), tx_info);
                 if (fuzzed_data_provider.ConsumeBool()) {
                     (void)block_policy_estimator.removeTx(tx.GetHash(), /*inBlock=*/fuzzed_data_provider.ConsumeBool());
                 }
