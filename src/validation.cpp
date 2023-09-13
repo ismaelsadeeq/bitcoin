@@ -1193,9 +1193,12 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
             const CTransaction& tx = *ws.m_ptx;
             NewMempoolTransactionInfo tx_info = {
                 ws.m_ptx,
+                ws.m_entry->GetMemPoolParentsCopy(),
                 ws.m_base_fees,
                 ws.m_vsize,
                 ws.m_entry->GetHeight(),
+                ws.m_entry->GetSizeWithAncestors(),
+                ws.m_entry->GetModFeesWithAncestors(),
                 args.m_bypass_limits,
                 args.m_package_submission,
                 IsCurrentForFeeEstimation(m_active_chainstate),
@@ -1241,9 +1244,12 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
     const CTransaction& tx = *ws.m_ptx;
     NewMempoolTransactionInfo tx_info = {
         ws.m_ptx,
+        ws.m_entry->GetMemPoolParentsCopy(),
         ws.m_base_fees,
         ws.m_vsize,
         ws.m_entry->GetHeight(),
+        ws.m_entry->GetSizeWithAncestors(),
+        ws.m_entry->GetModFeesWithAncestors(),
         args.m_bypass_limits,
         args.m_package_submission,
         IsCurrentForFeeEstimation(m_active_chainstate),

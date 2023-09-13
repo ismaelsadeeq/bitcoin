@@ -615,15 +615,28 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight)
 {
     AssertLockHeld(cs);
-    std::vector<CTransactionRef> txs_removed_for_block;
+    std::vector<NewMempoolTransactionInfo> txs_removed_for_block;
     txs_removed_for_block.reserve(vtx.size());
     for (const auto& tx : vtx)
     {
         txiter it = mapTx.find(tx->GetHash());
         if (it != mapTx.end()) {
+            NewMempoolTransactionInfo tx_info;
+            tx_info.m_tx = it->GetSharedTx();
+            tx_info.m_parents = it->GetMemPoolParentsCopy();
+            tx_info.m_fee = it->GetFee();
+            tx_info.m_virtual_transaction_size = it->GetTxSize();
+            tx_info.txHeight = it->GetHeight();
+            tx_info.nSizeWithAncestors = it->GetSizeWithAncestors();
+            tx_info.nModFeesWithAncestors = it->GetModFeesWithAncestors();
+            txs_removed_for_block.push_back(tx_info);
+        }
+    }
+    for (const auto& tx : vtx) {
+        txiter it = mapTx.find(tx->GetHash());
+        if (it != mapTx.end()) {
             setEntries stage;
             stage.insert(it);
-            txs_removed_for_block.push_back(tx);
             RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
         }
         removeConflicts(*tx);
