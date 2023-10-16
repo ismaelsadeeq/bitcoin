@@ -224,11 +224,18 @@ public:
     CFeeRate estimateSmartFee(int confTarget, FeeCalculation *feeCalc, bool conservative) const
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
+    CFeeRate estimateSmartFeeCons(int confTarget, FeeCalculation *feeCalc, bool conservative) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+
     /** Return a specific fee estimate calculation with a given success
      * threshold and time horizon, and optionally return detailed data about
      * calculation
      */
     CFeeRate estimateRawFee(int confTarget, double successThreshold, FeeEstimateHorizon horizon,
+                            EstimationResult* result = nullptr) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+
+    CFeeRate estimateRawFeeCons(int confTarget, double successThreshold, FeeEstimateHorizon horizon,
                             EstimationResult* result = nullptr) const
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
@@ -294,7 +301,11 @@ private:
     /** Helper for estimateSmartFee */
     double estimateCombinedFee(unsigned int confTarget, double successThreshold, bool checkShorterHorizon, EstimationResult *result) const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Helper for estimateSmartFee */
+    double estimateCombinedFeeCons(unsigned int confTarget, double successThreshold, bool checkShorterHorizon, EstimationResult *result) const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
+    /** Helper for estimateSmartFee */
     double estimateConservativeFee(unsigned int doubleTarget, EstimationResult *result) const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
+    /** Helper for estimateSmartFee */
+    double estimateConservativeFeeCons(unsigned int doubleTarget, EstimationResult *result) const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Number of blocks of data recorded while fee estimates have been running */
     unsigned int BlockSpan() const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Number of blocks of recorded fee estimate data represented in saved data file */
