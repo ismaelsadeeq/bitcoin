@@ -184,6 +184,20 @@ class WalletSendTest(BitcoinTestFramework):
 
         return res
 
+    def test_relayminfee_in_wallet(self):
+        self.log.info("Test if wallet can create transactions below min relay fee rate")
+        # Set a high min relay fee of 20 s/vb.
+        high_min_relay_fee = '0.0002'
+        self.restart_node(0, extra_args=[f'-minrelaytxfee={high_min_relay_fee}'])
+        assert_raises_rpc_error(-6, "Fee rate (1.000 sat/vB) is lower than the minimum fee rate setting (20.000 sat/vB)", self.nodes[0].sendtoaddress, address=self.nodes[0].getnewaddress(), amount=1, fee_rate=1)
+
+        self.log.info("Test restarting a node with low maxtxfee and high minrelayfee")
+        low_max_tx_fee = '0.000001'
+        self.stop_node(0)
+
+        msg = f"Error: Invalid amount for -maxtxfee=<amount>: '{low_max_tx_fee}' (must be at least the minrelay fee of {format(float(high_min_relay_fee), '.8f')} BTC/kvB to prevent stuck transactions)"
+        self.nodes[0].assert_start_raises_init_error(extra_args=[f'-minrelaytxfee={high_min_relay_fee}', f'-maxtxfee={low_max_tx_fee}'], expected_msg=msg)
+
     def run_test(self):
         self.log.info("Setup wallets...")
         # w0 is a wallet with coinbase rewards
@@ -575,6 +589,7 @@ class WalletSendTest(BitcoinTestFramework):
         testres = self.nodes[0].testmempoolaccept([signed["hex"]])[0]
         assert_equal(testres["allowed"], True)
         assert_fee_amount(testres["fees"]["base"], testres["vsize"], Decimal(0.0001))
+        self.test_relayminfee_in_wallet()
 
 if __name__ == '__main__':
     WalletSendTest().main()
