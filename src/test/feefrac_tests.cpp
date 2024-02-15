@@ -125,4 +125,32 @@ BOOST_AUTO_TEST_CASE(build_diagram_test)
     BOOST_CHECK(generated_diagram[5] == oversized_2 + oversized_1 + p1 + zero_fee);
 }
 
+BOOST_AUTO_TEST_CASE(test_fee_frac_sorting) {
+
+    // Define FeeFrac objects
+    FeeFrac fee0_0{0, 0}; // fee=0, size=0 (undefined feerate)
+    FeeFrac fee2_1{2, 1}; // fee=2, size=1 (feerate 2)
+    FeeFrac fee3_2{3, 2}; // fee=3, size=2 (feerate 1.5)
+    FeeFrac fee1_1{1, 1}; // fee=1, size=1 (feerate 1)
+    FeeFrac fee2_2{2, 2}; // fee=2, size=2 (feerate 1)
+    FeeFrac fee2_3{2, 3}; // fee=2, size=3 (feerate 0.667...)
+    FeeFrac fee1_2{1, 2}; // fee=1, size=2 (feerate 0.5)
+    FeeFrac fee0_1{0, 1}; // fee=0, size=1 (feerate 0)
+
+    // Insert the chunk in random order, to test the sorting.
+    std::vector<FeeFrac> chunks = {fee2_2, fee1_1, fee2_3, fee1_2, fee3_2, fee2_1, fee0_1, fee0_0};
+
+    std::sort(chunks.begin(), chunks.end(), [](const FeeFrac& chunk_a, const FeeFrac& chunk_b){ return chunk_a > chunk_b; });
+    
+    // Check if chunks are sorted in the expected order
+    BOOST_CHECK(chunks[0] == fee0_0); // undefined fee rate always sorts first.
+    BOOST_CHECK(chunks[1] == fee2_1);
+    BOOST_CHECK(chunks[2] == fee3_2);
+    BOOST_CHECK(chunks[3] == fee1_1); // If there is a tie, the chunk with lower size comes first.
+    BOOST_CHECK(chunks[4] == fee2_2);
+    BOOST_CHECK(chunks[5] == fee2_3);
+    BOOST_CHECK(chunks[6] == fee1_2);
+    BOOST_CHECK(chunks[7] == fee0_1); // The chunk with the lowest fee rate sorts last.
+}
+
 BOOST_AUTO_TEST_SUITE_END()
