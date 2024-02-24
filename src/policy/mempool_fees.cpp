@@ -6,9 +6,10 @@
 #include <consensus/consensus.h>
 #include <logging.h>
 #include <node/miner.h>
+#include <policy/fees.h>
 #include <policy/mempool_fees.h>
 #include <policy/policy.h>
-
+#include <validation.h>
 
 using node::GetCustomBlockFeeRateHistogram;
 
@@ -56,6 +57,21 @@ CFeeRate MemPoolPolicyEstimator::EstimateFeeWithMemPool(Chainstate& chainstate, 
         err_message = "Insufficient mempool transactions to perform an estimate.";
     }
     return block_fee_rate;
+}
+
+void MemPoolPolicyEstimator::EstimateFeeWithMemPool(const ChainstateManager& chainman, const CTxMemPool& mempool, const CBlockPolicyEstimator* fee_estimator) const
+{
+    std::string err_message;
+    LOCK(cs_main);
+    CBlockIndex* block = chainman.ActiveTip();
+    CFeeRate estimate = EstimateFeeWithMemPool(chainman.ActiveChainstate(), mempool, /*confTarget=*/1, /*force=*/true, err_message);
+    FeeCalculation feeCalc;
+    CFeeRate block_estimate = fee_estimator->estimateSmartFee(/*conf_target=*/1, &feeCalc, /*conservative=*/false);
+    if (estimate == CFeeRate(0)) {
+        LogPrintf("At block %s, height %s, failed to get mempool based fee rate estimate; error: %s \n", block->phashBlock->GetHex(), block->nHeight,  err_message);
+    }else {
+        LogPrintf("At block %s, height %s, mempool based fee rate estimate for next block is %s, block estimate for next block is %s \n", block->phashBlock->GetHex(), block->nHeight,  estimate.GetFeePerK(), block_estimate.GetFeePerK());
+    }
 }
 
 std::map<uint64_t, CFeeRate> MemPoolPolicyEstimator::EstimateBlockFeeRatesWithMempool(

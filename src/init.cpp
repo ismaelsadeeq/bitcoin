@@ -1261,9 +1261,6 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         RegisterValidationInterface(fee_estimator);
     }
 
-    assert(!node.mempool_fee_estimator);
-
-    node.mempool_fee_estimator = std::make_unique<MemPoolPolicyEstimator>();
 
     // Check port numbers
     for (const std::string port_option : {
@@ -1588,6 +1585,13 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     ChainstateManager& chainman = *Assert(node.chainman);
 
+    assert(!node.mempool_fee_estimator);
+
+    node.mempool_fee_estimator = std::make_unique<MemPoolPolicyEstimator>();
+    MemPoolPolicyEstimator* mempool_fee_estimator = node.mempool_fee_estimator.get();
+    CBlockPolicyEstimator* fee_estimator = node.fee_estimator.get();
+    CTxMemPool& mempool = *(node.mempool.get());
+    node.scheduler->scheduleEvery([mempool_fee_estimator, fee_estimator, &mempool, &chainman ] { mempool_fee_estimator->EstimateFeeWithMemPool(chainman, mempool, fee_estimator); }, FEE_ESTIMATE_INTERVAL);
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman,
                                      node.banman.get(), chainman,
