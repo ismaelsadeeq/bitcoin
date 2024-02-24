@@ -2394,16 +2394,28 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CAmount nFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
-    blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    int64_t totalWeight = 0;
+    int64_t totalVsize = 0;
+    CFeeRate p5;
+    CFeeRate p25;
+    CFeeRate p50;
+    CFeeRate p75;
+    std::set<Txid> txIds;
+    for (unsigned int i = 0; i < block.vtx.size(); i++) {
+        const CTransaction& tx = *(block.vtx[i]);
+        if (!tx.IsCoinBase()) {
+            txIds.insert(tx.GetHash());
+        }
+    }
+
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
-
+        CAmount txfee = 0;
         if (!tx.IsCoinBase())
         {
-            CAmount txfee = 0;
             TxValidationState tx_state;
             if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
@@ -2436,7 +2448,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         // * legacy (always)
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
-        nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
+        int64_t txSigOpCost = GetTransactionSigOpCost(tx, view, flags);
+        nSigOpsCost += txSigOpCost;
         if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
             LogPrintf("ERROR: ConnectBlock(): too many sigops\n");
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-sigops");
@@ -2456,6 +2469,35 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 return false;
             }
             control.Add(std::move(vChecks));
+            int64_t txWeight = GetTransactionWeight(tx);
+            int64_t txVsize = GetVirtualTransactionSize(txWeight, txSigOpCost, nBytesPerSigOp);
+            totalWeight += txWeight;
+            totalVsize += txVsize;
+
+            size_t next = i + 1;
+            int64_t nextTxweight = 0;
+            if (next < block.vtx.size()) {
+                const CTransaction& next_tx = *(block.vtx[next]);
+                nextTxweight = GetTransactionWeight(next_tx);
+            }
+            bool hasParent = std::any_of(tx.vin.begin(), tx.vin.end(), [&txIds](const CTxIn& input) {
+                return txIds.contains(input.prevout.hash);
+            });
+            if (!hasParent) {
+                const auto curr_weight = totalWeight + nextTxweight;
+                if (curr_weight >= ((19 * DEFAULT_BLOCK_MAX_WEIGHT) / 20) && p5 == CFeeRate(0)) {
+                    p5 = CFeeRate(txfee, txVsize);
+                }
+                if (curr_weight >= ((3 * DEFAULT_BLOCK_MAX_WEIGHT) / 4) && p25 == CFeeRate(0)) {
+                    p25 = CFeeRate(txfee, txVsize);
+                }
+                if (curr_weight >= (DEFAULT_BLOCK_MAX_WEIGHT / 2) && p50 == CFeeRate(0)) {
+                    p50 = CFeeRate(txfee, txVsize);
+                }
+                if (curr_weight >= (DEFAULT_BLOCK_MAX_WEIGHT / 4) && p75 == CFeeRate(0)) {
+                    p75 = CFeeRate(txfee, txVsize);
+                }
+            }
         }
 
         CTxUndo undoDummy;
@@ -2518,7 +2560,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
              Ticks<MillisecondsDouble>(time_6 - time_5),
              Ticks<SecondsDouble>(time_index),
              Ticks<MillisecondsDouble>(time_index) / num_blocks_total);
-
+    CFeeRate averageFeeRate = CFeeRate(nFees, totalVsize);
+    LogInfo("Connected Block %s, at height %s, has a 75th percentile fee rate %s, 50th percentile fee rate %s, 25th percentile fee rate %s, 5th percentile fee rate %s average fee rate %s \n", pindex->GetBlockHash().ToString(), pindex->nHeight, p75.GetFeePerK(), p50.GetFeePerK(), p25.GetFeePerK(), p5.GetFeePerK(), averageFeeRate.GetFeePerK());
     TRACE6(validation, block_connected,
         block_hash.data(),
         pindex->nHeight,
