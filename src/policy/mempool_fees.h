@@ -15,12 +15,16 @@
 #include <logging.h>
 #include <policy/feerate.h>
 
+class CBlockPolicyEstimator;
 class Chainstate;
+class ChainstateManager;
 class CTxMemPool;
 
 // Fee rate estimates above this confirmation target are not reliable,
 // mempool condition might likely change.
 static const unsigned int MAX_CONF_TARGET{1};
+
+static constexpr std::chrono::minutes FEE_ESTIMATE_INTERVAL{1};
 
 // Fee estimation result containing percentiles (in sat/kvB).
 struct MempoolFeeEstimationResult {
@@ -114,6 +118,7 @@ public:
      * @return The estimated fee rates.
      */
     MempoolFeeEstimationResult EstimateFeeWithMemPool(Chainstate& chainstate, const CTxMemPool& mempool, unsigned int confTarget, const bool force, std::string& err_message) const;
+    void EstimateFeeWithMemPool(const ChainstateManager& chainstate, const CTxMemPool& mempool, const CBlockPolicyEstimator* fee_estimator) const;
 
 private:
     mutable CachedMempoolEstimates cache;

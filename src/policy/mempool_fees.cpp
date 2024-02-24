@@ -6,9 +6,10 @@
 #include <consensus/consensus.h>
 #include <logging.h>
 #include <node/miner.h>
+#include <policy/fees.h>
 #include <policy/mempool_fees.h>
 #include <policy/policy.h>
-
+#include <validation.h>
 
 using node::GetCustomBlockFeeRateHistogram;
 
@@ -59,8 +60,23 @@ MempoolFeeEstimationResult MemPoolPolicyEstimator::EstimateFeeWithMemPool(Chains
     if (fee_rate_estimate_result.empty()) {
         err_message = "Insufficient mempool transactions to perform an estimate.";
     }
-
     return fee_rate_estimate_result;
+}
+
+void MemPoolPolicyEstimator::EstimateFeeWithMemPool(const ChainstateManager& chainman, const CTxMemPool& mempool, const CBlockPolicyEstimator* fee_estimator) const
+{
+    std::string err_message;
+    LOCK(cs_main);
+    CBlockIndex* block = chainman.ActiveTip();
+    MempoolFeeEstimationResult estimate = EstimateFeeWithMemPool(chainman.ActiveChainstate(), mempool, /*confTarget=*/1, /*force=*/true, err_message);
+    FeeCalculation feeCalc;
+    CFeeRate block_estimate = fee_estimator->estimateSmartFee(/*conf_target=*/1, &feeCalc, /*conservative=*/false);
+    if (estimate.empty()) {
+        LogInfo("At block %s, height %s, failed to get mempool based fee rate estimate; error: %s \n", block->phashBlock->GetHex(), block->nHeight, err_message);
+    } else {
+        LogInfo("At block %s, height %s, mempool based fee rate estimate for next block has a 75th percentile fee rate %s, 50th percentile fee rate %s, 25th percentile fee rate %s, 5th percentile fee rate %s, block estimate for next block is %s \n",
+                    block->phashBlock->GetHex(), block->nHeight, estimate.p75.GetFeePerK(), estimate.p50.GetFeePerK(), estimate.p25.GetFeePerK(), estimate.p5.GetFeePerK(), block_estimate.GetFeePerK());
+    }
 }
 
 std::map<uint64_t, MempoolFeeEstimationResult> MemPoolPolicyEstimator::EstimateBlockFeeRatesWithMempool(
