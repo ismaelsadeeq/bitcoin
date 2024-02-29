@@ -14,7 +14,7 @@ if [ -z "$DANGER_RUN_CI_ON_HOST" ]; then
   # Though, exclude those with newlines to avoid parsing problems.
   python3 -c 'import os; [print(f"{key}={value}") for key, value in os.environ.items() if "\n" not in value and "HOME" != key and "PATH" != key and "USER" != key]' | tee "/tmp/env-$USER-$CONTAINER_NAME"
   # System-dependent env vars must be kept as is. So read them from the container.
-  docker run --rm "${CI_IMAGE_NAME_TAG}" bash -c "env | grep --extended-regexp '^(HOME|PATH|USER)='" | tee --append "/tmp/env-$USER-$CONTAINER_NAME"
+  docker run --rm "${CI_IMAGE_NAME_TAG}" bash -c "env | grep --extended-regexp '^(HOME|PATH|USER)='" | tee -a "/tmp/env-$USER-$CONTAINER_NAME"
   echo "Creating $CI_IMAGE_NAME_TAG container to run in"
   DOCKER_BUILDKIT=1 docker build \
       --file "${BASE_READ_ONLY_DIR}/ci/test_imagefile" \

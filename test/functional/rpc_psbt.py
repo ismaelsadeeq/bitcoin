@@ -32,6 +32,7 @@ from test_framework.psbt import (
     PSBT_OUT_TAP_TREE,
 )
 from test_framework.script import CScript, OP_TRUE
+from test_framework.script_util import MIN_STANDARD_TX_NONWITNESS_SIZE
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_approx,
@@ -187,6 +188,16 @@ class PSBTTest(BitcoinTestFramework):
         # Create and fund a raw tx for sending 10 BTC
         psbtx1 = self.nodes[0].walletcreatefundedpsbt([], {self.nodes[2].getnewaddress():10})['psbt']
 
+        self.log.info("Test that max_tx_weight option is sanity checked and fails when expected")
+        dest_arg = [{self.nodes[0].getnewaddress(): 1}]
+        assert_raises_rpc_error(-8, "Invalid parameter, max tx weight must be between 0 and 400000", self.nodes[0].walletcreatefundedpsbt, [], dest_arg, 0, {"max_tx_weight": -1})
+        assert_raises_rpc_error(-8, "Invalid parameter, max tx weight must be between 0 and 400000", self.nodes[0].walletcreatefundedpsbt, [], dest_arg, 0, {"max_tx_weight": 400001})
+
+        self.log.info("Test that a funded PSBT is always faithful to max_tx_weight option")
+        for weight in [0, 1, MIN_STANDARD_TX_NONWITNESS_SIZE * WITNESS_SCALE_FACTOR]:
+            self.log.info(f"for {weight}")
+            assert_raises_rpc_error(-4, "The inputs size exceeds the maximum weight", self.nodes[0].walletcreatefundedpsbt, [], dest_arg, 0, {"max_tx_weight": weight})
+        self.nodes[0].walletcreatefundedpsbt(outputs=dest_arg, locktime=0)
         # If inputs are specified, do not automatically add more:
         utxo1 = self.nodes[0].listunspent()[0]
         assert_raises_rpc_error(-4, "The preselected coins total amount does not cover the transaction target. "
@@ -993,7 +1004,6 @@ class PSBTTest(BitcoinTestFramework):
 
         self.log.info("Test descriptorprocesspsbt raises if an invalid sighashtype is passed")
         assert_raises_rpc_error(-8, "all is not a valid sighash parameter.", self.nodes[2].descriptorprocesspsbt, psbt, [descriptor], sighashtype="all")
-
 
 if __name__ == '__main__':
     PSBTTest().main()
