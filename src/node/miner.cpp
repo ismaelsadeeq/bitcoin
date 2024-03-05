@@ -59,8 +59,10 @@ void RegenerateCommitments(CBlock& block, ChainstateManager& chainman)
 
 static BlockAssembler::Options ClampOptions(BlockAssembler::Options options)
 {
-    // Limit weight to between 4K and DEFAULT_BLOCK_MAX_WEIGHT for sanity:
-    options.nBlockMaxWeight = std::clamp<size_t>(options.nBlockMaxWeight, 4000, DEFAULT_BLOCK_MAX_WEIGHT);
+    if (options.sanity_check_block_weight) {
+        // Limit weight to between 4K and DEFAULT_BLOCK_MAX_WEIGHT for sanity:
+        options.nBlockMaxWeight = std::clamp<size_t>(options.nBlockMaxWeight, 4000, DEFAULT_BLOCK_MAX_WEIGHT);
+    }
     return options;
 }
 
@@ -285,12 +287,29 @@ void BlockAssembler::addChunks(const CTxMemPool& mempool)
         for (const auto& tx : best_chunk.first->txs) {
             AddToBlock(tx.get());
         }
-
+        size_per_feerate.emplace_back(CFeeRate{best_chunk.first->fee, static_cast<uint64_t>(best_chunk.first->size)}, static_cast<uint64_t>(best_chunk.first->size));
         ++best_chunk.first;
         if (best_chunk.first != best_chunk.second->m_chunks.end()) {
             heap_chunks.emplace_back(best_chunk);
             std::push_heap(heap_chunks.begin(), heap_chunks.end(), cmp);
         }
     }
+}
+
+std::vector<std::tuple<CFeeRate, uint64_t>> BlockAssembler::GetFeeRateStats()
+{
+    return std::move(size_per_feerate);
+}
+
+std::vector<std::tuple<CFeeRate, uint64_t>> GetCustomBlockFeeRateHistogram(Chainstate& chainstate, const CTxMemPool* mempool, size_t block_weight)
+{
+    BlockAssembler::Options options = {
+        .nBlockMaxWeight = block_weight,
+        .test_block_validity = false,
+        .sanity_check_block_weight = false,
+    };
+    BlockAssembler assembler(chainstate, mempool, options);
+    assembler.CreateNewBlock(CScript{});
+    return assembler.GetFeeRateStats();
 }
 } // namespace node
