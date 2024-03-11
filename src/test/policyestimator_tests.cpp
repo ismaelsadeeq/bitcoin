@@ -51,6 +51,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
 
     // Create a fake block
     std::vector<CTransactionRef> block;
+    std::vector<CTransactionRef> empty_txs;
     int blocknum = 0;
 
     // Loop through 200 blocks
@@ -95,7 +96,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
 
         {
             LOCK(mpool.cs);
-            mpool.removeForBlock(block, ++blocknum);
+            const auto removed_txs = mpool.removeForBlock(block);
+            mpool.m_signals->MempoolTransactionsRemovedForBlock(removed_txs, empty_txs, block, ++blocknum);
         }
 
         block.clear();
@@ -142,7 +144,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     // We haven't decayed the moving average enough so we still have enough data points in every bucket
     while (blocknum < 250) {
         LOCK(mpool.cs);
-        mpool.removeForBlock(block, ++blocknum);
+        const auto removed_txs = mpool.removeForBlock(block);
+        mpool.m_signals->MempoolTransactionsRemovedForBlock(removed_txs, empty_txs, block, ++blocknum);
     }
 
     // Wait for fee estimator to catch up
@@ -183,7 +186,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         }
         {
             LOCK(mpool.cs);
-            mpool.removeForBlock(block, ++blocknum);
+            const auto removed_txs = mpool.removeForBlock(block);
+            mpool.m_signals->MempoolTransactionsRemovedForBlock(removed_txs, empty_txs, block, ++blocknum);
         }
     }
 
@@ -207,7 +211,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
 
     {
         LOCK(mpool.cs);
-        mpool.removeForBlock(block, 266);
+        const auto removed_txs = mpool.removeForBlock(block);
+        mpool.m_signals->MempoolTransactionsRemovedForBlock(removed_txs, empty_txs, block, 266);
     }
     block.clear();
 
@@ -251,7 +256,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
 
         {
             LOCK(mpool.cs);
-            mpool.removeForBlock(block, ++blocknum);
+            const auto removed_txs = mpool.removeForBlock(block);
+            mpool.m_signals->MempoolTransactionsRemovedForBlock(removed_txs, empty_txs, block, ++blocknum);
         }
 
         block.clear();

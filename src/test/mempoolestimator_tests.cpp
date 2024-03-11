@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(MempoolEstimator)
     m_node.mempool->SetLoadTried(true);
     fee_estimate = m_node.mempool_fee_estimator->EstimateFeeWithMemPool(m_node.chainman->ActiveChainstate(), *m_node.mempool, 1, false, err_message);
     BOOST_CHECK(fee_estimate.empty());
-    BOOST_CHECK(err_message == std::string("No transactions available in the mempool yet."));
+    BOOST_CHECK(err_message == std::string("Mempool transactions roughly not in sync with previously mined blocks, fee rate estimate won't be reliable."));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

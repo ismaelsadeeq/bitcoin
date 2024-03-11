@@ -4,12 +4,15 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/consensus.h>
+#include <consensus/validation.h>
 #include <logging.h>
 #include <node/miner.h>
 #include <policy/fees.h>
 #include <policy/mempool_fees.h>
 #include <policy/policy.h>
 #include <validation.h>
+#include <validationinterface.h>
+
 
 using node::GetCustomBlockFeeRateHistogram;
 
@@ -30,6 +33,12 @@ MempoolFeeEstimationResult MemPoolPolicyEstimator::EstimateFeeWithMemPool(Chains
         err_message = "Mempool not finished loading, can't get accurate fee rate estimate.";
         return fee_rate_estimate_result;
     }
+
+    if (!RoughlySynced()) {
+        err_message = "Mempool transactions roughly not in sync with previously mined blocks, fee rate estimate won't be reliable.";
+        return fee_rate_estimate_result;
+    }
+
     if (!force) {
         cached_fee = cache.get(confTarget);
     }
@@ -141,4 +150,91 @@ MempoolFeeEstimationResult MemPoolPolicyEstimator::CalculateBlockPercentiles(
         return empty_res;
     }
     return res;
+}
+
+void MemPoolPolicyEstimator::MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block, const std::vector<CTransactionRef>& expected_block_txs,
+                                                                const std::vector<CTransactionRef>& block_txs, unsigned int nBlockHeight)
+{
+    std::set<Txid> block_transactions;
+    uint32_t block_weight = 0;
+    for (const auto& tx : block_txs) {
+        block_transactions.insert(tx->GetHash());
+        block_weight += GetTransactionWeight(*tx);
+    }
+
+    uint32_t removed_expected_txs_weight = 0;
+    for (const auto& tx : expected_block_txs) {
+        if (block_transactions.contains(tx->GetHash())) {
+            removed_expected_txs_weight += GetTransactionWeight(*tx);
+        }
+    }
+
+    uint32_t removed_txs_weight = 0;
+    for (const auto& tx : txs_removed_for_block) {
+        removed_txs_weight += GetTransactionWeight(*(tx.info.m_tx));
+    }
+
+    // If Most of the transactions in the block were in our mempool.
+    // And most of the transactions we expect to be in the block are in the block.
+    // The node's mempool is roughly in sync with miner.
+    const uint32_t mid_block_weight = block_weight / 2;
+    bool roughly_synced = (removed_txs_weight > mid_block_weight) && (removed_expected_txs_weight > mid_block_weight);
+    const MemPoolPolicyEstimator::block_info new_block_info = {nBlockHeight, roughly_synced};
+    UpdateTopBlocks(new_block_info);
+}
+
+void MemPoolPolicyEstimator::UpdateTopBlocks(const MemPoolPolicyEstimator::block_info& new_blk_info)
+{
+    if (AreTopBlocksInOrder()) {
+        InsertNewBlock(new_blk_info);
+    } else {
+        top_blocks = {new_blk_info, {0, false}, {0, false}};
+    }
+}
+
+void MemPoolPolicyEstimator::InsertNewBlock(const MemPoolPolicyEstimator::block_info& new_blk_info)
+{
+    auto empty_block_it = std::find_if(top_blocks.begin(), top_blocks.end(), [](const auto& blk) {
+        return blk.height == 0;
+    });
+
+    if (empty_block_it != top_blocks.end()) {
+        if (std::prev(empty_block_it)->height + 1 == new_blk_info.height) {
+            *empty_block_it = new_blk_info;
+        } else {
+            top_blocks = {new_blk_info, {0, false}, {0, false}};
+        }
+
+    } else if (top_blocks.back().height + 1 == new_blk_info.height) {
+        std::rotate(top_blocks.begin(), top_blocks.begin() + 1, top_blocks.end());
+        top_blocks.back() = new_blk_info;
+
+    } else {
+        top_blocks = {new_blk_info, {0, false}, {0, false}};
+    }
+}
+
+bool MemPoolPolicyEstimator::AreTopBlocksInOrder() const
+{
+    unsigned int curr_height = top_blocks[0].height;
+    if (curr_height == 0) {
+        return true;
+    }
+    for (size_t i = 1; i < top_blocks.size(); ++i) {
+        if (top_blocks[i].height == 0) {
+            return true;
+        }
+        ++curr_height;
+        if (curr_height != top_blocks[i].height) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool MemPoolPolicyEstimator::RoughlySynced() const
+{
+    return AreTopBlocksInOrder() && std::all_of(top_blocks.begin(), top_blocks.end(), [](const auto& blk) {
+               return blk.roughly_synced;
+           });
 }

@@ -102,13 +102,18 @@ protected:
      */
     virtual void TransactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason, uint64_t mempool_sequence) {}
     /*
-     * Notifies listeners of transactions removed from the mempool as
-     * as a result of new block being connected.
+     * Notifies listeners after a new block being connected.
+     * returns the transactions removed from mempool, expected block transactions and the block transactions.
      * MempoolTransactionsRemovedForBlock will be fired before BlockConnected.
      *
      * Called on a background thread.
      */
-    virtual void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block, unsigned int nBlockHeight) {}
+    virtual void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block, const std::vector<CTransactionRef>& expectedBlockTxs, const std::vector<CTransactionRef>& BlockTxs, unsigned int nBlockHeight) {}
+    /**
+     * Notifies listeners of a new block being connected and the expected block template.
+     * returns the new block and the expected block template.
+     */
+    virtual void ExpectedBlockConnected(const CBlock& expected_block_template, const CBlock& block, unsigned int nBlockHeight) {}
     /**
      * Notifies listeners of a block being connected.
      * Provides a vector of transactions evicted from the mempool as a result.
@@ -216,7 +221,7 @@ public:
     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
     void TransactionAddedToMempool(const NewMempoolTransactionInfo&, uint64_t mempool_sequence);
     void TransactionRemovedFromMempool(const CTransactionRef&, MemPoolRemovalReason, uint64_t mempool_sequence);
-    void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>&, unsigned int nBlockHeight);
+    void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>&, const std::vector<CTransactionRef>&, const std::vector<CTransactionRef>&, unsigned int nBlockHeight);
     void BlockConnected(ChainstateRole, const std::shared_ptr<const CBlock> &, const CBlockIndex *pindex);
     void BlockDisconnected(const std::shared_ptr<const CBlock> &, const CBlockIndex* pindex);
     void ChainStateFlushed(ChainstateRole, const CBlockLocator &);

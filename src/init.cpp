@@ -323,6 +323,10 @@ void Shutdown(NodeContext& node)
         }
     }
 
+    if (node.mempool_fee_estimator) {
+        node.validation_signals->UnregisterValidationInterface(node.mempool_fee_estimator.get());
+    }
+
     // FlushStateToDisk generates a ChainStateFlushed callback, which we should avoid missing
     if (node.chainman) {
         LOCK(cs_main);
@@ -382,6 +386,7 @@ void Shutdown(NodeContext& node)
     node.mempool.reset();
     node.mempool_fee_estimator.reset();
     node.fee_estimator.reset();
+    node.mempool_fee_estimator.reset();
     node.chainman.reset();
     node.validation_signals.reset();
     node.scheduler.reset();
@@ -1623,6 +1628,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     node.mempool_fee_estimator = std::make_unique<MemPoolPolicyEstimator>();
     MemPoolPolicyEstimator* mempool_fee_estimator = node.mempool_fee_estimator.get();
     CBlockPolicyEstimator* fee_estimator = node.fee_estimator.get();
+    validation_signals.RegisterValidationInterface(node.mempool_fee_estimator.get());
     CTxMemPool& mempool = *(node.mempool.get());
     node.scheduler->scheduleEvery([mempool_fee_estimator, fee_estimator, &mempool, &chainman] { mempool_fee_estimator->EstimateFeeWithMemPool(chainman, mempool, fee_estimator); }, FEE_ESTIMATE_INTERVAL);
     assert(!node.peerman);

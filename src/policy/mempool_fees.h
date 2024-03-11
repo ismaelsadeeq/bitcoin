@@ -11,6 +11,7 @@
 #include <optional>
 #include <shared_mutex>
 #include <string>
+#include <validationinterface.h>
 
 #include <logging.h>
 #include <policy/feerate.h>
@@ -101,12 +102,12 @@ public:
  * fee rate of the txs in the confirmation target block as the approximate fee rate that a tx will pay to
  * likely be included in the block.
  */
-class MemPoolPolicyEstimator
+class MemPoolPolicyEstimator : public CValidationInterface
 {
 public:
     MemPoolPolicyEstimator();
 
-    ~MemPoolPolicyEstimator() = default;
+    virtual ~MemPoolPolicyEstimator() = default;
 
     /**
      * Estimate the fee rate from mempool txs data given a confirmation target.
@@ -139,5 +140,26 @@ private:
      * @return MempoolFeeEstimationResult of a given block.
      */
     MempoolFeeEstimationResult CalculateBlockPercentiles(std::vector<std::tuple<CFeeRate, uint64_t>>::const_reverse_iterator start_it, std::vector<std::tuple<CFeeRate, uint64_t>>::const_reverse_iterator end_it) const;
+    CFeeRate CalculateMedianFeeRate(std::vector<std::tuple<CFeeRate, uint64_t>>::const_iterator start_it, std::vector<std::tuple<CFeeRate, uint64_t>>::const_iterator end_it) const;
+
+    struct block_info {
+        unsigned int height;
+        bool roughly_synced;
+    };
+
+    std::array<block_info, 3> top_blocks;
+
+    // Whenever we receive a new block we record it's status if its in sync or not.
+    void UpdateTopBlocks(const block_info& new_blk_info);
+
+    // Determine whether the last that we tracked are sequential.
+    bool AreTopBlocksInOrder() const;
+
+    bool RoughlySynced() const; // Tells us whether our mempool is roughly in sync with miners mempool.
+
+    void InsertNewBlock(const block_info& new_blk_info);
+
+protected:
+    void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block, const std::vector<CTransactionRef>& expected_block_txs, const std::vector<CTransactionRef>& block_txs, unsigned int nBlockHeight) override;
 };
 #endif // BITCOIN_POLICY_MEMPOOL_FEES_H

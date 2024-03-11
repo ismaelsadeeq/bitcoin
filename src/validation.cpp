@@ -32,6 +32,7 @@
 #include <logging.h>
 #include <logging/timer.h>
 #include <node/blockstorage.h>
+#include <node/miner.h>
 #include <node/utxo_snapshot.h>
 #include <policy/v3_policy.h>
 #include <policy/policy.h>
@@ -3040,8 +3041,20 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
              Ticks<MillisecondsDouble>(time_chainstate) / num_blocks_total);
     // Remove conflicting transactions from the mempool.;
     if (m_mempool) {
-        m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
+        std::vector<CTransactionRef> expectedBlockTxs;
+        CBlockIndex* pindexPrev = this->m_chain.Tip();
+        if (pindexPrev != nullptr) {
+            const CScript scriptPubKey = CScript() << OP_TRUE;
+            node::BlockAssembler::Options options;
+            options.test_block_validity = false;
+            const auto block_template = node::BlockAssembler(*this, m_mempool, options).CreateNewBlock(scriptPubKey);
+            expectedBlockTxs = block_template->block.vtx;
+        }
+        const std::vector<RemovedMempoolTransactionInfo> txs_removed_for_block = m_mempool->removeForBlock(blockConnecting.vtx);
         disconnectpool.removeForBlock(blockConnecting.vtx);
+        if (m_mempool->m_signals) {
+            m_mempool->m_signals->MempoolTransactionsRemovedForBlock(txs_removed_for_block, expectedBlockTxs, blockConnecting.vtx, pindexNew->nHeight);
+        }
     }
     // Update m_chain & related variables.
     m_chain.SetTip(*pindexNew);
