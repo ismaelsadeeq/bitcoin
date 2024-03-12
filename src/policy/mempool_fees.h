@@ -11,6 +11,7 @@
 #include <optional>
 #include <shared_mutex>
 #include <string>
+#include <util/hasher.h>
 #include <validationinterface.h>
 
 #include <logging.h>
@@ -24,6 +25,8 @@ class CTxMemPool;
 // Fee rate estimates above this confirmation target are not reliable,
 // mempool condition might likely change.
 static const unsigned int MAX_CONF_TARGET{1};
+
+static const unsigned int MAX_UNCONF_COUNT{5};
 
 static constexpr std::chrono::minutes FEE_ESTIMATE_INTERVAL{1};
 
@@ -149,6 +152,8 @@ private:
 
     std::array<block_info, 3> top_blocks;
 
+    std::map<Txid, unsigned int> expectedMinedTxs;
+
     // Whenever we receive a new block we record it's status if its in sync or not.
     void UpdateTopBlocks(const block_info& new_blk_info);
 
@@ -158,6 +163,10 @@ private:
     bool RoughlySynced() const; // Tells us whether our mempool is roughly in sync with miners mempool.
 
     void InsertNewBlock(const block_info& new_blk_info);
+
+    void IncrementTxsCount(const std::set<Txid>& txs);
+
+    std::set<Txid> GetTxsToExclude() const;
 
 protected:
     void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block, const std::vector<CTransactionRef>& expected_block_txs, const std::vector<CTransactionRef>& block_txs, unsigned int nBlockHeight) override;

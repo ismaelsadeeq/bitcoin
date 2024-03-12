@@ -286,7 +286,8 @@ void MinerTestingSetup::TestCustomBlockCreation(const CScript& scriptPubKey, con
     BOOST_CHECK(stats_size == 0);
     BOOST_CHECK(pblocktemplate->block.vtx[0]->GetHash() != txRef->GetHash());
 
-    const auto fee_rate_stats = node::GetCustomBlockFeeRateHistogram(m_node.chainman->ActiveChainstate(), &tx_mempool, MAX_BLOCK_WEIGHT * 2);
+    std::set<Txid> emptySet;
+    const auto fee_rate_stats = node::GetCustomBlockFeeRateHistogram(m_node.chainman->ActiveChainstate(), &tx_mempool, emptySet, MAX_BLOCK_WEIGHT * 2);
     BOOST_CHECK_EQUAL(fee_rate_stats.size(), 1);
 }
 

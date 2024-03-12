@@ -49,7 +49,8 @@ MempoolFeeEstimationResult MemPoolPolicyEstimator::EstimateFeeWithMemPool(Chains
         // fast enough to run that far while we're locked and in here
         {
             LOCK2(cs_main, mempool.cs);
-            mempool_fee_stats = GetCustomBlockFeeRateHistogram(chainstate, &mempool, MAX_BLOCK_WEIGHT * MAX_CONF_TARGET);
+            const auto txsToExclude = GetTxsToExclude();
+            mempool_fee_stats = GetCustomBlockFeeRateHistogram(chainstate, &mempool, txsToExclude, MAX_BLOCK_WEIGHT * MAX_CONF_TARGET);
         }
         if (mempool_fee_stats.empty()) {
             err_message = "No transactions available in the mempool yet.";
@@ -163,9 +164,12 @@ void MemPoolPolicyEstimator::MempoolTransactionsRemovedForBlock(const std::vecto
     }
 
     uint32_t removed_expected_txs_weight = 0;
+    std::set<Txid> unremoved_txs;
     for (const auto& tx : expected_block_txs) {
         if (block_transactions.contains(tx->GetHash())) {
             removed_expected_txs_weight += GetTransactionWeight(*tx);
+        } else {
+            unremoved_txs.insert(tx->GetHash());
         }
     }
 
@@ -181,6 +185,9 @@ void MemPoolPolicyEstimator::MempoolTransactionsRemovedForBlock(const std::vecto
     bool roughly_synced = (removed_txs_weight > mid_block_weight) && (removed_expected_txs_weight > mid_block_weight);
     const MemPoolPolicyEstimator::block_info new_block_info = {nBlockHeight, roughly_synced};
     UpdateTopBlocks(new_block_info);
+
+    // If we are roughly sync increment the count of all transactions that we expected to be mined and are not.
+    if (roughly_synced && !unremoved_txs.empty()) IncrementTxsCount(unremoved_txs);
 }
 
 void MemPoolPolicyEstimator::UpdateTopBlocks(const MemPoolPolicyEstimator::block_info& new_blk_info)
@@ -237,4 +244,22 @@ bool MemPoolPolicyEstimator::RoughlySynced() const
     return AreTopBlocksInOrder() && std::all_of(top_blocks.begin(), top_blocks.end(), [](const auto& blk) {
                return blk.roughly_synced;
            });
+}
+
+void MemPoolPolicyEstimator::IncrementTxsCount(const std::set<Txid>& txs)
+{
+    for (const auto& txId : txs) {
+        expectedMinedTxs[txId] += 1;
+    }
+}
+
+std::set<Txid> MemPoolPolicyEstimator::GetTxsToExclude() const
+{
+    std::set<Txid> txs;
+    for (const auto tx : expectedMinedTxs) {
+        if (tx.second >= MAX_UNCONF_COUNT) {
+            txs.insert(tx.first);
+        }
+    }
+    return txs;
 }

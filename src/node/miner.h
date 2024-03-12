@@ -153,6 +153,8 @@ private:
     const CTxMemPool* const m_mempool;
     Chainstate& m_chainstate;
 
+    bool excludeTxs{false};
+
 public:
     struct Options {
         // Configuration parameters for the block size
@@ -177,12 +179,21 @@ public:
      * only be called once. */
     std::vector<std::tuple<CFeeRate, uint64_t>> GetFeeRateStats();
 
+    void ExcludeTransactions(const std::set<Txid>& txIds);
+
+    void DoNotExclude()
+    {
+        excludeTxs = false;
+    }
+
 private:
     const Options m_options;
 
     // utility functions
     /** Clear the block's state and prepare for assembling a new block */
     void resetBlock();
+
+    void resetAndClearInBlock();
     /** Add a tx to the block */
     void AddToBlock(CTxMemPool::txiter iter);
 
@@ -212,7 +223,7 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
 
 /** Get feerate statistics of a block weight from the mempool. */
-std::vector<std::tuple<CFeeRate, uint64_t>> GetCustomBlockFeeRateHistogram(Chainstate& chainstate, const CTxMemPool* mempool, size_t block_weight);
+std::vector<std::tuple<CFeeRate, uint64_t>> GetCustomBlockFeeRateHistogram(Chainstate& chainstate, const CTxMemPool* mempool, const std::set<Txid>& txsToExclude, size_t block_weight);
 
 /** Apply -blockmintxfee and -blockmaxweight options from ArgsManager to BlockAssembler options. */
 void ApplyArgsManOptions(const ArgsManager& gArgs, BlockAssembler::Options& options);

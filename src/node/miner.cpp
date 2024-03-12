@@ -94,8 +94,6 @@ BlockAssembler::BlockAssembler(Chainstate& chainstate, const CTxMemPool* mempool
 
 void BlockAssembler::resetBlock()
 {
-    inBlock.clear();
-
     // Reserve space for coinbase tx
     nBlockWeight = 4000;
     nBlockSigOpsCost = 400;
@@ -105,11 +103,17 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
+void BlockAssembler::resetAndClearInBlock()
+{
+    inBlock.clear();
+    resetBlock();
+}
+
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 {
     const auto time_start{SteadyClock::now()};
 
-    resetBlock();
+    if (!excludeTxs) resetAndClearInBlock();
 
     pblocktemplate.reset(new CBlockTemplate());
 
@@ -436,8 +440,16 @@ std::vector<std::tuple<CFeeRate, uint64_t>> BlockAssembler::GetFeeRateStats()
 {
     return std::move(size_per_feerate);
 }
+void BlockAssembler::ExcludeTransactions(const std::set<Txid>& txIds)
+{
+    resetBlock();
+    for (const auto id : txIds) {
+        inBlock.insert(id);
+    }
+    excludeTxs = true;
+}
 
-std::vector<std::tuple<CFeeRate, uint64_t>> GetCustomBlockFeeRateHistogram(Chainstate& chainstate, const CTxMemPool* mempool, size_t block_weight)
+std::vector<std::tuple<CFeeRate, uint64_t>> GetCustomBlockFeeRateHistogram(Chainstate& chainstate, const CTxMemPool* mempool, const std::set<Txid>& txsToExclude, size_t block_weight)
 {
     BlockAssembler::Options options = {
         .nBlockMaxWeight = block_weight,
@@ -445,7 +457,9 @@ std::vector<std::tuple<CFeeRate, uint64_t>> GetCustomBlockFeeRateHistogram(Chain
         .sanity_check_block_weight = false,
     };
     BlockAssembler assembler(chainstate, mempool, options);
+    assembler.ExcludeTransactions(txsToExclude);
     assembler.CreateNewBlock(CScript{});
+    assembler.DoNotExclude();
     return assembler.GetFeeRateStats();
 }
 } // namespace node
