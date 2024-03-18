@@ -386,6 +386,15 @@ UniValue JSONRPCTransactionError(TransactionError terr, const std::string& err_s
     }
 }
 
+UniValue JSONRPCTransactionError(bilingual_str terr, const std::string& err_string)
+{
+    if (err_string.length() > 0) {
+        return JSONRPCError(RPC_TRANSACTION_ERROR, err_string);
+    } else {
+        return JSONRPCError(RPC_TRANSACTION_ERROR, terr.original);
+    }
+}
+
 /**
  * A pair of strings that can be aligned (through padding) with other Sections
  * later on

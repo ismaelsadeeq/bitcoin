@@ -30,7 +30,6 @@ class RPCTimerInterface;
 class UniValue;
 class Proxy;
 enum class SynchronizationState;
-enum class TransactionError;
 struct CNodeStateStats;
 struct bilingual_str;
 namespace node {
@@ -208,7 +207,7 @@ public:
     virtual std::optional<Coin> getUnspentOutput(const COutPoint& output) = 0;
 
     //! Broadcast transaction.
-    virtual TransactionError broadcastTransaction(CTransactionRef tx, CAmount max_tx_fee, CFeeRate max_tx_fee_rate, std::string& err_string) = 0;
+    virtual bilingual_str broadcastTransaction(CTransactionRef tx, CAmount max_tx_fee, CFeeRate max_tx_fee_rate, std::string& err_string) = 0;
 
     //! Get wallet loader.
     virtual WalletLoader& walletLoader() = 0;

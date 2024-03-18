@@ -31,7 +31,7 @@ static TransactionError HandleATMPError(const TxValidationState& state, std::str
     }
 }
 
-TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef tx, std::string& err_string, const CAmount& max_tx_fee, const CFeeRate& max_tx_fee_rate, bool relay, bool wait_callback)
+bilingual_str BroadcastTransaction(NodeContext& node, const CTransactionRef tx, std::string& err_string, const CAmount& max_tx_fee, const CFeeRate& max_tx_fee_rate, bool relay, bool wait_callback)
 {
     // BroadcastTransaction can be called by RPC or by the wallet.
     // chainman, mempool and peerman are initialized before the RPC server and wallet are started
@@ -55,7 +55,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
             const Coin& existingCoin = view.AccessCoin(COutPoint(txid, o));
             // IsSpent doesn't mean the coin is spent, it means the output doesn't exist.
             // So if the output does exist, then this transaction exists in the chain.
-            if (!existingCoin.IsSpent()) return TransactionError::ALREADY_IN_CHAIN;
+            if (!existingCoin.IsSpent()) return TransactionErrorString(TransactionError::ALREADY_IN_CHAIN);
         }
 
         if (auto mempool_tx = node.mempool->get(txid); mempool_tx) {
@@ -74,17 +74,28 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
                 // fails here, return error immediately.
                 const MempoolAcceptResult result = node.chainman->ProcessTransaction(tx, /*test_accept=*/ true);
                 if (result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
-                    return HandleATMPError(result.m_state, err_string);
+                    return TransactionErrorString(HandleATMPError(result.m_state, err_string));
                 } else if (max_tx_fee > 0 && result.m_base_fees.value() > max_tx_fee) {
-                    return TransactionError::MAX_FEE_EXCEEDED;
+                    const TransactionErrorParams params = {
+                        result.m_base_fees.value(), 
+                        max_tx_fee,
+                        CURRENCY_UNIT
+                    };
+                    return TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED, params);
                 } else if (max_tx_fee_rate > CFeeRate(0) && CFeeRate(result.m_base_fees.value(), result.m_vsize.value()) > max_tx_fee_rate) {
-                    return TransactionError::MAX_FEE_RATE_EXCEEDED;
+                    std::string currency_unit = strprintf("%s/kvB", CURRENCY_UNIT);
+                    const TransactionErrorParams params = {
+                        CFeeRate(result.m_base_fees.value(), result.m_vsize.value()).GetFeePerK(), 
+                        max_tx_fee_rate.GetFeePerK(),
+                        currency_unit
+                    };
+                    return TransactionErrorString(TransactionError::MAX_FEE_RATE_EXCEEDED, params);
                 }
             }
             // Try to submit the transaction to the mempool.
             const MempoolAcceptResult result = node.chainman->ProcessTransaction(tx, /*test_accept=*/ false);
             if (result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
-                return HandleATMPError(result.m_state, err_string);
+                return TransactionErrorString(HandleATMPError(result.m_state, err_string));
             }
 
             // Transaction was accepted to the mempool.
@@ -122,7 +133,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
         node.peerman->RelayTransaction(txid, wtxid);
     }
 
-    return TransactionError::OK;
+    return TransactionErrorString(TransactionError::OK);
 }
 
 CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, uint256& hashBlock, const BlockManager& blockman)

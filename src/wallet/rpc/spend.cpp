@@ -1483,9 +1483,20 @@ RPCHelpMan sendall()
             const CAmount effective_value{total_input_value - fee_from_size};
 
             if (fee_from_size > pwallet->m_max_tx_fee) {
-                throw JSONRPCError(RPC_WALLET_ERROR, TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED).original);
+                 const TransactionErrorParams params = {
+                    fee_from_size, 
+                    pwallet->m_max_tx_fee,
+                    CURRENCY_UNIT
+                };
+                throw JSONRPCError(RPC_WALLET_ERROR, TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED, params).original);
             }
             if (CFeeRate(fee_from_size, tx_size.vsize) > pwallet->m_max_tx_fee_rate) {
+                std::string currency_unit = strprintf("%s/kvB", CURRENCY_UNIT);
+                const TransactionErrorParams params = {
+                    CFeeRate(fee_from_size, tx_size.vsize).GetFeePerK(), 
+                    pwallet->m_max_tx_fee_rate.GetFeePerK(),
+                    currency_unit
+                };
                 throw JSONRPCError(RPC_WALLET_ERROR, TransactionErrorString(TransactionError::MAX_FEE_RATE_EXCEEDED).original);
             }
 

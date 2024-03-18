@@ -1305,12 +1305,23 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     }
 
     if (current_fee > wallet.m_max_tx_fee) {
-        return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED)};
+        const TransactionErrorParams params = {
+            current_fee, 
+            wallet.m_max_tx_fee,
+            CURRENCY_UNIT
+        };
+        return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED, params)};
     }
 
     CFeeRate tx_fee_rate = CFeeRate(current_fee, nBytes);
     if (tx_fee_rate > wallet.m_max_tx_fee_rate) {
-        return util::Error{TransactionErrorString(TransactionError::MAX_FEE_RATE_EXCEEDED)};
+        std::string currency_unit = strprintf("%s/kvB", CURRENCY_UNIT);
+        const TransactionErrorParams params = {
+            tx_fee_rate.GetFeePerK(), 
+            wallet.m_max_tx_fee_rate.GetFeePerK(),
+            currency_unit
+        };
+        return util::Error{TransactionErrorString(TransactionError::MAX_FEE_RATE_EXCEEDED, params)};
     }
 
     if (gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS)) {

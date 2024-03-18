@@ -42,9 +42,9 @@ static const CFeeRate DEFAULT_MAX_RAW_TX_FEE_RATE{COIN / 10};
  * @param[in]  max_tx_fee_rate reject txs with fee rate higher than this (if CFeeRate(0), the fee rate is not checked)
  * @param[in]  relay flag if both mempool insertion and p2p relay are requested
  * @param[in]  wait_callback wait until callbacks have been processed to avoid stale result due to a sequentially RPC.
- * return error
+ * return error string
  */
-[[nodiscard]] TransactionError BroadcastTransaction(NodeContext& node, CTransactionRef tx, std::string& err_string, const CAmount& max_tx_fee, const CFeeRate& max_tx_fee_rate, bool relay, bool wait_callback);
+[[nodiscard]] bilingual_str BroadcastTransaction(NodeContext& node, CTransactionRef tx, std::string& err_string, const CAmount& max_tx_fee, const CFeeRate& max_tx_fee_rate, bool relay, bool wait_callback);
 
 /**
  * Return transaction with a given hash.

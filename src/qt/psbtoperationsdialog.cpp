@@ -116,15 +116,15 @@ void PSBTOperationsDialog::broadcastTransaction()
 
     CTransactionRef tx = MakeTransactionRef(mtx);
     std::string err_string;
-    TransactionError error =
+    bilingual_str error =
         m_client_model->node().broadcastTransaction(tx, DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK(), CFeeRate(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK()), err_string);
 
-    if (error == TransactionError::OK) {
+    if (error == TransactionErrorString(TransactionError::OK)) {
         showStatus(tr("Transaction broadcast successfully! Transaction ID: %1")
             .arg(QString::fromStdString(tx->GetHash().GetHex())), StatusLevel::INFO);
     } else {
         showStatus(tr("Transaction broadcast failed: %1")
-            .arg(QString::fromStdString(TransactionErrorString(error).translated)), StatusLevel::ERR);
+            .arg(QString::fromStdString(error.translated)), StatusLevel::ERR);
     }
 }
 

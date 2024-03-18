@@ -10,7 +10,7 @@
 #include <cassert>
 #include <string>
 
-bilingual_str TransactionErrorString(const TransactionError err)
+bilingual_str TransactionErrorString(const TransactionError err, const TransactionErrorParams& params)
 {
     switch (err) {
         case TransactionError::OK:
@@ -32,9 +32,9 @@ bilingual_str TransactionErrorString(const TransactionError err)
         case TransactionError::SIGHASH_MISMATCH:
             return Untranslated("Specified sighash value does not match value stored in PSBT");
         case TransactionError::MAX_FEE_EXCEEDED:
-            return Untranslated("Fee exceeds maximum configured by user (maxtxfee)");
+            return Untranslated(strprintf("Fee %s %s exceeds maximum configured by user (maxtxfee) %s %s", params.value, params.currency_unit, params.configured_value, params.currency_unit));
         case TransactionError::MAX_FEE_RATE_EXCEEDED:
-            return Untranslated("Fee rate exceeds maximum configured by user (maxfeerate)");
+            return Untranslated(strprintf("Fee rate %s %s exceeds maximum configured by user (maxfeerate) %s %s", params.value, params.currency_unit, params.configured_value, params.currency_unit));
         case TransactionError::MAX_BURN_EXCEEDED:
             return Untranslated("Unspendable output exceeds maximum configured by user (maxburnamount)");
         case TransactionError::EXTERNAL_SIGNER_NOT_FOUND:

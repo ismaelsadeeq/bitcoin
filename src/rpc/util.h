@@ -129,6 +129,8 @@ unsigned int ParseConfirmTarget(const UniValue& value, unsigned int max_target);
 
 RPCErrorCode RPCErrorFromTransactionError(TransactionError terr);
 UniValue JSONRPCTransactionError(TransactionError terr, const std::string& err_string = "");
+UniValue JSONRPCTransactionError(bilingual_str terr, const std::string& err_string = "");
+
 
 //! Parse a JSON range specified as int64, or [int64, int64]
 std::pair<int64_t, int64_t> ParseDescriptorRange(const UniValue& value);

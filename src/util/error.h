@@ -5,6 +5,7 @@
 #ifndef BITCOIN_UTIL_ERROR_H
 #define BITCOIN_UTIL_ERROR_H
 
+#include <consensus/amount.h>
 /**
  * util/error.h is a common place for definitions of simple error types and
  * string functions. Types and functions defined here should not require any
@@ -37,7 +38,13 @@ enum class TransactionError {
     INVALID_PACKAGE,
 };
 
-bilingual_str TransactionErrorString(const TransactionError error);
+struct TransactionErrorParams {
+    CAmount value;
+    CAmount configured_value;
+    std::string currency_unit;
+};
+
+bilingual_str TransactionErrorString(const TransactionError err, const TransactionErrorParams& params = {});
 
 bilingual_str ResolveErrMsg(const std::string& optname, const std::string& strBind);
 
