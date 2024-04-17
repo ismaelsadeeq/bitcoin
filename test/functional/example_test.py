@@ -19,6 +19,11 @@ from test_framework.blocktools import (
     create_block,
     create_coinbase,
 )
+from test_framework.script import (
+    CScript,
+    OP_TRUE,
+)
+from test_framework.descriptors import descsum_create
 from test_framework.messages import (
     CInv,
     MSG_BLOCK,
@@ -175,8 +180,10 @@ class ExampleTest(BitcoinTestFramework):
         self.block_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time'] + 1
 
         height = self.nodes[0].getblockcount()
-
+        
         for _ in range(10):
+        # by simply incrementing the counter to 12
+        # for _ in range(10):
             # Use the blocktools functionality to manually build a block.
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
@@ -199,6 +206,31 @@ class ExampleTest(BitcoinTestFramework):
         self.log.info("Wait for node2 to receive all the blocks from node1")
         self.sync_all()
 
+        # using -generate rpc
+        self.nodes[0].cli('-generate', 2).send_cli()
+
+        # using generatetoaddress helper
+        # self.generatetoaddress(self.nodes[0], 2, self.nodes[0].getnewaddress())
+        
+        # using generatetodescriptor helper
+        # scriptPubKey = bytes(CScript([OP_TRUE]))
+        # descriptor = descsum_create(f'raw({scriptPubKey.hex()})')
+        # self.generatetodescriptor(self.nodes[0], 2, descriptor)
+
+        # using getchaintips rpc
+        node0_chain_tips = self.nodes[0].getchaintips()
+        assert_equal(len(node0_chain_tips) , 1)
+        assert_equal(node0_chain_tips[0]["height"], 13)
+
+
+        node1_chain_tips = self.nodes[0].getchaintips()
+        assert_equal(len(node1_chain_tips) , 1)
+        assert_equal(node1_chain_tips[0]["height"], 13)
+
+        assert_equal(node0_chain_tips[0]["hash"], node1_chain_tips[0]["hash"])
+
+        # using getblockhash rpc call
+        # assert_equal(self.nodes[0].getbestblockhash(), self.nodes[1].getbestblockhash())
         self.log.info("Add P2P connection to node2")
         self.nodes[0].disconnect_p2ps()
 
