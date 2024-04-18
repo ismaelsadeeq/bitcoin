@@ -13,6 +13,7 @@ is testing and *how* it's being tested
 # libraries then local imports).
 from collections import defaultdict
 
+import pdb
 # Avoid wildcard * imports
 # Use lexicographically sorted multi-line imports
 from test_framework.blocktools import (
@@ -213,6 +214,7 @@ class ExampleTest(BitcoinTestFramework):
 
         # wait_until() will loop until a predicate condition is met. Use it to test properties of the
         # P2PInterface objects.
+        pdb.set_trace()
         peer_receiving.wait_until(lambda: sorted(blocks) == sorted(list(peer_receiving.block_receive_map.keys())), timeout=5)
 
         self.log.info("Check that each block was received only once")
