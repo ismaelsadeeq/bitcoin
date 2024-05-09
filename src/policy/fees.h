@@ -6,6 +6,7 @@
 #define BITCOIN_POLICY_FEES_H
 
 #include <consensus/amount.h>
+#include <node/mini_miner.h>
 #include <policy/feerate.h>
 #include <random.h>
 #include <sync.h>
@@ -66,6 +67,8 @@ using TxAncestorsAndDescendants = std::map<Txid, std::tuple<std::set<Txid>, std:
  * also included as a descendant and ancestor of itself.
  */
 TxAncestorsAndDescendants GetTxAncestorsAndDescendants(const std::vector<RemovedMempoolTransactionInfo>& transactions);
+
+node::LinearizationResult LinearizeTransactions(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block);
 
 /* Enumeration of reason for returned fee estimate */
 enum class FeeReason {
