@@ -7,6 +7,7 @@
 #include <policy/forecaster.h>
 #include <policy/forecaster_util.h>
 #include <txmempool.h>
+#include <util/trace.h>
 
 void FeeEstimator::RegisterForecaster(std::shared_ptr<Forecaster> forecaster)
 {
@@ -87,6 +88,12 @@ std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimate
         LogDebug(BCLog::ESTIMATEFEE, "FeeEst %s: Block height %s, low priority feerate %s %s/kvB, high priority feerate %s %s/kvB.\n",
                  forecastTypeToString(forecast.m_opt.forecaster), forecast.m_opt.block_height, forecast.m_opt.low_priority.GetFeePerK(),
                  CURRENCY_ATOM, forecast.m_opt.high_priority.GetFeePerK(), CURRENCY_ATOM);
+        TRACE5(fee_estimator, estimate_calculated,
+               targetBlocks,
+               forecastTypeToString(forecast.m_opt.forecaster).c_str(),
+               forecast.m_opt.block_height,
+               forecast.m_opt.low_priority.GetFeePerK(),
+               forecast.m_opt.high_priority.GetFeePerK());
     }
     return std::make_pair(forecast, err_messages);
 };
