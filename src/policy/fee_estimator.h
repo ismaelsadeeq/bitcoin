@@ -15,6 +15,8 @@
 #include <utility>
 #include <vector>
 
+static constexpr std::chrono::minutes FEE_ESTIMATE_INTERVAL{1};
+
 /** \class FeeEstimator
  * Module for managing and utilising multiple fee rate forecasters to provide fee estimates.
  *
@@ -68,6 +70,7 @@ public:
      */
     std::pair<ForecastResult, std::vector<std::string>> GetFeeEstimateFromForecasters(unsigned int targetBlocks);
 
+    void GetAllEstimates(unsigned int targetBlocks);
     /**
      * Retrieve the maximum target block range across all registered forecasters.
      *

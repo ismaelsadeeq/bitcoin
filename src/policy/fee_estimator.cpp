@@ -47,6 +47,27 @@ std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimate
     return std::make_pair(forecast, err_messages);
 };
 
+void FeeEstimator::GetAllEstimates(unsigned int targetBlocks)
+{
+    // Request estimates from all registered forecasters and select the lowest
+    std::vector<std::string> err_messages;
+    for (auto& forecaster : forecasters) {
+        auto forecast = forecaster->EstimateFee(targetBlocks);
+        if (!forecast.empty()) {
+            LogInfo("FeeEst Forecaster: %s, %s, %s, %s\n",
+                 forecast.m_forecast_opt.m_forecaster, forecast.m_forecast_opt.m_block_height, forecast.m_forecast_opt.m_l_priority_estimate.GetFeePerK(),
+                 forecast.m_forecast_opt.m_h_priority_estimate.GetFeePerK());
+        }
+    }
+    if (legacy_estimator) {
+        FeeCalculation feeCalc;
+        bool conservative = true;
+        CFeeRate feeRate_conservative{legacy_estimator.value()->estimateSmartFee(targetBlocks, &feeCalc, conservative)};
+        CFeeRate feeRate_economical{legacy_estimator.value()->estimateSmartFee(targetBlocks, &feeCalc, !conservative)};
+        LogInfo("FeeEstLog PolicyEstimator: %s, %s, %s\n", feeCalc.bestheight, feeRate_conservative.GetFeePerK(), feeRate_economical.GetFeePerK());
+    }
+};
+
 unsigned int FeeEstimator::MaxForecastingTarget()
 {
     unsigned int max_target = 0;
