@@ -32,6 +32,8 @@
 #include <logging/timer.h>
 #include <node/blockstorage.h>
 #include <node/utxo_snapshot.h>
+#include <policy/fees_util.h>
+#include <policy/forecaster_util.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
 #include <policy/settings.h>
@@ -2605,15 +2607,16 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    std::vector<RemovedMempoolTransactionInfo> block_txs;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
 
+        CAmount txfee = 0;
         if (!tx.IsCoinBase())
         {
-            CAmount txfee = 0;
             TxValidationState tx_state;
             if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
@@ -2646,7 +2649,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         // * legacy (always)
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
-        nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
+        int64_t txSigOpCost = GetTransactionSigOpCost(tx, view, flags);
+        nSigOpsCost += txSigOpCost;
         if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
             LogPrintf("ERROR: ConnectBlock(): too many sigops\n");
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-sigops");
@@ -2666,6 +2670,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 return false;
             }
             control.Add(std::move(vChecks));
+            int64_t txVsize = GetVirtualTransactionSize(GetTransactionWeight(tx), txSigOpCost, nBytesPerSigOp);
+            auto tx_info = RemovedMempoolTransactionInfo(block.vtx[i], txfee, txVsize, /*dummy height=*/0, /*dummy time*/std::chrono::seconds{0});
+            block_txs.push_back(tx_info);
         }
 
         CTxUndo undoDummy;
@@ -2673,6 +2680,26 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             blockundo.vtxundo.emplace_back();
         }
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
+    }
+
+    auto mini_miner_input = GetMiniMinerInput(block_txs);
+    auto linearizedResult = node::MiniMiner(std::get<0>(mini_miner_input), std::get<1>(mini_miner_input)).Linearize();
+    const auto size_per_feerate = linearizedResult.size_per_feerate;
+    if (size_per_feerate.size() > 0) {
+        auto block_percentiles = CalculateBlockPercentiles(size_per_feerate);
+        CAmount lowest_fee_rate = std::get<0>(size_per_feerate[size_per_feerate.size() - 1]).GetFeePerK();
+        CAmount highest_fee_rate = std::get<0>(size_per_feerate[0]).GetFeePerK();
+        LogInfo("Connected Block: %s, %s, %s, %s, %s, %s, %s, %s\n",
+                pindex->GetBlockHash().ToString(), pindex->nHeight, highest_fee_rate, block_percentiles.p75.GetFeePerK(), block_percentiles.p50.GetFeePerK(), block_percentiles.p25.GetFeePerK(), block_percentiles.p5.GetFeePerK(), lowest_fee_rate);
+        TRACE8(validation, block_connected_fees,
+               block_hash.data(),
+               pindex->nHeight,
+               highest_fee_rate,
+               block_percentiles.p75.GetFeePerK(),
+               block_percentiles.p50.GetFeePerK(),
+               block_percentiles.p25.GetFeePerK(),
+               block_percentiles.p5.GetFeePerK(),
+               lowest_fee_rate);
     }
     const auto time_3{SteadyClock::now()};
     m_chainman.time_connect += time_3 - time_2;
