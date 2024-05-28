@@ -1641,6 +1641,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     auto block_estimator = std::make_shared<BlockForecaster>();
     validation_signals.RegisterValidationInterface(block_estimator.get());
     node.fee_estimator->RegisterForecaster(block_estimator);
+    FeeEstimator* fee_estimator = node.fee_estimator.get();
+    node.scheduler->scheduleEvery([fee_estimator] { fee_estimator->GetAllEstimates(/*targetBlocks=*/1); }, FEE_ESTIMATE_INTERVAL);
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman,
                                      node.banman.get(), chainman,
