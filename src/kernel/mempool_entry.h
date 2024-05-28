@@ -218,6 +218,9 @@ struct RemovedMempoolTransactionInfo {
     TransactionInfo info;
     explicit RemovedMempoolTransactionInfo(const CTxMemPoolEntry& entry)
         : info{entry.GetSharedTx(), entry.GetFee(), entry.GetTxSize(), entry.GetHeight()} {}
+
+    explicit RemovedMempoolTransactionInfo(const CTransactionRef& tx, const CAmount& fee, const int64_t vsize, const unsigned int height)
+        : info(tx, fee, vsize, height) {}
 };
 
 struct NewMempoolTransactionInfo {
