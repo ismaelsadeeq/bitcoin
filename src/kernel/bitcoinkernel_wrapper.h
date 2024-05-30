@@ -699,6 +699,16 @@ public:
     {
     }
 
+    bool ImportBlocks(const std::span<const std::string> paths)
+    {
+        std::vector<btck_Data> c_paths;
+        c_paths.reserve(paths.size());
+        for (const auto& path : paths) {
+            c_paths.emplace_back(btck_Data{path.c_str(), path.length()});
+        }
+        return btck_chainstate_manager_import_blocks(get(), c_paths.data(), c_paths.size()) == 0;
+    }
+
     bool ProcessBlock(const Block& block, bool* new_block)
     {
         int _new_block;
