@@ -871,6 +871,7 @@ CFeeRate CBlockPolicyEstimator::estimateSmartFee(int confTarget, FeeCalculation 
     if (feeCalc) {
         feeCalc->desiredTarget = confTarget;
         feeCalc->returnedTarget = confTarget;
+        feeCalc->bestheight = nBestSeenHeight;
     }
 
     double median = -1;
@@ -939,7 +940,6 @@ CFeeRate CBlockPolicyEstimator::estimateSmartFee(int confTarget, FeeCalculation 
 
     if (median < 0) return CFeeRate(0); // error condition
 
-    feeCalc->bestheight = nBestSeenHeight;
     return CFeeRate(llround(median));
 }
 
