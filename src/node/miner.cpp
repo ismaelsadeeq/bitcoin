@@ -362,6 +362,15 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
         // contain anything that is inBlock.
         assert(!inBlock.count(iter->GetSharedTx()->GetHash()));
 
+        // Ensure the entry time of the tx is not stale
+        int64_t time_difference =  GetTime() - iter->GetTime().count();
+        if (m_options.time_difference > 0 && time_difference > m_options.time_difference) {
+            if (fUsingModified) {
+                mapModifiedTx.get<ancestor_score>().erase(modit);
+            }
+            continue;
+        }
+
         uint64_t packageSize = iter->GetSizeWithAncestors();
         CAmount packageFees = iter->GetModFeesWithAncestors();
         int64_t packageSigOpsCost = iter->GetSigOpCostWithAncestors();
@@ -435,10 +444,11 @@ std::vector<std::tuple<CFeeRate, uint64_t>> BlockAssembler::GetFeeRateStats()
     return std::move(size_per_feerate);
 }
 
-std::vector<std::tuple<CFeeRate, uint64_t>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, const CTxMemPool* mempool)
+std::vector<std::tuple<CFeeRate, uint64_t>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, const CTxMemPool* mempool, int64_t time_difference)
 {
     BlockAssembler::Options options = {
         .test_block_validity = false,
+        .time_difference = time_difference,
     };
     BlockAssembler assembler(chainstate, mempool, options);
     assembler.CreateNewBlock(CScript{});

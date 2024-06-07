@@ -60,6 +60,7 @@
 #include <policy/fees_args.h>
 #include <policy/forecasters/block.h>
 #include <policy/forecasters/mempool.h>
+#include <policy/forecasters/mempool_last_10_min.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <protocol.h>
@@ -1638,6 +1639,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     ChainstateManager& chainman = *Assert(node.chainman);
 
     node.fee_estimator->RegisterForecaster(std::make_unique<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate())));
+    node.fee_estimator->RegisterForecaster(std::make_unique<MemPoolLast10MinForecaster>(node.mempool.get(), &(chainman.ActiveChainstate())));
     auto block_estimator = std::make_shared<BlockForecaster>();
     validation_signals.RegisterValidationInterface(block_estimator.get());
     node.fee_estimator->RegisterForecaster(block_estimator);

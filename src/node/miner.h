@@ -161,6 +161,7 @@ public:
         CFeeRate blockMinFeeRate{DEFAULT_BLOCK_MIN_TX_FEE};
         // Whether to call TestBlockValidity() at the end of CreateNewBlock().
         bool test_block_validity{true};
+        int64_t time_difference{0};
     };
 
     explicit BlockAssembler(Chainstate& chainstate, const CTxMemPool* mempool);
@@ -211,7 +212,7 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
 
 /** Get feerate and vsizes of packages in the next block*/
-std::vector<std::tuple<CFeeRate, uint64_t>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, const CTxMemPool* mempool);
+std::vector<std::tuple<CFeeRate, uint64_t>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, const CTxMemPool* mempool, int64_t time_difference=0);
 
 /** Apply -blockmintxfee and -blockmaxweight options from ArgsManager to BlockAssembler options. */
 void ApplyArgsManOptions(const ArgsManager& gArgs, BlockAssembler::Options& options);
