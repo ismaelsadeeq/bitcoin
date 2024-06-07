@@ -248,6 +248,7 @@ BITCOIN_CORE_H = \
   policy/forecasters/block.h \
   policy/forecasters/mempool.h \
   policy/forecasters/mempool_last_10_min.h \
+  policy/forecasters/last_block.h \
   policy/policy.h \
   policy/rbf.h \
   policy/settings.h \
@@ -455,6 +456,7 @@ libbitcoin_node_a_SOURCES = \
   policy/forecasters/block.cpp \
   policy/forecasters/mempool.cpp \
   policy/forecasters/mempool_last_10_min.cpp \
+  policy/forecasters/last_block.cpp \
   policy/packages.cpp \
   policy/rbf.cpp \
   policy/settings.cpp \

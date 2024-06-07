@@ -59,6 +59,7 @@
 #include <policy/fees.h>
 #include <policy/fees_args.h>
 #include <policy/forecasters/block.h>
+#include <policy/forecasters/last_block.h>
 #include <policy/forecasters/mempool.h>
 #include <policy/forecasters/mempool_last_10_min.h>
 #include <policy/policy.h>
@@ -1641,8 +1642,11 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     node.fee_estimator->RegisterForecaster(std::make_unique<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate())));
     node.fee_estimator->RegisterForecaster(std::make_unique<MemPoolLast10MinForecaster>(node.mempool.get(), &(chainman.ActiveChainstate())));
     auto block_estimator = std::make_shared<BlockForecaster>();
+    auto last_block_estimator = std::make_shared<LastBlockForecaster>();
     validation_signals.RegisterValidationInterface(block_estimator.get());
+    validation_signals.RegisterValidationInterface(last_block_estimator.get());
     node.fee_estimator->RegisterForecaster(block_estimator);
+    node.fee_estimator->RegisterForecaster(last_block_estimator);
     FeeEstimator* fee_estimator = node.fee_estimator.get();
     node.scheduler->scheduleEvery([fee_estimator] { fee_estimator->GetAllEstimates(/*targetBlocks=*/1); }, FEE_ESTIMATE_INTERVAL);
     assert(!node.peerman);
