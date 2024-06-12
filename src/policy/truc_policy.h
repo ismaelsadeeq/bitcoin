@@ -15,7 +15,7 @@
 #include <set>
 #include <string>
 
-// This module enforces rules for BIP 431 TRUC transactions (with version=3) which help make
+// This module enforces rules for BIP 431 (TRUC transactions) which help make
 // RBF abilities more robust.
 static constexpr decltype(CTransaction::version) TRUC_VERSION{3};
 
