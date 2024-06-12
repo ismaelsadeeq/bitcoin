@@ -4,7 +4,7 @@
 
 #include <consensus/validation.h>
 #include <key_io.h>
-#include <policy/v3_policy.h>
+#include <policy/truc_policy.h>
 #include <policy/packages.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>

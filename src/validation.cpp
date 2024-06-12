@@ -31,7 +31,7 @@
 #include <logging/timer.h>
 #include <node/blockstorage.h>
 #include <node/utxo_snapshot.h>
-#include <policy/v3_policy.h>
+#include <policy/truc_policy.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
 #include <policy/settings.h>
