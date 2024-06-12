@@ -14,7 +14,7 @@
 #include <numeric>
 #include <vector>
 
-/** Helper for PackageV3Checks: Returns a vector containing the indices of transactions (within
+/** Helper for PackageTrucChecks: Returns a vector containing the indices of transactions (within
  * package) that are direct parents of ptx. */
 std::vector<size_t> FindInPackageParents(const Package& package, const CTransactionRef& ptx)
 {
@@ -37,7 +37,7 @@ std::vector<size_t> FindInPackageParents(const Package& package, const CTransact
     return in_package_parents;
 }
 
-/** Helper for PackageV3Checks, storing info for a mempool or package parent. */
+/** Helper for PackageTrucChecks, storing info for a mempool or package parent. */
 struct ParentInfo {
     /** Txid used to identify this parent by prevout */
     const Txid& m_txid;
@@ -55,7 +55,7 @@ struct ParentInfo {
     {}
 };
 
-std::optional<std::string> PackageV3Checks(const CTransactionRef& ptx, int64_t vsize,
+std::optional<std::string> PackageTrucChecks(const CTransactionRef& ptx, int64_t vsize,
                                            const Package& package,
                                            const CTxMemPool::setEntries& mempool_ancestors)
 {
@@ -67,7 +67,7 @@ std::optional<std::string> PackageV3Checks(const CTransactionRef& ptx, int64_t v
 
     // Now we have all ancestors, so we can start checking v3 rules.
     if (ptx->version == TRUC_VERSION) {
-        // SingleV3Checks should have checked this already.
+        // SingleTrucChecks should have checked this already.
         if (!Assume(vsize <= V3_MAX_VSIZE)) {
             return strprintf("v3 tx %s (wtxid=%s) is too big: %u > %u virtual bytes",
                              ptx->GetHash().ToString(), ptx->GetWitnessHash().ToString(), vsize, V3_MAX_VSIZE);
@@ -119,7 +119,7 @@ std::optional<std::string> PackageV3Checks(const CTransactionRef& ptx, int64_t v
 
                 for (auto& input : package_tx->vin) {
                     // Fail if we find another tx with the same parent. We don't check whether the
-                    // sibling is to-be-replaced (done in SingleV3Checks) because these transactions
+                    // sibling is to-be-replaced (done in SingleTrucChecks) because these transactions
                     // are within the same package.
                     if (input.prevout.hash == parent_info.m_txid) {
                         return strprintf("tx %s (wtxid=%s) would exceed descendant count limit",
@@ -135,7 +135,7 @@ std::optional<std::string> PackageV3Checks(const CTransactionRef& ptx, int64_t v
                 }
             }
 
-            // It shouldn't be possible to have any mempool siblings at this point. SingleV3Checks
+            // It shouldn't be possible to have any mempool siblings at this point. SingleTrucChecks
             // catches mempool siblings and sibling eviction is not extended to packages. Also, if the package consists of connected transactions,
             // any tx having a mempool ancestor would mean the package exceeds ancestor limits.
             if (!Assume(!parent_info.m_has_mempool_descendant)) {
@@ -165,7 +165,7 @@ std::optional<std::string> PackageV3Checks(const CTransactionRef& ptx, int64_t v
     return std::nullopt;
 }
 
-std::optional<std::pair<std::string, CTransactionRef>> SingleV3Checks(const CTransactionRef& ptx,
+std::optional<std::pair<std::string, CTransactionRef>> SingleTrucChecks(const CTransactionRef& ptx,
                                           const CTxMemPool::setEntries& mempool_ancestors,
                                           const std::set<Txid>& direct_conflicts,
                                           int64_t vsize)

@@ -60,7 +60,7 @@ static_assert(V3_MAX_VSIZE + V3_CHILD_MAX_VSIZE <= DEFAULT_DESCENDANT_SIZE_LIMIT
  * - debug string + nullptr if this transaction violates some v3 rule and sibling eviction is not
  *   applicable.
  */
-std::optional<std::pair<std::string, CTransactionRef>> SingleV3Checks(const CTransactionRef& ptx,
+std::optional<std::pair<std::string, CTransactionRef>> SingleTrucChecks(const CTransactionRef& ptx,
                                           const CTxMemPool::setEntries& mempool_ancestors,
                                           const std::set<Txid>& direct_conflicts,
                                           int64_t vsize);
@@ -75,18 +75,18 @@ std::optional<std::pair<std::string, CTransactionRef>> SingleV3Checks(const CTra
  * and that the transaction itself has no children in the package.
  *
  * If any v3 violations in the package exist, this test will fail for one of them:
- * - if a v3 transaction T has a parent in the mempool and a child in the package, then PV3C(T) will fail
- * - if a v3 transaction T has a parent in the package and a child in the package, then PV3C(T) will fail
+ * - if a v3 transaction T has a parent in the mempool and a child in the package, then PackageTrucChecks(T) will fail
+ * - if a v3 transaction T has a parent in the package and a child in the package, then PackageTrucChecks(T) will fail
  * - if a v3 transaction T and a v3 (sibling) transaction U have some parent in the mempool,
- *   then PV3C(T) and PV3C(U) will fail
+ *   then PackageTrucChecks(T) and PackageTrucChecks(U) will fail
  * - if a v3 transaction T and a v3 (sibling) transaction U have some parent in the package,
- *   then PV3C(T) and PV3C(U) will fail
+ *   then PackageTrucChecks(T) and PackageTrucChecks(U) will fail
  * - if a v3 transaction T has a parent P and a grandparent G in the package, then
- *   PV3C(P) will fail (though PV3C(G) and PV3C(T) might succeed).
+ *   PackageTrucChecks(P) will fail (though PackageTrucChecks(G) and PackageTrucChecks(T) might succeed).
  *
  * @returns debug string if an error occurs, std::nullopt otherwise.
  * */
-std::optional<std::string> PackageV3Checks(const CTransactionRef& ptx, int64_t vsize,
+std::optional<std::string> PackageTrucChecks(const CTransactionRef& ptx, int64_t vsize,
                                            const Package& package,
                                            const CTxMemPool::setEntries& mempool_ancestors);
 

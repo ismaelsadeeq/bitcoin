@@ -113,7 +113,7 @@ std::optional<std::string> CheckPackageMempoolAcceptResult(const Package& txns,
     return std::nullopt;
 }
 
-void CheckMempoolV3Invariants(const CTxMemPool& tx_pool)
+void CheckMempoolTrucInvariants(const CTxMemPool& tx_pool)
 {
     LOCK(tx_pool.cs);
     for (const auto& tx_info : tx_pool.infoAll()) {

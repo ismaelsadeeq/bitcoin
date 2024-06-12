@@ -54,6 +54,6 @@ std::optional<std::string>  CheckPackageMempoolAcceptResult(const Package& txns,
  * - any non-v3 tx must only have non-v3 parents
  * - any v3 tx must only have v3 parents
  *   */
-void CheckMempoolV3Invariants(const CTxMemPool& tx_pool);
+void CheckMempoolTrucInvariants(const CTxMemPool& tx_pool);
 
 #endif // BITCOIN_TEST_UTIL_TXMEMPOOL_H

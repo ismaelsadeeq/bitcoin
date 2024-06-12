@@ -319,7 +319,7 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
         if (accepted) {
             Assert(added.size() == 1); // For now, no package acceptance
             Assert(tx == *added.begin());
-            CheckMempoolV3Invariants(tx_pool);
+            CheckMempoolTrucInvariants(tx_pool);
         } else {
             // Do not consider rejected transaction removed
             removed.erase(tx);
@@ -412,7 +412,7 @@ FUZZ_TARGET(tx_pool, .init = initialize_tx_pool)
         const bool accepted = res.m_result_type == MempoolAcceptResult::ResultType::VALID;
         if (accepted) {
             txids.push_back(tx->GetHash());
-            CheckMempoolV3Invariants(tx_pool);
+            CheckMempoolTrucInvariants(tx_pool);
         }
     }
     Finish(fuzzed_data_provider, tx_pool, chainstate);
