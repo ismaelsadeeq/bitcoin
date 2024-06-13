@@ -73,7 +73,7 @@ FUZZ_TARGET(policy_estimator, .init = initialize_policy_estimator)
                 std::vector<RemovedMempoolTransactionInfo> txs;
                 txs.reserve(mempool_entries.size());
                 for (const CTxMemPoolEntry& mempool_entry : mempool_entries) {
-                    CFeeRate(mempool_entry.GetFee(), mempool_entry.GetTxSize());
+                    int64_t multiple = mempool_entry.GetModifiedFee() * mempool_entry.GetTxSize();
                     txs.emplace_back(mempool_entry);
                 }
                 block_policy_estimator.processBlock(txs, fuzzed_data_provider.ConsumeIntegral<unsigned int>());
