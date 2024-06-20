@@ -160,7 +160,7 @@ void MinerTestingSetup::TestPackageSelection(const CScript& scriptPubKey, const 
 
     auto assembler = AssemblerForTest(tx_mempool);
     std::unique_ptr<CBlockTemplate> pblocktemplate = assembler.CreateNewBlock(scriptPubKey);
-    const auto blockFeeAndVsizes = assembler.GetFeeRateStats();
+    const auto blockFeeAndVsizes = assembler.GetFeeRateStats().first;
     BOOST_REQUIRE_EQUAL(pblocktemplate->block.vtx.size(), 4U);
     BOOST_CHECK(pblocktemplate->block.vtx[1]->GetHash() == hashParentTx);
     BOOST_CHECK(pblocktemplate->block.vtx[2]->GetHash() == hashHighFeeTx);

@@ -45,7 +45,7 @@ ForecastResult MemPoolForecaster::EstimateFeeWithMemPool(unsigned int targetBloc
         return ForecastResult(forecast_options, std::nullopt);
     }
 
-    std::vector<std::tuple<CFeeRate, uint64_t>> block_fee_stats = GetNextBlockFeeRateAndVsize(*m_chainstate, m_mempool);
+    auto block_fee_stats = GetNextBlockFeeRateAndVsize(*m_chainstate, m_mempool).first;
 
     if (block_fee_stats.empty()) {
         return ForecastResult(forecast_options, strprintf("%s: No transactions available in the mempool", MEMPOOL_FORECAST_NAME_STR));

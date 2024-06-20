@@ -145,6 +145,7 @@ private:
     CAmount nFees;
     std::unordered_set<Txid, SaltedTxidHasher> inBlock;
     std::vector<std::tuple<CFeeRate, uint64_t>> size_per_feerate;
+    std::vector<Txid> sponsor_txs;
 
     // Chain context for the block
     int nHeight;
@@ -174,7 +175,7 @@ public:
 
     /** Return a vector of feerate's and vsize's of packages included in a block.
      * This can only be called once. */
-    std::vector<std::tuple<CFeeRate, uint64_t>> GetFeeRateStats();
+    std::pair<std::vector<std::tuple<CFeeRate, uint64_t>>, std::vector<Txid>> GetFeeRateStats();
 
 private:
     const Options m_options;
@@ -211,7 +212,8 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
 
 /** Get feerate and vsizes of packages in the next block*/
-std::vector<std::tuple<CFeeRate, uint64_t>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, const CTxMemPool* mempool);
+std::pair<std::vector<std::tuple<CFeeRate, uint64_t>>, std::vector<Txid>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, 
+                                                                                                        const CTxMemPool* mempool);
 
 /** Apply -blockmintxfee and -blockmaxweight options from ArgsManager to BlockAssembler options. */
 void ApplyArgsManOptions(const ArgsManager& gArgs, BlockAssembler::Options& options);

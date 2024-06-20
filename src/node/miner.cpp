@@ -424,18 +424,19 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
 
         ++nPackagesSelected;
         size_per_feerate.emplace_back(CFeeRate{packageFees, packageSize}, packageSize);
+        sponsor_txs.emplace_back(iter->GetSharedTx()->GetHash());
 
         // Update transactions that depend on each of these
         nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx);
     }
 }
 
-std::vector<std::tuple<CFeeRate, uint64_t>> BlockAssembler::GetFeeRateStats()
+std::pair<std::vector<std::tuple<CFeeRate, uint64_t>>, std::vector<Txid>> BlockAssembler::GetFeeRateStats()
 {
-    return std::move(size_per_feerate);
+    return std::make_pair(std::move(size_per_feerate), sponsor_txs);
 }
 
-std::vector<std::tuple<CFeeRate, uint64_t>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, const CTxMemPool* mempool)
+std::pair<std::vector<std::tuple<CFeeRate, uint64_t>>, std::vector<Txid>> GetNextBlockFeeRateAndVsize(Chainstate& chainstate, const CTxMemPool* mempool)
 {
     BlockAssembler::Options options = {
         .test_block_validity = false,
