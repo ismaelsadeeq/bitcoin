@@ -6,6 +6,7 @@
 #define BITCOIN_POLICY_FEES_BLOCK_POLICY_ESTIMATOR_H
 
 #include <consensus/amount.h>
+#include <primitives/transaction_identifier.h>
 #include <policy/feerate.h>
 #include <policy/fees/estimator.h>
 #include <primitives/transaction_identifier.h>

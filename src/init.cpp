@@ -335,11 +335,35 @@ void Shutdown(NodeContext& node)
         DumpMempool(*node.mempool, MempoolPath(*node.args));
     }
 
+<<<<<<< HEAD
     // Drop transactions we were still watching, record fee rate estimation data and unregister
     // it from validation interface.
     if (node.feerate_estimatorman) {
         node.feerate_estimatorman->ShutdownFlush();
         if (node.validation_signals) node.validation_signals->UnregisterValidationInterface(node.feerate_estimatorman.get());
+=======
+<<<<<<< HEAD
+    // Drop transactions we were still watching, record fee estimations and unregister
+    // fee estimator from validation interface.
+<<<<<<< HEAD
+    if (node.feerate_forecasterman) {
+        node.feerate_forecasterman->ShutdownFlush();
+        if (node.validation_signals) node.validation_signals->UnregisterValidationInterface(node.feerate_forecasterman.get());
+=======
+    if (node.fee_estimator) {
+        node.fee_estimator->Flush();
+        if (node.validation_signals) {
+            node.validation_signals->UnregisterValidationInterface(node.fee_estimator.get());
+        }
+=======
+    // Drop transactions we were still watching, record fee estimations.
+    // Unregister forecaster manager from validation interface.
+    if (node.forecasterman) {
+        node.forecasterman->GetBlockPolicyEstimator()->Flush();
+        if (node.validation_signals) node.validation_signals->UnregisterValidationInterface(node.forecasterman.get());
+>>>>>>> 4996cfd9381 (fees: introduce lock to forecaster manager and sanity check)
+>>>>>>> c6abe192b8a (fees: introduce lock to forecaster manager and sanity check)
+>>>>>>> 4216c91ce6f (fees: introduce lock to forecaster manager and sanity check)
     }
 
     // FlushStateToDisk generates a ChainStateFlushed callback, which we should avoid missing
@@ -1824,6 +1848,26 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     ChainstateManager& chainman = *Assert(node.chainman);
     auto& kernel_notifications{*Assert(node.notifications)};
+
+    assert(!node.forecasterman);
+    // Don't initialize fee estimation with old data if we don't relay transactions,
+    // as they would never get updated.
+    if (!peerman_opts.ignore_incoming_txs) {
+        bool read_stale_estimates = args.GetBoolArg("-acceptstalefeeestimates", DEFAULT_ACCEPT_STALE_FEE_ESTIMATES);
+        if (read_stale_estimates && (chainparams.GetChainType() != ChainType::REGTEST)) {
+            return InitError(strprintf(_("acceptstalefeeestimates is not supported on %s chain."), chainparams.GetChainTypeString()));
+        }
+        node.forecasterman = std::make_unique<FeeRateForecasterManager>();
+        auto mempool_forecaster = std::make_shared<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate()));
+        node.forecasterman->RegisterForecaster(mempool_forecaster);
+        auto block_policy_estimator = std::make_shared<CBlockPolicyEstimator>(FeeestPath(args), read_stale_estimates);
+        validation_signals.RegisterSharedValidationInterface(block_policy_estimator);
+        // Flush block policy estimates to disk periodically
+        scheduler.scheduleEvery([block_policy_estimator] { block_policy_estimator->FlushFeeEstimates(); }, FEE_FLUSH_INTERVAL);
+
+        // Register block policy estimator to forecaster manager
+        node.forecasterman->RegisterForecaster(block_policy_estimator);
+    }
 
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman,
