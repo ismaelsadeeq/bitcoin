@@ -939,6 +939,7 @@ CFeeRate CBlockPolicyEstimator::estimateSmartFee(int confTarget, FeeCalculation 
 
     if (median < 0) return CFeeRate(0); // error condition
 
+    feeCalc->bestheight = nBestSeenHeight;
     return CFeeRate(llround(median));
 }
 
@@ -1063,6 +1064,18 @@ std::chrono::hours CBlockPolicyEstimator::GetFeeEstimatorFileAge()
     auto file_time{fs::last_write_time(m_estimation_filepath)};
     auto now{fs::file_time_type::clock::now()};
     return std::chrono::duration_cast<std::chrono::hours>(now - file_time);
+}
+
+void CBlockPolicyEstimator::GetAllEstimates() const
+{
+    const std::vector<unsigned int> targets{3, 5, 10, 20, 50, 100, 202, 500, 701, 800, 1000, 1008};
+    for (auto target:targets){
+        FeeCalculation feeCalc;
+        bool conservative = true;
+        CFeeRate feeRate_conservative{estimateSmartFee(target, &feeCalc, conservative)};
+        CFeeRate feeRate_economical{estimateSmartFee(target, &feeCalc, !conservative)};
+        LogInfo("FeeEstLog PolicyEstimator: %s, %s, %s, %s\n", target, feeCalc.bestheight, feeRate_conservative.GetFeePerK(), feeRate_economical.GetFeePerK());
+    }
 }
 
 static std::set<double> MakeFeeSet(const CFeeRate& min_incremental_fee,

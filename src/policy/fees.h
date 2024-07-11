@@ -26,6 +26,8 @@
 // How often to flush fee estimates to fee_estimates.dat.
 static constexpr std::chrono::hours FEE_FLUSH_INTERVAL{1};
 
+static constexpr std::chrono::minutes FEE_ESTIMATES_INTERVAL{1};
+
 /** fee_estimates.dat that are more than 60 hours (2.5 days) old will not be read,
  * as fee estimates are based on historical data and may be inaccurate if
  * network activity has changed.
@@ -95,6 +97,7 @@ struct FeeCalculation
     FeeReason reason = FeeReason::NONE;
     int desiredTarget = 0;
     int returnedTarget = 0;
+    unsigned int bestheight{0};
 };
 
 /** \class CBlockPolicyEstimator
@@ -261,6 +264,9 @@ public:
 
     /** Calculates the age of the file, since last modified */
     std::chrono::hours GetFeeEstimatorFileAge();
+
+    void GetAllEstimates() const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
 protected:
     /** Overridden from CValidationInterface. */

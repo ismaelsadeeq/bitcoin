@@ -1283,6 +1283,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         // Flush estimates to disk periodically
         CBlockPolicyEstimator* fee_estimator = node.fee_estimator.get();
         scheduler.scheduleEvery([fee_estimator] { fee_estimator->FlushFeeEstimates(); }, FEE_FLUSH_INTERVAL);
+        scheduler.scheduleEvery([fee_estimator] { fee_estimator->GetAllEstimates(); }, FEE_ESTIMATES_INTERVAL);
         validation_signals.RegisterValidationInterface(fee_estimator);
     }
 
