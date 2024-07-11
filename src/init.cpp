@@ -1655,6 +1655,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
         node.fee_estimator = std::make_unique<FeeEstimator>(FeeestPath(args), read_stale_estimates, node.mempool.get());
         node.fee_estimator->RegisterForecaster(std::make_shared<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate())));
+        auto fee_estimator = node.fee_estimator.get();
+        scheduler.scheduleEvery([fee_estimator] { fee_estimator->GetAllEstimates(); }, FEE_ESTIMATES_INTERVAL);
 
         auto n_time_forecaster = std::make_shared<NTime>();
         NTime* time_forecaster_ptr = n_time_forecaster.get(); 

@@ -18,6 +18,8 @@ class CTxMemPool;
 class Forecaster;
 struct ForecastResult;
 
+static constexpr std::chrono::minutes FEE_ESTIMATES_INTERVAL{1};
+
 /** \class FeeEstimator
  * Module for managing and utilising multiple fee rate forecasters to provide fee estimates.
  *
@@ -77,6 +79,8 @@ public:
      * @return The maximum number of hours for which any forecaster can provide a fee rate estimate.
      */
     int MaxForecastingTarget();
+
+    void GetAllEstimates();
 };
 
 #endif // BITCOIN_POLICY_FEE_ESTIMATOR_H

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license. See the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <policy/fees.h>
 #include <logging.h>
 #include <policy/fee_estimator.h>
 #include <policy/forecaster.h>
@@ -95,3 +96,26 @@ std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimate
     }
     return std::make_pair(forecast, err_messages);
 };
+
+
+void FeeEstimator::GetAllEstimates()
+{
+    const std::vector<int> hours{1, 3, 5, 10, 20, 50, 100, 202, 500, 504};
+    for (auto hour: hours){
+        unsigned int conf_target = static_cast<unsigned int>(hour * 6);
+        FeeCalculation feeCalc;
+        bool conservative = true;
+        CFeeRate feeRate_conservative{block_policy_estimator.value()->estimateSmartFee(conf_target, &feeCalc, conservative)};
+        CFeeRate feeRate_economical{block_policy_estimator.value()->estimateSmartFee(conf_target, &feeCalc, !conservative)};
+        LogInfo("PolicyEstimatorLog: %s, %s, %s, %s\n", feeCalc.bestheight, conf_target, feeRate_conservative.GetFeePerK(), feeRate_economical.GetFeePerK());
+        auto ntime_forecaster = forecasters.find(ForecastType::NTIME);
+        if (ntime_forecaster != forecasters.end()) {
+            auto forecast = (*ntime_forecaster).second->EstimateFee(hour);
+            if (forecast.empty() && forecast.m_error_ptr.has_value()) {
+                LogInfo("FeeEstLog: failed forecast %s", forecast.m_error_ptr.value());
+                continue;
+            }
+            LogInfo("FeeEstLog: %s, %s, %s, %s\n", feeCalc.bestheight, hour, forecast.m_opt.low_priority.GetFeePerK(), forecast.m_opt.high_priority.GetFeePerK());
+        }
+    }
+}
