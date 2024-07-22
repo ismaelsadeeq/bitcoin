@@ -135,9 +135,9 @@ class EstimateFeeTest(BitcoinTestFramework):
         # whitelist peers to speed up tx relay / mempool sync
         self.noban_tx_relay = True
         self.extra_args = [
-            [],
-            ["-blockmaxweight=68000"],
-            ["-blockmaxweight=32000"],
+            ["-datacarriersize=10000"],
+            ["-blockmaxweight=68000", "-datacarriersize=1000"],
+            ["-blockmaxweight=32000", "-datacarriersize=1000"],
         ]
 
     def setup_network(self):
@@ -292,6 +292,8 @@ class EstimateFeeTest(BitcoinTestFramework):
         # the rest needed to be RBF'd. We must return the 90% conf rate feerate.
         high_feerate_kvb = Decimal(high_feerate) / COIN * 10 ** 3
         est_feerate = node.estimatesmartfee(2)["feerate"]
+        self.log.info(node.estimatesmartfee(2, estimate_mode="conservative")["feerate"])
+        self.log.info(est_feerate)
         assert_equal(est_feerate, high_feerate_kvb)
 
     def test_old_fee_estimate_file(self):
@@ -382,6 +384,52 @@ class EstimateFeeTest(BitcoinTestFramework):
         self.start_node(0,extra_args=["-acceptstalefeeestimates"])
         assert_equal(self.nodes[0].estimatesmartfee(1)["feerate"], fee_rate)
 
+    def clear_estimates(self):
+        self.log.info("Restarting node with fresh estimation")
+        self.stop_node(0)
+        fee_dat = os.path.join(self.nodes[0].chain_path, "fee_estimates.dat")
+        os.remove(fee_dat)
+        self.start_node(0)
+        self.connect_nodes(0, 1)
+        self.connect_nodes(0, 2)
+        assert_equal(self.nodes[0].estimatesmartfee(1)["errors"], ["Insufficient data or no feerate found"])
+
+    def broadcast_and_mine(self, broadcaster, miner, feerate, weight, count):
+        """Broadcast and mine some number of transactions with a specified fee rate and weight."""
+        for _ in range(count):
+            self.wallet.send_self_transfer(from_node=broadcaster, fee_rate=feerate, target_weight=weight)
+        self.sync_mempools(wait=0.1)
+        self.generate(miner, 3, sync_fun=self.no_op)
+
+    def check_fee_estimates_btw_modes(self, node, expected_conservative, expected_economical):
+        fee_est_conservative = node.estimatesmartfee(1, estimate_mode="conservative")['feerate']
+        fee_est_economical = node.estimatesmartfee(1)['feerate']
+        assert_equal(fee_est_conservative, expected_conservative)
+        assert_equal(fee_est_economical, expected_economical)
+
+    def test_estimation_modes(self):
+        low_feerate = Decimal("0.001")
+        high_feerate = Decimal("0.005")
+        weight = 1000
+        tx_count = 24
+        # Broadcast and mine high fee (1k weight) transactions for the first 5 blocks.
+        for _ in range(5):
+            self.broadcast_and_mine(self.nodes[1], self.nodes[2], high_feerate, weight, tx_count)
+        self.check_fee_estimates_btw_modes(self.nodes[0], high_feerate, high_feerate)
+
+        # Broadcast and mine high fee (1k weight) transactions for the next 7 blocks.
+        for _ in range(7):
+            self.broadcast_and_mine(self.nodes[1], self.nodes[2], high_feerate, weight, tx_count)
+        self.check_fee_estimates_btw_modes(self.nodes[0], high_feerate, high_feerate)
+
+        # We now track 12 blocks; short horizon stats will start decaying.
+        # Broadcast and mine low fee (1k weight) transactions for the next 4 blocks.
+        for _ in range(4):
+            self.broadcast_and_mine(self.nodes[1], self.nodes[2], low_feerate, weight, tx_count)
+        # conservative mode will consider longer time horizons while economical mode do not
+        # Check the fee estimates for both modes after mining low fee transactions.
+        self.check_fee_estimates_btw_modes(self.nodes[0], high_feerate, low_feerate)
+
 
     def run_test(self):
         self.log.info("This test is time consuming, please be patient")
@@ -420,16 +468,14 @@ class EstimateFeeTest(BitcoinTestFramework):
         self.log.info("Test reading old fee_estimates.dat")
         self.test_old_fee_estimate_file()
 
-        self.log.info("Restarting node with fresh estimation")
-        self.stop_node(0)
-        fee_dat = os.path.join(self.nodes[0].chain_path, "fee_estimates.dat")
-        os.remove(fee_dat)
-        self.start_node(0)
-        self.connect_nodes(0, 1)
-        self.connect_nodes(0, 2)
+        self.clear_estimates()
 
         self.log.info("Testing estimates with RBF.")
         self.sanity_check_rbf_estimates(self.confutxo + self.memutxo)
+
+        self.clear_estimates()
+        self.log.info("Test estimatesmartfee modes")
+        self.test_estimation_modes()
 
         self.log.info("Testing that fee estimation is disabled in blocksonly.")
         self.restart_node(0, ["-blocksonly"])
