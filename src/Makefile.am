@@ -242,6 +242,7 @@ BITCOIN_CORE_H = \
   node/warnings.h \
   noui.h \
   outputtype.h \
+  policy/fee_estimator.h \
   policy/forecaster.h \
   policy/forecaster_util.h \
   policy/feerate.h \
@@ -447,6 +448,7 @@ libbitcoin_node_a_SOURCES = \
   node/utxo_snapshot.cpp \
   node/warnings.cpp \
   noui.cpp \
+  policy/fee_estimator.cpp \
   policy/fees.cpp \
   policy/fees_args.cpp \
   policy/packages.cpp \
