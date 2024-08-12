@@ -451,6 +451,7 @@ libbitcoin_node_a_SOURCES = \
   policy/fee_estimator.cpp \
   policy/fees.cpp \
   policy/fees_args.cpp \
+  policy/forecaster_util.cpp \
   policy/packages.cpp \
   policy/rbf.cpp \
   policy/settings.cpp \
