@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <utility>
 
+class CTxMemPool;
 class Forecaster;
 struct ForecastResult;
 
@@ -26,6 +27,7 @@ struct ForecastResult;
 class FeeEstimator
 {
 private:
+    const CTxMemPool* m_mempool;
     //! Map of all registered forecasters to their shared pointers.
     std::unordered_map<ForecastType, std::shared_ptr<Forecaster>> forecasters;
 
@@ -42,15 +44,15 @@ public:
      * @param[in] block_policy_estimator_filepath Path to the Block policy estimator estimator dump file.
      * @param[in] read_stale_block_policy_estimates Boolean flag indicating whether to read stale Block policy estimator estimates.
      */
-    FeeEstimator(const fs::path& block_policy_estimator_filepath, const bool read_stale_block_policy_estimates)
-        : block_policy_estimator(std::make_unique<CBlockPolicyEstimator>(block_policy_estimator_filepath, read_stale_block_policy_estimates))
+    FeeEstimator(const fs::path& block_policy_estimator_filepath, const bool read_stale_block_policy_estimates, const CTxMemPool* mempool)
+        : m_mempool(mempool), block_policy_estimator(std::make_unique<CBlockPolicyEstimator>(block_policy_estimator_filepath, read_stale_block_policy_estimates))
     {
     }
 
     /**
      * Default constructor that initialises without a Block policy estimator estimator.
      */
-    FeeEstimator() : block_policy_estimator(std::nullopt) {}
+    FeeEstimator(const CTxMemPool* mempool) : m_mempool(mempool), block_policy_estimator(std::nullopt) {}
 
     ~FeeEstimator() = default;
 
@@ -60,6 +62,24 @@ public:
      * @param[in] forecaster Shared pointer to a Forecaster instance to be registered.
      */
     void RegisterForecaster(std::shared_ptr<Forecaster> forecaster);
+
+    /**
+     * Get a fee rate estimate from all registered forecasters for a given target block count.
+     *
+     * Polls all registered forecasters and selects the lowest fee rate
+     * estimate with acceptable confidence.
+     *
+     * @param[in] targetBlocks The number of blocks within which the transaction should be confirmed.
+     * @return A pair consisting of the forecast result and a vector of forecaster names.
+     */
+    std::pair<ForecastResult, std::vector<std::string>> GetFeeEstimateFromForecasters(unsigned int targetBlocks);
+
+    /**
+     * Retrieve the maximum target block range across all registered forecasters.
+     *
+     * @return The maximum number of blocks for which any forecaster can provide a fee rate estimate.
+     */
+    unsigned int MaxForecastingTarget();
 };
 
 #endif // BITCOIN_POLICY_FEE_ESTIMATOR_H

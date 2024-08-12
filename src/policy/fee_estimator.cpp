@@ -2,13 +2,27 @@
 // Distributed under the MIT software license. See the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <logging.h>
 #include <policy/fee_estimator.h>
 #include <policy/forecaster.h>
 #include <policy/forecaster_util.h>
+#include <txmempool.h>
 
 void FeeEstimator::RegisterForecaster(std::shared_ptr<Forecaster> forecaster)
 {
     forecasters.emplace(forecaster->GetForecastType(), forecaster);
+}
+
+unsigned int FeeEstimator::MaxForecastingTarget()
+{
+    unsigned int max_target = 0;
+    for (auto& forecaster : forecasters) {
+        max_target = std::max(forecaster.second->MaxTarget(), max_target);
+    }
+    if (block_policy_estimator.has_value()) {
+        max_target = std::max(max_target, block_policy_estimator.value()->HighestTargetTracked(FeeEstimateHorizon::LONG_HALFLIFE));
+    }
+    return max_target;
 }
 
 ForecastResult FeeEstimator::GetPolicyEstimatorEstimate(unsigned int targetBlocks)
@@ -25,3 +39,53 @@ ForecastResult FeeEstimator::GetPolicyEstimatorEstimate(unsigned int targetBlock
     forecast_options.block_height = feeCalcEconomical.bestheight;
     return ForecastResult(forecast_options, std::nullopt);
 }
+
+std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimateFromForecasters(unsigned int targetBlocks)
+{
+    ForecastResult::ForecastOptions forecast_options;
+    ForecastResult forecast = ForecastResult(forecast_options, std::nullopt);
+    std::vector<std::string> err_messages;
+
+    const auto maximum_conf_target{MaxForecastingTarget()};
+    if (targetBlocks > maximum_conf_target) {
+        err_messages.emplace_back(strprintf("Confirmation target %s exceeds forecasters maximum target of %s.", targetBlocks, maximum_conf_target));
+        return std::make_pair(forecast, err_messages);
+    }
+
+    if (m_mempool == nullptr) {
+        err_messages.emplace_back("Mempool not available.");
+        return std::make_pair(forecast, err_messages);
+    }
+
+    {
+        LOCK(m_mempool->cs);
+        if (!m_mempool->GetLoadTried()) {
+            err_messages.emplace_back("Mempool not finished loading; can't get accurate feerate forecast");
+            return std::make_pair(forecast, err_messages);
+        }
+
+        if (m_mempool->size() == 0) {
+            err_messages.emplace_back("No transactions available in the mempool");
+            return std::make_pair(forecast, err_messages);
+        }
+    }
+
+    auto mempool_forecaster = forecasters.find(ForecastType::MEMPOOL_FORECAST);
+    if (mempool_forecaster != forecasters.end()) {
+        forecast = (*mempool_forecaster).second->EstimateFee(targetBlocks);
+        if (forecast.empty() && forecast.m_error_ptr.has_value()) {
+            err_messages.emplace_back(strprintf("%s: %s", forecastTypeToString(forecast.m_opt.forecaster), forecast.m_error_ptr.value()));
+        }
+    }
+
+    const auto policy_estimator_forecast = GetPolicyEstimatorEstimate(targetBlocks);
+    if (forecast.empty() || policy_estimator_forecast < forecast) {
+        forecast = policy_estimator_forecast;
+    }
+    if (!forecast.empty()) {
+        LogPrint(BCLog::ESTIMATEFEE, "FeeEst %s: Block height %s, low priority feerate %s %s/kvB, high priority feerate %s %s/kvB.\n",
+                 forecastTypeToString(forecast.m_opt.forecaster), forecast.m_opt.block_height, forecast.m_opt.low_priority.GetFeePerK(),
+                 CURRENCY_ATOM, forecast.m_opt.high_priority.GetFeePerK(), CURRENCY_ATOM);
+    }
+    return std::make_pair(forecast, err_messages);
+};

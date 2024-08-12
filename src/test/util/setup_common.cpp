@@ -226,7 +226,7 @@ ChainTestingSetup::ChainTestingSetup(const ChainType chainType, TestOpts opts)
     bilingual_str error{};
     m_node.mempool = std::make_unique<CTxMemPool>(MemPoolOptionsForTest(m_node), error);
     Assert(error.empty());
-    m_node.fee_estimator = std::make_unique<FeeEstimator>(FeeestPath(*m_node.args), DEFAULT_ACCEPT_STALE_FEE_ESTIMATES);
+    m_node.fee_estimator = std::make_unique<FeeEstimator>(FeeestPath(*m_node.args), DEFAULT_ACCEPT_STALE_FEE_ESTIMATES, m_node.mempool.get());
     m_node.warnings = std::make_unique<node::Warnings>();
 
     m_cache_sizes = CalculateCacheSizes(m_args);
