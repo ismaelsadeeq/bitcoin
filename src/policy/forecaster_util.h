@@ -10,11 +10,14 @@
 #include <optional>
 #include <string>
 
+enum class ForecastType {};
+
 struct ForecastResult {
     struct ForecastOptions {
         CFeeRate low_priority;
         CFeeRate high_priority;
         unsigned int block_height{0};
+        ForecastType forecaster;
     };
 
     ForecastOptions m_opt;
