@@ -136,6 +136,7 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   outputtype.cpp
   policy/fee_estimator.cpp
   policy/feerate.cpp
+  policy/forecaster_util.cpp
   policy/policy.cpp
   protocol.cpp
   psbt.cpp

@@ -41,4 +41,6 @@ struct ForecastResult {
     ~ForecastResult() = default;
 };
 
+std::string forecastTypeToString(ForecastType forecastType);
+
 #endif // BITCOIN_POLICY_FORECASTER_UTIL_H
