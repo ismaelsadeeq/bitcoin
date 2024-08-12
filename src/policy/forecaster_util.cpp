@@ -43,6 +43,8 @@ BlockPercentiles CalculateBlockPercentiles(
 std::string forecastTypeToString(ForecastType forecastType)
 {
     switch (forecastType) {
+    case ForecastType::MEMPOOL_FORECAST:
+        return std::string("Mempool Forecast");
     case ForecastType::BLOCK_POLICY_ESTIMATOR:
         return std::string("Block Policy Estimator");
     }
