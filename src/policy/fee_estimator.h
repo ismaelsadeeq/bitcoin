@@ -29,6 +29,9 @@ private:
     //! Map of all registered forecasters to their shared pointers.
     std::unordered_map<ForecastType, std::shared_ptr<Forecaster>> forecasters;
 
+    //! Given a confirmation target get a fee estimate from Block Policy Estimator
+    ForecastResult GetPolicyEstimatorEstimate(unsigned int targetBlocks);
+
 public:
     //! Optional unique pointer block Block policy estimator.
     std::optional<std::unique_ptr<CBlockPolicyEstimator>> block_policy_estimator;
