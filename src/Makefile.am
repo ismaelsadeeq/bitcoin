@@ -242,6 +242,8 @@ BITCOIN_CORE_H = \
   node/warnings.h \
   noui.h \
   outputtype.h \
+  policy/forecaster.h \
+  policy/forecaster_util.h \
   policy/feerate.h \
   policy/fees.h \
   policy/fees_args.h \
