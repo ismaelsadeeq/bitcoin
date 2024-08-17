@@ -11,6 +11,9 @@ from test_framework.address import (
     address_to_scriptpubkey,
     script_to_p2sh,
 )
+from test_framework.messages import (
+    COIN,
+)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -25,6 +28,7 @@ from test_framework.script_util import (
 )
 from test_framework.wallet import (
     getnewdestination,
+    MiniWallet,
 )
 from test_framework.wallet_util import (
     generate_keypair,
@@ -45,16 +49,12 @@ OUTPUTS = {'mpLQjfK79b7CCV4VMJWEWAj5Mpx8Up5zxB': 0.1}
 
 class SignRawTransactionWithKeyTest(BitcoinTestFramework):
     def set_test_params(self):
-        self.setup_clean_chain = True
+        self.setup_clean_chain = False
         self.num_nodes = 2
 
     def send_to_address(self, addr, amount):
-        input = {"txid": self.nodes[0].getblock(self.block_hash[self.blk_idx])["tx"][0], "vout": 0}
-        output = {addr: amount}
-        self.blk_idx += 1
-        rawtx = self.nodes[0].createrawtransaction([input], output)
-        txid = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransactionwithkey(rawtx, [self.nodes[0].get_deterministic_priv_key().key])["hex"], 0)
-        return txid
+        script_pub_key = address_to_scriptpubkey(addr)
+        return self.wallet.send_to(from_node=self.nodes[0], scriptPubKey=script_pub_key, amount=amount)["txid"]
 
     def assert_signing_completed_successfully(self, signed_tx):
         assert 'errors' not in signed_tx
@@ -83,7 +83,7 @@ class SignRawTransactionWithKeyTest(BitcoinTestFramework):
         # send transaction to P2SH-P2WSH 1-of-1 multisig address
         self.block_hash = self.generate(self.nodes[0], COINBASE_MATURITY + 1)
         self.blk_idx = 0
-        self.send_to_address(p2sh_p2wsh_address["address"], 49.999)
+        self.send_to_address(p2sh_p2wsh_address["address"], 49 * COIN)
         self.generate(self.nodes[0], 1)
         # Get the UTXO info from scantxoutset
         unspent_output = self.nodes[1].scantxoutset('start', [p2sh_p2wsh_address['descriptor']])['unspents'][0]
@@ -111,7 +111,7 @@ class SignRawTransactionWithKeyTest(BitcoinTestFramework):
         addr = script_to_p2sh(redeem_script)
         script_pub_key = address_to_scriptpubkey(addr).hex()
         # Fund that address
-        txid = self.send_to_address(addr, 10)
+        txid = self.send_to_address(addr, 10 * COIN)
         vout = find_vout_for_address(self.nodes[0], txid, addr)
         self.generate(self.nodes[0], 1)
         # Now create and sign a transaction spending that output on node[0], which doesn't know the scripts or keys
@@ -136,6 +136,7 @@ class SignRawTransactionWithKeyTest(BitcoinTestFramework):
         assert_raises_rpc_error(-22, "TX decode failed. Make sure the tx has at least one input.", self.nodes[0].signrawtransactionwithkey, tx + "00", privkeys)
 
     def run_test(self):
+        self.wallet = MiniWallet(self.nodes[0])
         self.successful_signing_test()
         self.witness_script_test()
         self.invalid_sighashtype_test()
