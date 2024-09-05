@@ -308,6 +308,12 @@ void BitcoinApplication::createNode(interfaces::Init& init)
     if (m_splash) m_splash->setNode(*m_node);
 }
 
+void BitcoinApplication::createSettings(interfaces::Init& init)
+{
+    assert(!m_settings);
+    m_settings = init.makeSettings();
+}
+
 bool BitcoinApplication::baseInitialize()
 {
     return node().baseInitialize();
@@ -681,6 +687,8 @@ int GuiMain(int argc, char* argv[])
         app.createSplashScreen(networkStyle.data());
 
     app.createNode(*init);
+
+    app.createSettings(*init);
 
     // Load GUI settings from QSettings
     if (!app.createOptionsModel(gArgs.GetBoolArg("-resetguisettings", false))) {

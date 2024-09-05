@@ -7,6 +7,7 @@
 #include <common/args.h>
 #include <consensus/amount.h>
 #include <interfaces/chain.h>
+#include <interfaces/settings.h>
 #include <interfaces/handler.h>
 #include <node/types.h>
 #include <policy/fees.h>
@@ -40,6 +41,7 @@ using interfaces::Chain;
 using interfaces::FoundBlock;
 using interfaces::Handler;
 using interfaces::MakeSignalHandler;
+using interfaces::Settings;
 using interfaces::Wallet;
 using interfaces::WalletAddress;
 using interfaces::WalletBalances;
@@ -567,10 +569,11 @@ public:
 class WalletLoaderImpl : public WalletLoader
 {
 public:
-    WalletLoaderImpl(Chain& chain, ArgsManager& args)
+    WalletLoaderImpl(Chain& chain, ArgsManager& args, Settings& settings)
     {
         m_context.chain = &chain;
         m_context.args = &args;
+        m_context.settings = &settings;
     }
     ~WalletLoaderImpl() override { UnloadWallets(m_context); }
 
@@ -704,8 +707,8 @@ public:
 namespace interfaces {
 std::unique_ptr<Wallet> MakeWallet(wallet::WalletContext& context, const std::shared_ptr<wallet::CWallet>& wallet) { return wallet ? std::make_unique<wallet::WalletImpl>(context, wallet) : nullptr; }
 
-std::unique_ptr<WalletLoader> MakeWalletLoader(Chain& chain, ArgsManager& args)
+std::unique_ptr<WalletLoader> MakeWalletLoader(Chain& chain, ArgsManager& args, Settings& settings)
 {
-    return std::make_unique<wallet::WalletLoaderImpl>(chain, args);
+    return std::make_unique<wallet::WalletLoaderImpl>(chain, args, settings);
 }
 } // namespace interfaces

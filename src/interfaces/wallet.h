@@ -9,6 +9,7 @@
 #include <common/signmessage.h>
 #include <consensus/amount.h>
 #include <interfaces/chain.h>
+#include <interfaces/settings.h>
 #include <pubkey.h>
 #include <script/script.h>
 #include <support/allocators/secure.h>
@@ -452,7 +453,7 @@ std::unique_ptr<Wallet> MakeWallet(wallet::WalletContext& context, const std::sh
 
 //! Return implementation of ChainClient interface for a wallet loader. This
 //! function will be undefined in builds where ENABLE_WALLET is false.
-std::unique_ptr<WalletLoader> MakeWalletLoader(Chain& chain, ArgsManager& args);
+std::unique_ptr<WalletLoader> MakeWalletLoader(Chain& chain, ArgsManager& args, Settings& settings);
 
 } // namespace interfaces
 

@@ -26,6 +26,7 @@ class NetGroupManager;
 class PeerManager;
 namespace interfaces {
 class Chain;
+class Settings;
 class ChainClient;
 class Mining;
 class Init;
@@ -71,6 +72,7 @@ struct NodeContext {
     ArgsManager* args{nullptr}; // Currently a raw pointer because the memory is not managed by this struct
     std::vector<BaseIndex*> indexes; // raw pointers because memory is not managed by this struct
     std::unique_ptr<interfaces::Chain> chain;
+    std::unique_ptr<interfaces::Settings> settings;
     //! List of all chain clients (wallet processes or other client) connected to node.
     std::vector<std::unique_ptr<interfaces::ChainClient>> chain_clients;
     //! Reference to chain client that should used to load or create wallets

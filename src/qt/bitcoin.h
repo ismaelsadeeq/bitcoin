@@ -54,6 +54,8 @@ public:
     void createSplashScreen(const NetworkStyle *networkStyle);
     /// Create or spawn node
     void createNode(interfaces::Init& init);
+    /// Create or spawn settings
+    void createSettings(interfaces::Init& init);
     /// Basic initialization, before starting initialization/shutdown thread. Return true on success.
     bool baseInitialize();
 
@@ -67,6 +69,7 @@ public:
     void setupPlatformStyle();
 
     interfaces::Node& node() const { assert(m_node); return *m_node; }
+    interfaces::Node& settings() const { assert(m_settings); return *m_settings; }
 
 public Q_SLOTS:
     void initializeResult(bool success, interfaces::BlockAndHeaderTipInfo tip_info);
@@ -103,6 +106,7 @@ private:
     std::unique_ptr<QWidget> shutdownWindow;
     SplashScreen* m_splash = nullptr;
     std::unique_ptr<interfaces::Node> m_node;
+    std::unique_ptr<interfaces::Settings> m_settings;
 
     void startThread();
 };

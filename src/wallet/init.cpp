@@ -8,6 +8,7 @@
 #include <common/args.h>
 #include <init.h>
 #include <interfaces/chain.h>
+#include <interfaces/settings.h>
 #include <interfaces/init.h>
 #include <interfaces/wallet.h>
 #include <net.h>
@@ -129,7 +130,7 @@ void WalletInit::Construct(NodeContext& node) const
         LogPrintf("Wallet disabled!\n");
         return;
     }
-    auto wallet_loader = node.init->makeWalletLoader(*node.chain);
+    auto wallet_loader = node.init->makeWalletLoader(*node.chain, *node.settings);
     node.wallet_loader = wallet_loader.get();
     node.chain_clients.emplace_back(std::move(wallet_loader));
 }

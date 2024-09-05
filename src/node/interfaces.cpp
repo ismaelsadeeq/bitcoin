@@ -17,6 +17,7 @@
 #include <interfaces/handler.h>
 #include <interfaces/mining.h>
 #include <interfaces/node.h>
+#include <interfaces/settings.h>
 #include <interfaces/wallet.h>
 #include <kernel/chain.h>
 #include <kernel/context.h>
@@ -69,6 +70,7 @@
 
 using interfaces::BlockTip;
 using interfaces::Chain;
+using interfaces::Settings;
 using interfaces::FoundBlock;
 using interfaces::Handler;
 using interfaces::MakeSignalHandler;
@@ -140,46 +142,6 @@ public:
         }
     }
     bool shutdownRequested() override { return ShutdownRequested(*Assert(m_context)); };
-    bool isSettingIgnored(const std::string& name) override
-    {
-        bool ignored = false;
-        args().LockSettings([&](common::Settings& settings) {
-            if (auto* options = common::FindKey(settings.command_line_options, name)) {
-                ignored = !options->empty();
-            }
-        });
-        return ignored;
-    }
-    common::SettingsValue getPersistentSetting(const std::string& name) override { return args().GetPersistentSetting(name); }
-    void updateRwSetting(const std::string& name, const common::SettingsValue& value) override
-    {
-        args().LockSettings([&](common::Settings& settings) {
-            if (value.isNull()) {
-                settings.rw_settings.erase(name);
-            } else {
-                settings.rw_settings[name] = value;
-            }
-        });
-        args().WriteSettingsFile();
-    }
-    void forceSetting(const std::string& name, const common::SettingsValue& value) override
-    {
-        args().LockSettings([&](common::Settings& settings) {
-            if (value.isNull()) {
-                settings.forced_settings.erase(name);
-            } else {
-                settings.forced_settings[name] = value;
-            }
-        });
-    }
-    void resetSettings() override
-    {
-        args().WriteSettingsFile(/*errors=*/nullptr, /*backup=*/true);
-        args().LockSettings([&](common::Settings& settings) {
-            settings.rw_settings.clear();
-        });
-        args().WriteSettingsFile();
-    }
     void mapPort(bool use_upnp, bool use_natpmp) override { StartMapPort(use_upnp, use_natpmp); }
     bool getProxy(Network net, Proxy& proxy_info) override { return GetProxy(net, proxy_info); }
     size_t getNodeCount(ConnectionDirection flags) override
@@ -796,53 +758,6 @@ public:
     {
         RPCRunLater(name, std::move(fn), seconds);
     }
-    common::SettingsValue getSetting(const std::string& name) override
-    {
-        return args().GetSetting(name);
-    }
-    std::vector<common::SettingsValue> getSettingsList(const std::string& name) override
-    {
-        return args().GetSettingsList(name);
-    }
-    common::SettingsValue getRwSetting(const std::string& name) override
-    {
-        common::SettingsValue result;
-        args().LockSettings([&](const common::Settings& settings) {
-            if (const common::SettingsValue* value = common::FindKey(settings.rw_settings, name)) {
-                result = *value;
-            }
-        });
-        return result;
-    }
-    bool updateRwSetting(const std::string& name,
-                         const interfaces::SettingsUpdate& update_settings_func) override
-    {
-        std::optional<interfaces::SettingsAction> action;
-        args().LockSettings([&](common::Settings& settings) {
-            auto* ptr_value = common::FindKey(settings.rw_settings, name);
-            // Create value if it doesn't exist
-            auto& value = ptr_value ? *ptr_value : settings.rw_settings[name];
-            action = update_settings_func(value);
-        });
-        if (!action) return false;
-        // Now dump value to disk if requested
-        return *action == interfaces::SettingsAction::SKIP_WRITE || args().WriteSettingsFile();
-    }
-    bool overwriteRwSetting(const std::string& name, common::SettingsValue& value, bool write) override
-    {
-        if (value.isNull()) return deleteRwSettings(name, write);
-        return updateRwSetting(name, [&](common::SettingsValue& settings) {
-            settings = std::move(value);
-            return write ? interfaces::SettingsAction::WRITE : interfaces::SettingsAction::SKIP_WRITE;
-        });
-    }
-    bool deleteRwSettings(const std::string& name, bool write) override
-    {
-        args().LockSettings([&](common::Settings& settings) {
-            settings.rw_settings.erase(name);
-        });
-        return !write || args().WriteSettingsFile();
-    }
     void requestMempoolTransactions(Notifications& notifications) override
     {
         if (!m_node.mempool) return;
@@ -857,7 +772,6 @@ public:
     }
 
     NodeContext* context() override { return &m_node; }
-    ArgsManager& args() { return *Assert(m_node.args); }
     ChainstateManager& chainman() { return *Assert(m_node.chainman); }
     ValidationSignals& validation_signals() { return *Assert(m_node.validation_signals); }
     NodeContext& m_node;
@@ -920,6 +834,102 @@ public:
     ChainstateManager& chainman() { return *Assert(m_node.chainman); }
     NodeContext& m_node;
 };
+
+class SettingsImpl : public Settings
+{
+    NodeContext* m_node{nullptr};
+    ArgsManager& args() { return *Assert(Assert(m_node)->args); }
+public:
+    explicit SettingsImpl(NodeContext& node): m_node(&node) {}
+
+    bool isSettingIgnored(const std::string& name) override
+    {
+        bool ignored = false;
+        args().LockSettings([&](common::Settings& settings) {
+            if (auto* options = common::FindKey(settings.command_line_options, name)) {
+                ignored = !options->empty();
+            }
+        });
+        return ignored;
+    }
+    common::SettingsValue getPersistentSetting(const std::string& name) override { return args().GetPersistentSetting(name); }
+    void updateRwSetting(const std::string& name, const common::SettingsValue& value) override
+    {
+        args().LockSettings([&](common::Settings& settings) {
+            if (value.isNull()) {
+                settings.rw_settings.erase(name);
+            } else {
+                settings.rw_settings[name] = value;
+            }
+        });
+        args().WriteSettingsFile();
+    }
+    void forceSetting(const std::string& name, const common::SettingsValue& value) override
+    {
+        args().LockSettings([&](common::Settings& settings) {
+            if (value.isNull()) {
+                settings.forced_settings.erase(name);
+            } else {
+                settings.forced_settings[name] = value;
+            }
+        });
+    }
+    void resetSettings() override
+    {
+        args().WriteSettingsFile(/*errors=*/nullptr, /*backup=*/true);
+        args().LockSettings([&](common::Settings& settings) {
+            settings.rw_settings.clear();
+        });
+        args().WriteSettingsFile();
+    }
+    common::SettingsValue getSetting(const std::string& name) override
+    {
+        return args().GetSetting(name);
+    }
+    std::vector<common::SettingsValue> getSettingsList(const std::string& name) override
+    {
+        return args().GetSettingsList(name);
+    }
+    common::SettingsValue getRwSetting(const std::string& name) override
+    {
+        common::SettingsValue result;
+        args().LockSettings([&](const common::Settings& settings) {
+            if (const common::SettingsValue* value = common::FindKey(settings.rw_settings, name)) {
+                result = *value;
+            }
+        });
+        return result;
+    }
+    bool updateRwSetting(const std::string& name,
+                         const SettingsUpdateFn& update_settings_func) override
+    {
+        std::optional<interfaces::SettingsAction> action;
+        args().LockSettings([&](common::Settings& settings) {
+            auto* ptr_value = common::FindKey(settings.rw_settings, name);
+            // Create value if it doesn't exist
+            auto& value = ptr_value ? *ptr_value : settings.rw_settings[name];
+            action = update_settings_func(value);
+        });
+        if (!action) return false;
+        // Now dump value to disk if requested
+        return *action == interfaces::SettingsAction::SKIP_WRITE || args().WriteSettingsFile();
+    }
+    bool overwriteRwSetting(const std::string& name, common::SettingsValue& value, bool write) override
+    {
+        if (value.isNull()) return deleteRwSettings(name, write);
+        return updateRwSetting(name, [&](common::SettingsValue& settings) {
+            settings = std::move(value);
+            return write ? interfaces::SettingsAction::WRITE : interfaces::SettingsAction::SKIP_WRITE;
+        });
+    }
+    bool deleteRwSettings(const std::string& name, bool write) override
+    {
+        args().LockSettings([&](common::Settings& settings) {
+            settings.rw_settings.erase(name);
+        });
+        return !write || args().WriteSettingsFile();
+    }
+};
 } // namespace
 } // namespace node
 
@@ -927,4 +937,5 @@ namespace interfaces {
 std::unique_ptr<Node> MakeNode(node::NodeContext& context) { return std::make_unique<node::NodeImpl>(context); }
 std::unique_ptr<Chain> MakeChain(node::NodeContext& context) { return std::make_unique<node::ChainImpl>(context); }
 std::unique_ptr<Mining> MakeMining(node::NodeContext& context) { return std::make_unique<node::MinerImpl>(context); }
+std::unique_ptr<Settings> MakeSettings(node::NodeContext& context) { return std::make_unique<node::SettingsImpl>(context); }
 } // namespace interfaces

@@ -28,6 +28,7 @@
 #include <index/txindex.h>
 #include <init/common.h>
 #include <interfaces/chain.h>
+#include <interfaces/settings.h>
 #include <interfaces/init.h>
 #include <interfaces/mining.h>
 #include <interfaces/node.h>
@@ -1132,6 +1133,7 @@ bool AppInitInterfaces(NodeContext& node)
 {
     node.chain = node.init->makeChain();
     node.mining = node.init->makeMining();
+    node.settings = node.init->makeSettings();
     return true;
 }
 

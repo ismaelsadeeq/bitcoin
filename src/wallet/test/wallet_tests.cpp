@@ -335,11 +335,11 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 BOOST_FIXTURE_TEST_CASE(write_wallet_settings_concurrently, TestingSetup)
 {
     WalletContext context;
-    context.chain = m_node.chain.get();
+    context.settings = m_node.settings.get();
     const auto NUM_WALLETS{5};
 
     // Since we're counting the number of wallets, ensure we start without any.
-    BOOST_REQUIRE(context.chain->getRwSetting("wallet").isNull());
+    BOOST_REQUIRE(context.settings->getRwSetting("wallet").isNull());
 
     const auto& check_concurrent_wallet = [&](const auto& settings_function, int num_expected_wallets) {
         std::vector<std::thread> threads;
@@ -347,19 +347,19 @@ BOOST_FIXTURE_TEST_CASE(write_wallet_settings_concurrently, TestingSetup)
         for (auto i{0}; i < NUM_WALLETS; ++i) threads.emplace_back(settings_function, i);
         for (auto& t : threads) t.join();
 
-        auto wallets = context.chain->getRwSetting("wallet");
+        auto wallets = context.settings->getRwSetting("wallet");
         BOOST_CHECK_EQUAL(wallets.getValues().size(), num_expected_wallets);
     };
 
     // Add NUM_WALLETS wallets concurrently, ensure we end up with NUM_WALLETS stored.
     check_concurrent_wallet([&context](int i) {
-        Assert(AddWalletSetting(*context.chain, strprintf("wallet_%d", i)));
+        Assert(AddWalletSetting(*context.settings, strprintf("wallet_%d", i)));
     },
                             /*num_expected_wallets=*/NUM_WALLETS);
 
     // Remove NUM_WALLETS wallets concurrently, ensure we end up with 0 wallets.
     check_concurrent_wallet([&context](int i) {
-        Assert(RemoveWalletSetting(*context.chain, strprintf("wallet_%d", i)));
+        Assert(RemoveWalletSetting(*context.settings, strprintf("wallet_%d", i)));
     },
                             /*num_expected_wallets=*/0);
 }

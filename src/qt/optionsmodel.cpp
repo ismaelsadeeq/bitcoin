@@ -58,8 +58,8 @@ static const char* SettingName(OptionsModel::OptionID option)
     }
 }
 
-/** Call node.updateRwSetting() with Bitcoin 22.x workaround. */
-static void UpdateRwSetting(interfaces::Node& node, OptionsModel::OptionID option, const std::string& suffix, const common::SettingsValue& value)
+/** Call settings.updateRwSetting() with Bitcoin 22.x workaround. */
+static void UpdateRwSetting(interfaces::Settings& settings, OptionsModel::OptionID option, const std::string& suffix, const common::SettingsValue& value)
 {
     if (value.isNum() &&
         (option == OptionsModel::DatabaseCache ||
@@ -73,9 +73,9 @@ static void UpdateRwSetting(interfaces::Node& node, OptionsModel::OptionID optio
         // in later releases by https://github.com/bitcoin/bitcoin/pull/24498.
         // If new numeric settings are added, they can be written as numbers
         // instead of strings, because bitcoin 22.x will not try to read these.
-        node.updateRwSetting(SettingName(option) + suffix, value.getValStr());
+        settings.updateRwSetting(SettingName(option) + suffix, value.getValStr());
     } else {
-        node.updateRwSetting(SettingName(option) + suffix, value);
+        settings.updateRwSetting(SettingName(option) + suffix, value);
     }
 }
 
@@ -361,12 +361,12 @@ void OptionsModel::SetPruneTargetGB(int prune_target_gb)
         PruneSizeGB(cur_value) != PruneSizeGB(new_value)) {
         // Call UpdateRwSetting() instead of setOption() to avoid setting
         // RestartRequired flag
-        UpdateRwSetting(node(), Prune, "", new_value);
+        UpdateRwSetting(settings(), Prune, "", new_value);
     }
 
     // Keep previous pruning size, if pruning was disabled.
     if (PruneEnabled(cur_value)) {
-        UpdateRwSetting(node(), Prune, "-prev", PruneEnabled(new_value) ? common::SettingsValue{} : cur_value);
+        UpdateRwSetting(settings(), Prune, "-prev", PruneEnabled(new_value) ? common::SettingsValue{} : cur_value);
     }
 }
 
@@ -511,7 +511,7 @@ QFont OptionsModel::getFontForMoney() const
 bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::string& suffix)
 {
     auto changed = [&] { return value.isValid() && value != getOption(option, suffix); };
-    auto update = [&](const common::SettingsValue& value) { return UpdateRwSetting(node(), option, suffix, value); };
+    auto update = [&](const common::SettingsValue& value) { return UpdateRwSetting(settings(), option, suffix, value); };
 
     bool successful = true; /* set to false on parse error */
     QSettings settings;
@@ -551,7 +551,7 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
         if (changed()) {
             if (suffix.empty() && !value.toBool()) setOption(option, true, "-prev");
             update(ProxyString(value.toBool(), getOption(ProxyIP).toString(), getOption(ProxyPort).toString()));
-            if (suffix.empty() && value.toBool()) UpdateRwSetting(node(), option, "-prev", {});
+            if (suffix.empty() && value.toBool()) UpdateRwSetting(settings(), option, "-prev", {});
             if (suffix.empty()) setRestartRequired(true);
         }
         break;
@@ -581,7 +581,7 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
         if (changed()) {
             if (suffix.empty() && !value.toBool()) setOption(option, true, "-prev");
             update(ProxyString(value.toBool(), getOption(ProxyIPTor).toString(), getOption(ProxyPortTor).toString()));
-            if (suffix.empty() && value.toBool()) UpdateRwSetting(node(), option, "-prev", {});
+            if (suffix.empty() && value.toBool()) UpdateRwSetting(settings(), option, "-prev", {});
             if (suffix.empty()) setRestartRequired(true);
         }
         break;
@@ -662,7 +662,7 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
         if (changed()) {
             if (suffix.empty() && !value.toBool()) setOption(option, true, "-prev");
             update(PruneSetting(value.toBool(), getOption(PruneSize).toInt()));
-            if (suffix.empty() && value.toBool()) UpdateRwSetting(node(), option, "-prev", {});
+            if (suffix.empty() && value.toBool()) UpdateRwSetting(settings(), option, "-prev", {});
             if (suffix.empty()) setRestartRequired(true);
         }
         break;

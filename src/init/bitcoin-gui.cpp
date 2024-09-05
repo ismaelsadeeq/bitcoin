@@ -4,6 +4,7 @@
 
 #include <init.h>
 #include <interfaces/chain.h>
+#include <interfaces/settings.h>
 #include <interfaces/echo.h>
 #include <interfaces/init.h>
 #include <interfaces/ipc.h>
@@ -28,9 +29,10 @@ public:
     }
     std::unique_ptr<interfaces::Node> makeNode() override { return interfaces::MakeNode(m_node); }
     std::unique_ptr<interfaces::Chain> makeChain() override { return interfaces::MakeChain(m_node); }
-    std::unique_ptr<interfaces::WalletLoader> makeWalletLoader(interfaces::Chain& chain) override
+    std::unique_ptr<interfaces::Settings> makeSettings() override { return interfaces::MakeSettings(m_node); }
+    std::unique_ptr<interfaces::WalletLoader> makeWalletLoader(interfaces::Chain& chain, interfaces::Settings& settings) override
     {
-        return MakeWalletLoader(chain, *Assert(m_node.args));
+        return MakeWalletLoader(chain, *Assert(m_node.args), settings);
     }
     std::unique_ptr<interfaces::Echo> makeEcho() override { return interfaces::MakeEcho(); }
     interfaces::Ipc* ipc() override { return m_ipc.get(); }

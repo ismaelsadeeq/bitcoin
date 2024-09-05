@@ -9,6 +9,7 @@
 #include <addresstype.h>
 #include <consensus/amount.h>
 #include <interfaces/chain.h>
+#include <interfaces/settings.h>
 #include <interfaces/handler.h>
 #include <kernel/cs_main.h>
 #include <logging.h>
@@ -1112,10 +1113,10 @@ public:
 };
 
 //! Add wallet name to persistent configuration so it will be loaded on startup.
-bool AddWalletSetting(interfaces::Chain& chain, const std::string& wallet_name);
+bool AddWalletSetting(interfaces::Settings& settings, const std::string& wallet_name);
 
 //! Remove wallet name from persistent configuration so it will not be loaded on startup.
-bool RemoveWalletSetting(interfaces::Chain& chain, const std::string& wallet_name);
+bool RemoveWalletSetting(interfaces::Settings& settings, const std::string& wallet_name);
 
 struct MigrationResult {
     std::string wallet_name;
