@@ -146,11 +146,17 @@ class WalletBackupTest(BitcoinTestFramework):
         self.restart_node(3, ["-prune=1", "-fastprune=1"])
         # Ensure the chain tip is at height 214, because this test assume it is.
         assert_equal(node.getchaintips()[0]["height"], 214)
+        node.createwallet("legacy-wallet", descriptors=False)
+        # Ensure the chain tip is at height 214, because this test assume it is.
+        assert_equal(node.getchaintips()[0]["height"], 214)
         # We need a few more blocks so we can actually get above an realistic
         # minimal prune height
         self.generate(node, 50, sync_fun=self.no_op)
-        # Backup created at block height 264
-        node.backupwallet(node.datadir_path / 'wallet_pruned.bak')
+        # Backups created at block height 264
+        default_wallet = node.get_wallet_rpc(self.default_wallet_name)
+        default_wallet.backupwallet(node.datadir_path / 'wallet_pruned.bak')
+        legacy_wallet = node.get_wallet_rpc("legacy-wallet")
+        legacy_backup_path = legacy_wallet.migratewallet()["backup_path"]
         # Generate more blocks so we can actually prune the older blocks
         self.generate(node, 300, sync_fun=self.no_op)
         # This gives us an actual prune height roughly in the range of 220 - 240
@@ -158,6 +164,7 @@ class WalletBackupTest(BitcoinTestFramework):
         # The backup should be updated with the latest height (locator) for
         # the backup to load successfully this close to the prune height
         node.restorewallet(f'pruned', node.datadir_path / 'wallet_pruned.bak')
+        node.restorewallet('legacy', legacy_backup_path)
 
     def run_test(self):
         self.log.info("Generating initial blockchain")
