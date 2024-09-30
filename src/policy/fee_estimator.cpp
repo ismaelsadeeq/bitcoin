@@ -20,10 +20,6 @@ int FeeEstimator::MaxForecastingTarget()
     for (const auto& forecaster : forecasters) {
         max_target = std::max(forecaster.second->MaxTarget(), max_target);
     }
-    if (block_policy_estimator.has_value()) {
-        const auto policy_estimator_max_target{static_cast<int>(block_policy_estimator.value()->HighestTargetTracked(FeeEstimateHorizon::LONG_HALFLIFE))};
-        max_target = std::max(max_target, policy_estimator_max_target);
-    }
     return max_target;
 }
 
@@ -42,17 +38,11 @@ ForecastResult FeeEstimator::GetPolicyEstimatorEstimate(int targetBlocks)
     return ForecastResult(forecast_options, std::nullopt);
 }
 
-std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimateFromForecasters(int targetBlocks)
+std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimateFromForecasters(int targetHours)
 {
     ForecastResult::ForecastOptions forecast_options;
     ForecastResult forecast = ForecastResult(forecast_options, std::nullopt);
     std::vector<std::string> err_messages;
-
-    const auto maximum_conf_target{MaxForecastingTarget()};
-    if (targetBlocks > maximum_conf_target) {
-        err_messages.emplace_back(strprintf("Confirmation target %s exceeds forecasters maximum target of %s.", targetBlocks, maximum_conf_target));
-        return std::make_pair(forecast, err_messages);
-    }
 
     if (m_mempool == nullptr) {
         err_messages.emplace_back("Mempool not available.");
@@ -72,18 +62,23 @@ std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimate
         }
     }
 
-    auto mempool_forecaster = forecasters.find(ForecastType::MEMPOOL_FORECAST);
-    if (mempool_forecaster != forecasters.end()) {
-        forecast = (*mempool_forecaster).second->EstimateFee(targetBlocks);
-        if (forecast.empty() && forecast.m_error_ptr.has_value()) {
-            err_messages.emplace_back(strprintf("%s: %s", forecastTypeToString(forecast.m_opt.forecaster), forecast.m_error_ptr.value()));
+    // If ASAP estimates are requested
+    if (targetHours == 0) {
+        auto mempool_forecaster = forecasters.find(ForecastType::MEMPOOL_FORECAST);
+        if (mempool_forecaster != forecasters.end()) {
+            forecast = (*mempool_forecaster).second->EstimateFee(targetHours);
+            if (forecast.empty() && forecast.m_error_ptr.has_value()) {
+                err_messages.emplace_back(strprintf("%s: %s", forecastTypeToString(forecast.m_opt.forecaster), forecast.m_error_ptr.value()));
+            }
+        }
+
+        const auto policy_estimator_forecast = GetPolicyEstimatorEstimate(targetHours + 1);
+        if (forecast.empty() || policy_estimator_forecast < forecast) {
+            forecast = policy_estimator_forecast;
         }
     }
 
-    const auto policy_estimator_forecast = GetPolicyEstimatorEstimate(targetBlocks);
-    if (forecast.empty() || policy_estimator_forecast < forecast) {
-        forecast = policy_estimator_forecast;
-    }
+    // Request for 
     if (!forecast.empty()) {
         LogDebug(BCLog::ESTIMATEFEE, "FeeEst %s: Block height %s, low priority feerate %s %s/kvB, high priority feerate %s %s/kvB.\n",
                  forecastTypeToString(forecast.m_opt.forecaster), forecast.m_opt.block_height, forecast.m_opt.low_priority.GetFeePerK(),

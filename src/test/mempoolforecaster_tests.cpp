@@ -46,8 +46,8 @@ BOOST_AUTO_TEST_CASE(MempoolEstimator)
         // Test when targetBlocks > MEMPOOL_FORECAST_MAX_TARGET
         const auto fee_estimate = mempool_fee_estimator->EstimateFee(MEMPOOL_FORECAST_MAX_TARGET + 1);
         BOOST_CHECK(fee_estimate.empty() == true);
-        BOOST_CHECK(fee_estimate.m_error_ptr.value() == strprintf("Confirmation target %s is above maximum limit of %s, mempool conditions might change and forecasts above %s block may be unreliable",
-                                                                  MEMPOOL_FORECAST_MAX_TARGET + 1, MEMPOOL_FORECAST_MAX_TARGET, MEMPOOL_FORECAST_MAX_TARGET));
+        BOOST_CHECK(fee_estimate.m_error_ptr.value() == strprintf("Confirmation target %s is above maximum limit of %s.",
+                                                                  MEMPOOL_FORECAST_MAX_TARGET + 1, MEMPOOL_FORECAST_MAX_TARGET));
     }
 
     BOOST_CHECK(m_node.mempool->GetTotalTxSize() == 0);

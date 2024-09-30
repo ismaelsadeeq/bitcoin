@@ -19,7 +19,7 @@ class CTxMemPool;
 
 // Fee rate estimates above this confirmation target are not reliable,
 // mempool condition might likely change.
-constexpr int MEMPOOL_FORECAST_MAX_TARGET{2};
+constexpr int MEMPOOL_FORECAST_MAX_TARGET{0};
 constexpr std::chrono::seconds CACHE_LIFE{30};
 
 /**
@@ -77,10 +77,10 @@ public:
 
     /**
      * Estimate the fee rate from mempool transactions given a confirmation target.
-     * @param[in] targetBlocks The confirmation target to provide estimate for.
+     * @param[in] targetHours The confirmation target to provide estimate for.
      * @return The forecasted fee rates.
      */
-    ForecastResult EstimateFee(int targetBlocks) override;
+    ForecastResult EstimateFee(int targetHours) override;
 
     /* Return the maximum confirmation target this forecaster can forecast */
     int MaxTarget() override

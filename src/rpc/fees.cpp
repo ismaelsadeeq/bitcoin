@@ -102,10 +102,10 @@ static RPCHelpMan estimatefee()
     return RPCHelpMan{
         "estimatefee",
         "\nEstimates the approximate fee per kilobyte needed for a transaction to begin\n"
-        "confirmation within conf_target blocks if possible Uses virtual transaction size as defined\n"
-        "in BIP 141 (witness data is discounted).\n",
+        "confirmation within N hours, pass 0 for an estimate for transaction to confirm as soon as possible\n"
+       "if possible Uses virtual transaction size as defined in BIP 141 (witness data is discounted).\n",
         {
-            {"conf_target", RPCArg::Type::NUM, RPCArg::Optional::NO, "Confirmation target in blocks"},
+            {"m", RPCArg::Type::NUM, RPCArg::Optional::NO, "Number of hours transaction should confirm within"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
@@ -119,18 +119,18 @@ static RPCHelpMan estimatefee()
             }},
         RPCExamples{HelpExampleCli("estimatefee", "2") + HelpExampleRpc("estimatefee", "2")},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            const auto targetBlocks = request.params[0].getInt<int>();
+            const auto targetHours = request.params[0].getInt<int>();
             UniValue result(UniValue::VOBJ);
             UniValue errors(UniValue::VARR);
-            if (targetBlocks <= 0) {
-                errors.push_back("confirmation target must be greater than 0");
+            if (targetHours < 0) {
+                errors.push_back("confirmation target must not be negative");
                 result.pushKV("errors", errors);
                 return result;
             }
             const NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTxMemPool& mempool = EnsureMemPool(node);
             FeeEstimator& fee_estimator = EnsureAnyFeeForecasters(request.context);
-            std::pair<ForecastResult, std::vector<std::string>> forecast_result = fee_estimator.GetFeeEstimateFromForecasters(/*targetBlocks=*/targetBlocks);
+            std::pair<ForecastResult, std::vector<std::string>> forecast_result = fee_estimator.GetFeeEstimateFromForecasters(/*targetHours=*/targetHours);
             CFeeRate min_relay_feerate{mempool.m_opts.min_relay_feerate};
             result.pushKV("minrelayfee", ValueFromAmount(min_relay_feerate.GetFeePerK()));
             if (!forecast_result.first.empty()) {

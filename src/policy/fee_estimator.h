@@ -64,20 +64,17 @@ public:
     void RegisterForecaster(std::shared_ptr<Forecaster> forecaster);
 
     /**
-     * Get a fee rate estimate from all registered forecasters for a given target block count.
+     * Get a fee rate estimate from all registered forecasters for a given target hours count.
      *
-     * Polls all registered forecasters and selects the lowest fee rate
-     * estimate with acceptable confidence.
-     *
-     * @param[in] targetBlocks The number of blocks within which the transaction should be confirmed.
+     * @param[in] targetHours The number of hours within which the transaction should be confirmed.
      * @return A pair consisting of the forecast result and a vector of forecaster names.
      */
-    std::pair<ForecastResult, std::vector<std::string>> GetFeeEstimateFromForecasters(int targetBlocks);
+    std::pair<ForecastResult, std::vector<std::string>> GetFeeEstimateFromForecasters(int targetHours);
 
     /**
-     * Retrieve the maximum target block range across all registered forecasters.
+     * Retrieve the maximum target hours range across all registered forecasters.
      *
-     * @return The maximum number of blocks for which any forecaster can provide a fee rate estimate.
+     * @return The maximum number of hours for which any forecaster can provide a fee rate estimate.
      */
     int MaxForecastingTarget();
 };

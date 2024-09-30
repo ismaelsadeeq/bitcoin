@@ -9,15 +9,15 @@
 #include <validation.h>
 
 
-ForecastResult MemPoolForecaster::EstimateFee(int targetBlocks)
+ForecastResult MemPoolForecaster::EstimateFee(int targetHours)
 {
     ForecastResult::ForecastOptions forecast_options;
     forecast_options.forecaster = m_forecastType;
     LOCK2(cs_main, m_mempool->cs);
     forecast_options.block_height = static_cast<unsigned int>(m_chainstate->m_chainman.ActiveTip()->nHeight);
-    if (targetBlocks > MEMPOOL_FORECAST_MAX_TARGET) {
-        return ForecastResult(forecast_options, strprintf("Confirmation target %s is above maximum limit of %s, mempool conditions might change and forecasts above %s block may be unreliable",
-                                                          targetBlocks, MEMPOOL_FORECAST_MAX_TARGET, MEMPOOL_FORECAST_MAX_TARGET));
+    if (targetHours > MEMPOOL_FORECAST_MAX_TARGET) {
+        return ForecastResult(forecast_options, strprintf("Confirmation target %s is above maximum limit of %s.",
+                                                          targetHours, MEMPOOL_FORECAST_MAX_TARGET));
     }
 
     const auto cached_estimate = cache.get();
@@ -42,7 +42,7 @@ ForecastResult MemPoolForecaster::EstimateFee(int targetBlocks)
              fee_rate_estimate_result.p25.GetFeePerK(), CURRENCY_ATOM, fee_rate_estimate_result.p5.GetFeePerK(), CURRENCY_ATOM);
 
     TRACE7(feerate_forecast, forecast_generated,
-           targetBlocks,
+           targetHours,
            forecast_options.block_height,
            forecastTypeToString(m_forecastType).c_str(),
            fee_rate_estimate_result.p5.GetFeePerK(),

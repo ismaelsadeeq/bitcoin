@@ -26,21 +26,21 @@ public:
      * Estimate the fee rate required for transaction confirmation.
      *
      * This pure virtual function must be overridden by derived classes to
-     * provide a ForecastResult for the specified number of target blocks.
+     * provide a ForecastResult for the specified number of target hours.
      *
-     * @param[in] targetBlocks The number of blocks within which the transaction should be confirmed.
+     * @param[in] targetHours The number of hours within which the transaction should be confirmed.
      * @return ForecastResult containing the estimated fee rate.
      */
-    virtual ForecastResult EstimateFee(int targetBlocks) = 0;
+    virtual ForecastResult EstimateFee(int targetHours) = 0;
 
     /**
-     * Retrieve the maximum target block this forecaster can handle for fee estimation.
+     * Retrieve the maximum target hours this forecaster can handle for fee estimation.
      *
      * This pure virtual function must be overridden by derived classes to
-     * provide the maximum number of blocks for which a fee rate estimate may
+     * provide the maximum number of hours for which a fee rate estimate may
      * be returned.
      *
-     * @return int representing the maximum target block range.
+     * @return int representing the maximum target hours range.
      */
     virtual int MaxTarget() = 0;
 
