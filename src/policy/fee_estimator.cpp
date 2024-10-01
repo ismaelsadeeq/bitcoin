@@ -55,11 +55,6 @@ std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimate
             err_messages.emplace_back("Mempool not finished loading; can't get accurate feerate forecast");
             return std::make_pair(forecast, err_messages);
         }
-
-        if (m_mempool->size() == 0) {
-            err_messages.emplace_back("No transactions available in the mempool");
-            return std::make_pair(forecast, err_messages);
-        }
     }
 
     // If ASAP estimates are requested
@@ -71,14 +66,22 @@ std::pair<ForecastResult, std::vector<std::string>> FeeEstimator::GetFeeEstimate
                 err_messages.emplace_back(strprintf("%s: %s", forecastTypeToString(forecast.m_opt.forecaster), forecast.m_error_ptr.value()));
             }
         }
-
         const auto policy_estimator_forecast = GetPolicyEstimatorEstimate(targetHours + 1);
         if (forecast.empty() || policy_estimator_forecast < forecast) {
             forecast = policy_estimator_forecast;
         }
+
+    } else {
+        // Request for longer estimates
+        auto ntime_forecaster = forecasters.find(ForecastType::NTIME);
+        if (ntime_forecaster != forecasters.end()) {
+            forecast = (*ntime_forecaster).second->EstimateFee(targetHours);
+            if (forecast.empty() && forecast.m_error_ptr.has_value()) {
+                err_messages.emplace_back(strprintf("%s: %s", forecastTypeToString(forecast.m_opt.forecaster), forecast.m_error_ptr.value()));
+            }
+        }
     }
 
-    // Request for 
     if (!forecast.empty()) {
         LogDebug(BCLog::ESTIMATEFEE, "FeeEst %s: Block height %s, low priority feerate %s %s/kvB, high priority feerate %s %s/kvB.\n",
                  forecastTypeToString(forecast.m_opt.forecaster), forecast.m_opt.block_height, forecast.m_opt.low_priority.GetFeePerK(),

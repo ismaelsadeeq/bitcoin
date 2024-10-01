@@ -59,6 +59,7 @@
 #include <policy/fees.h>
 #include <policy/fees_args.h>
 #include <policy/forecasters/mempool.h>
+#include <policy/forecasters/ntime.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <protocol.h>
@@ -1653,8 +1654,14 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         }
 
         node.fee_estimator = std::make_unique<FeeEstimator>(FeeestPath(args), read_stale_estimates, node.mempool.get());
-        node.fee_estimator->RegisterForecaster(std::make_unique<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate())));
+        node.fee_estimator->RegisterForecaster(std::make_shared<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate())));
 
+        auto n_time_forecaster = std::make_shared<NTime>();
+        NTime* time_forecaster_ptr = n_time_forecaster.get(); 
+        scheduler.scheduleEvery([time_forecaster_ptr] {time_forecaster_ptr->UpdateTrackingStats(); }, STATS_UPDATE_INTERVAL);
+        validation_signals.RegisterValidationInterface(time_forecaster_ptr);
+        node.fee_estimator->RegisterForecaster(n_time_forecaster);
+    
         // Flush legacy estimates to disk periodically
         CBlockPolicyEstimator* block_policy_estimator = node.fee_estimator->block_policy_estimator->get();
         scheduler.scheduleEvery([block_policy_estimator] { block_policy_estimator->FlushFeeEstimates(); }, FEE_FLUSH_INTERVAL);

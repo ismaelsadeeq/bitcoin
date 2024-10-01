@@ -13,6 +13,7 @@
 enum class ForecastType {
     MEMPOOL_FORECAST,
     BLOCK_POLICY_ESTIMATOR,
+    NTIME,
 };
 
 struct ForecastResult {

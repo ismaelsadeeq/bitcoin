@@ -138,6 +138,7 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   policy/feerate.cpp
   policy/forecaster_util.cpp
   policy/forecasters/mempool.cpp
+  policy/forecasters/ntime.cpp
   policy/policy.cpp
   protocol.cpp
   psbt.cpp

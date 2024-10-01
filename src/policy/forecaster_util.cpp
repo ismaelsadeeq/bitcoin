@@ -37,6 +37,7 @@ BlockPercentiles CalculateBlockPercentiles(
         }
         if (total_weight >= p75_weight && percentiles.p75 == CFeeRate(0)) {
             percentiles.p75 = std::get<0>(*rit);
+            break;
         }
     }
     return percentiles;
@@ -49,6 +50,8 @@ std::string forecastTypeToString(ForecastType forecastType)
         return std::string("Mempool Forecast");
     case ForecastType::BLOCK_POLICY_ESTIMATOR:
         return std::string("Block Policy Estimator");
+    case ForecastType::NTIME:
+        return std::string("nTime Forecaster");
     }
     // no default case, so the compiler can warn about missing cases
     assert(false);

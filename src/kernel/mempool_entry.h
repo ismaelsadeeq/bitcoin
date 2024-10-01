@@ -216,8 +216,9 @@ struct TransactionInfo {
 
 struct RemovedMempoolTransactionInfo {
     TransactionInfo info;
+    const std::chrono::seconds nTime;
     explicit RemovedMempoolTransactionInfo(const CTxMemPoolEntry& entry)
-        : info{entry.GetSharedTx(), entry.GetFee(), entry.GetTxSize(), entry.GetHeight()} {}
+        : info{entry.GetSharedTx(), entry.GetFee(), entry.GetTxSize(), entry.GetHeight()}, nTime{entry.GetTime()} {}
 };
 
 struct NewMempoolTransactionInfo {

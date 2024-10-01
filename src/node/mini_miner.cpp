@@ -301,6 +301,7 @@ void MiniMiner::BuildMockTemplate(std::optional<CFeeRate> target_feerate)
     }
     Assume(m_in_block.empty() || sequence_num > 0);
     Assume(m_in_block.size() == m_linearize_result.inclusion_order.size());
+    Assume(m_in_block.size() == m_linearize_result.size_per_feerate.size());
     // Do not try to continue building the block template with a different feerate.
     m_ready_to_calculate = false;
 }
