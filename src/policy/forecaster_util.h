@@ -67,7 +67,7 @@ struct BlockPercentiles {
  * @return BlockPercentiles of a given fee statistics.
  * This method assumes fee_rate_stats is sorted by fee rate in descending order.
  */
-BlockPercentiles CalculateBlockPercentiles(const std::vector<std::tuple<CFeeRate, uint32_t>>& fee_rate_stats);
+BlockPercentiles CalculateBlockPercentiles(const std::vector<std::tuple<CFeeRate, uint32_t>>& fee_rate_stats, std::optional<unsigned int> max_weight=std::nullopt);
 
 std::string forecastTypeToString(ForecastType forecastType);
 

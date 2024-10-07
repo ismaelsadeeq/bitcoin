@@ -8,20 +8,22 @@
 
 
 BlockPercentiles CalculateBlockPercentiles(
-    const std::vector<std::tuple<CFeeRate, uint32_t>>& fee_rate_stats)
+    const std::vector<std::tuple<CFeeRate, uint32_t>>& fee_rate_stats, std::optional<unsigned int> max_weight)
 {
     if (fee_rate_stats.empty()) return BlockPercentiles();
 
     auto start{fee_rate_stats.crbegin()};
     auto end{fee_rate_stats.crend()};
 
-    int total_weight{0};
-    const auto p5_weight{static_cast<int>(0.05 * DEFAULT_BLOCK_MAX_WEIGHT)};
-    const auto p25_weight{static_cast<int>(0.25 * DEFAULT_BLOCK_MAX_WEIGHT)};
-    const auto p50_weight{static_cast<int>(0.5 * DEFAULT_BLOCK_MAX_WEIGHT)};
-    const auto p75_weight{static_cast<int>(0.75 * DEFAULT_BLOCK_MAX_WEIGHT)};
+    int max_weight_val = max_weight.value_or(DEFAULT_BLOCK_MAX_WEIGHT);
+    const auto p5_weight{static_cast<int>(0.05 * max_weight_val)};
+    const auto p25_weight{static_cast<int>(0.25 * max_weight_val)};
+    const auto p50_weight{static_cast<int>(0.5 * max_weight_val)};
+    const auto p75_weight{static_cast<int>(0.75 * max_weight_val)};
 
     auto percentiles{BlockPercentiles()};
+    int total_weight{0};
+
     for (auto rit = start; rit != end; ++rit) {
         total_weight += static_cast<int>(std::get<1>(*rit) * WITNESS_SCALE_FACTOR);
         if (total_weight >= p5_weight && percentiles.p5 == CFeeRate(0)) {
