@@ -1300,37 +1300,49 @@ void MemPoolAccept::FinalizeSubpackage(const ATMPArgs& args)
     AssertLockHeld(m_pool.cs);
 
     if (!m_subpackage.m_all_conflicts.empty()) Assume(args.m_allow_replacement);
-    // Remove conflicting transactions from the mempool
-    for (CTxMemPool::txiter it : m_subpackage.m_all_conflicts)
+    bool is_package = m_subpackage.m_changeset->GetTxCount() > 1;
+    FeeFrac feerate{m_subpackage.m_total_modified_fees, int32_t(m_subpackage.m_total_vsize)};
+    auto log_and_trace_tx_removal = [&](CTxMemPool::txiter it)
     {
-        LogDebug(BCLog::MEMPOOL, "replacing mempool tx %s (wtxid=%s, fees=%s, vsize=%s). ",
-                it->GetTx().GetHash().ToString(),
-                it->GetTx().GetWitnessHash().ToString(),
-                it->GetFee(),
-                it->GetTxSize());
-        FeeFrac feerate{m_subpackage.m_total_modified_fees, int32_t(m_subpackage.m_total_vsize)};
-        if (m_subpackage.m_changeset->GetTxCount() == 1) {
-            const CTransaction& tx = m_subpackage.m_changeset->GetTx(0);
-            LogDebug(BCLog::MEMPOOL, "New tx %s (wtxid=%s, fees=%s, vsize=%s)\n",
-                    tx.GetHash().ToString(),
-                    tx.GetWitnessHash().ToString(),
-                    feerate.fee, feerate.size);
+        auto tx_hash = it->GetTx().GetHash().ToString();
+        auto wtxid = it->GetTx().GetWitnessHash().ToString();
+        auto fee = it->GetFee();
+        auto vsize = it->GetTxSize();
+        LogDebug(BCLog::MEMPOOL, "Replacing mempool tx %s (wtxid=%s, fees=%s, vsize=%s).", 
+                tx_hash, wtxid, fee, vsize);
+        if (is_package) {
+            TRACE6(mempool, replaced_by_package,
+                tx_hash.data(), vsize, fee, std::chrono::duration_cast<std::chrono::duration<std::uint64_t>>(it->GetTime()).count(),
+                feerate.size, feerate.fee);
         } else {
-            LogDebug(BCLog::MEMPOOL, "New package with %lu txs, fees=%s, vsize=%s\n",
-                    m_subpackage.m_changeset->GetTxCount(),
-                    feerate.fee,
-                    feerate.size);
+            TRACE7(mempool, replaced,
+                tx_hash.data(), vsize, fee, std::chrono::duration_cast<std::chrono::duration<std::uint64_t>>(it->GetTime()).count(),
+                m_subpackage.m_changeset->GetTx(0).GetHash().data(), feerate.size, feerate.fee);
         }
-        TRACE7(mempool, replaced,
-                it->GetTx().GetHash().data(),
-                it->GetTxSize(),
-                it->GetFee(),
-                std::chrono::duration_cast<std::chrono::duration<std::uint64_t>>(it->GetTime()).count(),
-                m_subpackage.m_changeset->GetTx(0).GetHash().data(),
-                feerate.size,
-                feerate.fee
-        );
+    };
+
+    auto log_tx_addition = [&](const CTransaction& tx)
+    {
+        auto tx_hash = tx.GetHash().ToString();
+        auto wtxid = tx.GetWitnessHash().ToString();
+        if (is_package) {
+            LogDebug(BCLog::MEMPOOL, "tx %s (wtxid=%s)", 
+                    tx_hash, wtxid);
+        } else {
+            LogDebug(BCLog::MEMPOOL, "New tx %s (wtxid=%s, fees=%s, vsize=%s)", 
+                    tx_hash, wtxid, feerate.fee, feerate.size);
+        }
+    };
+    for (CTxMemPool::txiter it : m_subpackage.m_all_conflicts) {
+        log_and_trace_tx_removal(it);
         m_subpackage.m_replaced_transactions.push_back(it->GetSharedTx());
+    }
+    if (is_package) {
+        LogDebug(BCLog::MEMPOOL, "New package (txs=%u, fees=%s, vsize=%s)", 
+                m_subpackage.m_changeset->GetTxCount(), feerate.fee, feerate.size);
+    }
+    for (size_t i = 0; i < m_subpackage.m_changeset->GetTxCount(); ++i) {
+        log_tx_addition(m_subpackage.m_changeset->GetTx(i));
     }
     m_subpackage.m_changeset->Apply();
     m_subpackage.m_changeset.reset();
