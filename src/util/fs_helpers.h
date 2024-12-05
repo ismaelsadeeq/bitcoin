@@ -14,6 +14,20 @@
 #include <limits>
 #include <optional>
 
+enum class FSType {
+    EXFAT,
+    OTHER,
+    ERROR
+};
+
+/**
+ * Detect filesystem type for a given path.
+ *
+ * @param[in] path The directory path to check
+ * @return FSType enum indicating the filesystem type
+ */
+FSType GetFilesystemType(const fs::path& path);
+
 /**
  * Ensure file contents are fully committed to disk, using a platform-specific
  * feature analogous to fsync().

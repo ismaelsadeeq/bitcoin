@@ -30,6 +30,16 @@
 #include <shlobj.h>
 #endif // WIN32
 
+#ifdef __APPLE__
+#include <sys/mount.h>
+#include <sys/param.h>
+#endif
+
+#ifdef __APPLE__
+#include <sys/mount.h>
+#include <sys/param.h>
+#endif
+
 /** Mutex to protect dir_locks. */
 static GlobalMutex cs_dir_locks;
 /** A map that contains all the currently held directory locks. After
@@ -298,3 +308,20 @@ std::optional<fs::perms> InterpretPermString(const std::string& s)
         return std::nullopt;
     }
 }
+
+
+FSType GetFilesystemType(const fs::path& path) {
+#ifdef __APPLE__
+    // Currently identifies exFAT filesystems.
+    struct statfs fs_info;
+    if (statfs(path.c_str(), &fs_info) != 0) {
+        return FSType::ERROR;
+    }
+
+    if (strcmp(fs_info.f_fstypename, "exfat") == 0) {
+        return FSType::EXFAT;
+    }
+#endif
+    return FSType::OTHER;
+}
+

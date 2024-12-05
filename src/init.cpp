@@ -1841,6 +1841,55 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         }
     }
 
+#ifdef __APPLE__
+    // Warn about exFAT filesystem usage on macOS
+    struct PathCheck {
+        fs::path path;
+        std::string_view description;
+        PathCheck(const fs::path& p, std::string_view d) : path(p), description(d) {}
+    };
+
+    std::vector<PathCheck> paths{ {args.GetDataDirNet(), "data directory"} };
+    std::string blocks{"blocks"};
+    // Add blocksdir only when it is not a folder in the datadir
+    if (args.GetBlocksDirPath() != (paths.back().path / fs::path(blocks.c_str()))) {
+        paths.emplace_back(args.GetBlocksDirPath(), "blocks directory");
+    }
+
+    std::vector<std::string> exfat_paths;
+    std::vector<std::string> error_paths;
+
+    for (const auto& check : paths) {
+        FSType fs_type = GetFilesystemType(check.path);
+        switch(fs_type) {
+            case FSType::EXFAT:
+                exfat_paths.push_back(strprintf("%s %s",
+                    check.description,
+                    fs::quoted(fs::PathToString(check.path))));
+                break;
+            case FSType::ERROR:
+                error_paths.push_back(strprintf("%s %s",
+                    check.description,
+                    fs::quoted(fs::PathToString(check.path))));
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (!exfat_paths.empty()) {
+        for (const auto& path : exfat_paths) {
+            InitWarning(strprintf(_("The specified %s are on exFAT which is known to have intermittent corruption problems on macOS. "
+                                    "Use of exFAT is discouraged. Consider restarting with different filesystem"),
+                                    path));
+        }
+    }
+
+    if (!error_paths.empty()) {
+        LogInfo("Failed to detect filesystem type for: %s\n", util::Join(error_paths, ", "));
+    }
+#endif
+
 #if HAVE_SYSTEM
     const std::string block_notify = args.GetArg("-blocknotify", "");
     if (!block_notify.empty()) {
