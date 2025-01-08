@@ -309,6 +309,17 @@ public:
             return a < b;
         });
     }
+
+    /** Check if this graph is acyclic. */
+    bool IsAcyclic() const noexcept
+    {
+        for (auto i : Positions()) {
+            if ((Ancestors(i) & Descendants(i)) != SetType::Singleton(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
 };
 
 /** A set of transactions together with their aggregate feerate. */
@@ -1334,6 +1345,37 @@ std::vector<ClusterIndex> MergeLinearizations(const DepGraph<SetType>& depgraph,
 
     Assume(ret.size() == depgraph.TxCount());
     return ret;
+}
+
+/** Make linearization topological, retaining its ordering where possible. */
+template<typename SetType>
+void FixLinearization(const DepGraph<SetType>& depgraph, Span<ClusterIndex> linearization) noexcept
+{
+    // This algorithm can be summarized as moving every element in the linearization backwards
+    // until it is placed after all this ancestors.
+    SetType done;
+    const auto len = linearization.size();
+    // Iterate over the elements of linearization from back to front (i is distance from back).
+    for (ClusterIndex i = 0; i < len; ++i) {
+        /** The element at that position. */
+        ClusterIndex elem = linearization[len - 1 - i]; // This is safe
+        /** j represents how far from the back of the linearization elem should be placed. */
+        ClusterIndex j = i;
+        // Figure out which elements elem needs to be placed before.
+        SetType place_before = done & depgraph.Ancestors(elem);
+        // Find which position to place elem in (updating j), continuously moving the elements
+        // in between forward.
+        while (place_before.Any()) {
+            const auto to_swap_index = len - 1 - (j - 1);
+            assert(to_swap_index < len);
+            auto to_swap = linearization[len - 1 - (j - 1)]; // I  am a bit skeptical of the safety of this.
+            place_before.Reset(to_swap);
+            linearization[len - 1 - (j--)] = to_swap;
+        }
+        // Put elem in its final position and mark it as done.
+        linearization[len - 1 - j] = elem;
+        done.Set(elem);
+    }
 }
 
 } // namespace cluster_linearize
