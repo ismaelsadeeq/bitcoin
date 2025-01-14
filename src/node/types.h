@@ -14,6 +14,7 @@
 #define BITCOIN_NODE_TYPES_H
 
 #include <cstddef>
+#include <cstdint>
 
 namespace node {
 enum class TransactionError {
@@ -38,6 +39,13 @@ struct BlockCreateOptions {
      * larger CompactSize encoded lengths.
      */
     size_t block_reserved_weight{8000};
+
+    /*
+     * This is a sane minimum value for block_reserved_weight.
+     * Reserving weight for coinbase transaction and block header
+     * below this value will be prevented.
+     */
+    const uint32_t minimum_block_reserved_weight{2000};
     /**
      * The maximum additional sigops which the pool will add in coinbase
      * transaction outputs.
