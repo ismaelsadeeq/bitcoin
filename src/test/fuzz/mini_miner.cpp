@@ -9,6 +9,7 @@
 
 #include <node/miner.h>
 #include <node/mini_miner.h>
+#include <node/types.h>
 #include <primitives/transaction.h>
 #include <random.h>
 #include <txmempool.h>
@@ -148,9 +149,10 @@ FUZZ_TARGET(mini_miner_selection, .init = initialize_miner)
             }
         }
 
-        // Stop if pool reaches DEFAULT_BLOCK_MAX_WEIGHT because BlockAssembler will stop when the
+        const auto block_adjusted_max_weight = DEFAULT_BLOCK_MAX_WEIGHT - node::BlockCreateOptions{}.block_reserved_weight;
+        // Stop if pool reaches block_adjusted_max_weight because BlockAssembler will stop when the
         // block template reaches that, but the MiniMiner will keep going.
-        if (pool.GetTotalTxSize() + GetVirtualTransactionSize(*tx) >= DEFAULT_BLOCK_MAX_WEIGHT) break;
+        if (pool.GetTotalTxSize() + GetVirtualTransactionSize(*tx) >= block_adjusted_max_weight) break;
         TestMemPoolEntryHelper entry;
         const CAmount fee{ConsumeMoney(fuzzed_data_provider, /*max=*/MAX_MONEY/100000)};
         assert(MoneyRange(fee));

@@ -33,11 +33,11 @@ struct BlockCreateOptions {
      */
     bool use_mempool{true};
     /**
-     * The maximum additional weight which the pool will add to the coinbase
-     * scriptSig, witness and outputs. This must include any additional
-     * weight needed for larger CompactSize encoded lengths.
+     * The default reserved weight for the coinbase (scriptSig, witness and outputs)
+     * and block header. This must include any additional weight needed for
+     * larger CompactSize encoded lengths.
      */
-    size_t coinbase_max_additional_weight{4000};
+    size_t block_reserved_weight{8000};
     /**
      * The maximum additional sigops which the pool will add in coinbase
      * transaction outputs.
