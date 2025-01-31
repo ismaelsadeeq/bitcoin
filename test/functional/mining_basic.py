@@ -26,7 +26,9 @@ from test_framework.messages import (
     CBlock,
     CBlockHeader,
     COIN,
+    MAX_BLOCK_WEIGHT,
     ser_uint256,
+    WITNESS_SCALE_FACTOR
 )
 from test_framework.p2p import P2PDataStore
 from test_framework.test_framework import BitcoinTestFramework
@@ -192,6 +194,70 @@ class MiningTest(BitcoinTestFramework):
         result = prune_node.submitblock(pruned_block)
         assert_equal(result, "inconclusive")
         assert_equal(prune_node.getblock(pruned_blockhash, verbosity=0), pruned_block)
+
+
+    def send_transactions(self, utxos, fee_rate, target_vsize):
+        """
+        Helper to create and send transactions with the specified target virtual size and fee rate.
+        """
+        for utxo in utxos:
+            self.wallet.send_self_transfer(
+                from_node=self.nodes[0],
+                utxo_to_spend=utxo,
+                target_vsize=target_vsize,
+                fee_rate=fee_rate,
+            )
+
+    def verify_block_template(self, expected_tx_count, expected_weight):
+        """
+        Create a block template and check that it satisfies the expected transaction count and total weight.
+        """
+        response = self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
+        self.log.info(f"Testing block template: contains {expected_tx_count} transactions, and total weight <= {expected_weight}")
+        assert_equal(len(response["transactions"]), expected_tx_count)
+        total_weight = sum(transaction["weight"] for transaction in response["transactions"])
+        assert_greater_than_or_equal(expected_weight, total_weight)
+
+    def test_block_max_weight(self):
+        self.log.info("Testing default and custom -blockmaxweight startup options.")
+
+        # Restart the node to allow large transactions
+        LARGE_TXS_COUNT = 10
+        LARGE_VSIZE = int(((MAX_BLOCK_WEIGHT - 8000) / WITNESS_SCALE_FACTOR) / LARGE_TXS_COUNT)
+        HIGH_FEERATE = Decimal("0.0003")
+        self.restart_node(0, extra_args=[f"-datacarriersize={LARGE_VSIZE}"])
+
+        # Ensure the mempool is empty
+        assert_equal(len(self.nodes[0].getrawmempool()), 0)
+
+        # Generate UTXOs and send 10 large transactions with a high fee rate
+        utxos = [self.wallet.get_utxo(confirmed_only=True) for _ in range(LARGE_TXS_COUNT + 4)] # Add 4 more utxos that will be used in the test later
+        self.send_transactions(utxos[:LARGE_TXS_COUNT], HIGH_FEERATE, LARGE_VSIZE)
+
+        # Send 2 normal transactions with a lower fee rate
+        NORMAL_VSIZE = int(2000 / WITNESS_SCALE_FACTOR)
+        NORMAL_FEERATE = Decimal("0.0001")
+        self.send_transactions(utxos[LARGE_TXS_COUNT:LARGE_TXS_COUNT + 2], NORMAL_FEERATE, NORMAL_VSIZE)
+
+        # Check that the mempool contains all transactions
+        self.log.info(f"Testing that the mempool contains {LARGE_TXS_COUNT + 2} transactions.")
+        assert_equal(len(self.nodes[0].getrawmempool()), LARGE_TXS_COUNT + 2)
+
+        # Verify the block template includes only the 10 high-fee transactions
+        self.log.info("Testing that the block template includes only the 10 large transactions.")
+        self.verify_block_template(
+            expected_tx_count=LARGE_TXS_COUNT,
+            expected_weight=MAX_BLOCK_WEIGHT - 8000, # Because we are reserving space twice, the block template size will be < 3,992,000 WU
+        )
+
+        # Test block template creation with maximum block weight
+        self.restart_node(0, extra_args=[f"-datacarriersize={LARGE_VSIZE}", f"-blockmaxweight={MAX_BLOCK_WEIGHT}"])
+
+        self.log.info("Testing the block template with custom -blockmaxweight to include 10 large and 2 normal transactions.")
+        self.verify_block_template(
+            expected_tx_count=12,
+            expected_weight=MAX_BLOCK_WEIGHT - 4000, # We should expect to have 4000 WU more and the block template is 3,996,000 WU
+        )
 
     def run_test(self):
         node = self.nodes[0]
@@ -418,6 +484,7 @@ class MiningTest(BitcoinTestFramework):
         assert_equal(node.submitblock(hexdata=block.serialize().hex()), 'duplicate')  # valid
 
         self.test_blockmintxfee_parameter()
+        self.test_block_max_weight()
         self.test_timewarp()
         self.test_pruning()
 
