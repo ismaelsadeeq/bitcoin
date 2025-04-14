@@ -131,14 +131,22 @@ FUZZ_TARGET(mini_miner_selection, .init = initialize_miner)
     std::vector<CTransactionRef> transactions;
     // The maximum block template size we expect to produce
     const auto block_adjusted_max_weight = MAX_BLOCK_WEIGHT - MINIMUM_BLOCK_RESERVED_WEIGHT;
+    // By default we should add large transactions, only try adding small transactions
+    // when the last large tx can't fit in.
+    bool add_small_txs{false};
 
     LOCK2(::cs_main, pool.cs);
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 100)
+    // Limited to 500 because of ClusterMempool DoS protection
+    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 500)
     {
         CMutableTransaction mtx = CMutableTransaction();
         assert(!available_coins.empty());
-        const size_t num_inputs = std::min(size_t{2}, available_coins.size());
-        const size_t num_outputs = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(2, 5);
+        size_t num_inputs = std::min(size_t{2}, available_coins.size());
+        size_t num_outputs = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(50, 500);
+        if (add_small_txs) {
+            num_inputs = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(1, 5);
+            num_outputs = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(1, 5);
+        }
         for (size_t n{0}; n < num_inputs; ++n) {
             auto prevout = available_coins.at(0);
             mtx.vin.emplace_back(prevout, CScript());
@@ -162,7 +170,15 @@ FUZZ_TARGET(mini_miner_selection, .init = initialize_miner)
 
         // Stop if pool reaches block_adjusted_max_weight because BlockAssembler will stop when the
         // block template reaches that, but the MiniMiner will keep going.
-        if ((pool.GetTotalTxSize() + GetVirtualTransactionSize(*tx)) * 4 >= block_adjusted_max_weight) break;
+        if ((pool.GetTotalTxSize() + GetVirtualTransactionSize(*tx)) * WITNESS_SCALE_FACTOR >= block_adjusted_max_weight) {
+            // Either stop here or try to fill up the rest of the block with small transactions
+            if (!add_small_txs) {
+                add_small_txs = true;
+                continue;
+            }
+            // break when even small transaction can't be added without exceeding the limit.
+            break;
+        }
         TestMemPoolEntryHelper entry;
         const CAmount fee{ConsumeMoney(fuzzed_data_provider, /*max=*/MAX_MONEY/100000)};
         assert(MoneyRange(fee));
