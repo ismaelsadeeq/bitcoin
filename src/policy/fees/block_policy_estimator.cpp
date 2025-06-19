@@ -733,6 +733,7 @@ EstimateResult CBlockPolicyEstimator::EstimateFeeRate(int target, bool conservat
     FeeCalculation fee_calculation_result;
     CFeeRate feerate{estimateSmartFee(target, &fee_calculation_result, conservative)};
     result.current_block_height = fee_calculation_result.best_height;
+    result.returned_target = fee_calculation_result.returnedTarget;
     if (feerate == CFeeRate(0)) {
         return result;
     }

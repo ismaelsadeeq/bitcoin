@@ -49,7 +49,12 @@ EstimateResult MempoolPolicyEstimator::EstimateFeeRate(int target, bool conserva
         return result;
     }
 
+<<<<<<< HEAD
     LogDebug(BCLog::ESTIMATEFEE,
+=======
+    result.returned_target = target;
+    LogDebug(BCLog::MEMPOOL,
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
              "%s: Block height %s, Block template 25th percentile fee rate: %s %s/kvB, "
              "50th percentile fee rate: %s %s/kvB, 75th percentile fee rate: %s %s/kvB, "
              "95th percentile fee rate: %s %s/kvB\n",

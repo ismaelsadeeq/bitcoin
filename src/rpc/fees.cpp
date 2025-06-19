@@ -8,8 +8,21 @@
 #include <node/context.h>
 #include <policy/feerate.h>
 #include <policy/fees/block_policy_estimator.h>
+<<<<<<< HEAD
 #include <util/fees.h>
 #include <policy/fees/estimator_man.h>
+=======
+<<<<<<< HEAD
+#include <policy/fees/forecaster_util.h>
+#include <policy/fees/forecaster_man.h>
+=======
+<<<<<<< HEAD
+=======
+#include <policy/fees/forecaster_man.h>
+#include <policy/fees/forecaster_util.h>
+>>>>>>> 5df30de34d9 (rpc: update `estimatefeesmartfee` to use forecaster_man)
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
+>>>>>>> 9095630a7f5 (rpc: update `estimatefeesmartfee` to use forecaster_man)
 #include <rpc/protocol.h>
 #include <rpc/request.h>
 #include <rpc/server.h>
@@ -42,6 +55,7 @@ static RPCHelpMan estimatesmartfee()
             {"conf_target", RPCArg::Type::NUM, RPCArg::Optional::NO, "Confirmation target in blocks (1 - 1008)"},
             {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"economical"}, "The fee estimate mode.\n"
               + FeeModesDetail(std::string("default mode will be used"))},
+            {"block_policy_only", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to use block policy estimator only.\n"}
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -51,6 +65,7 @@ static RPCHelpMan estimatesmartfee()
                     {
                         {RPCResult::Type::STR, "", "error"},
                     }},
+                {RPCResult::Type::STR, "forecaster", /*optional=*/true, "the forecaster that provide the fee rate.\n"},
                 {RPCResult::Type::NUM, "blocks", "block number where estimate was found\n"
                 "The request target will be clamped between 2 and the highest target\n"
                 "fee estimation is able to return based on how long it has been running.\n"
@@ -63,20 +78,51 @@ static RPCHelpMan estimatesmartfee()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
+<<<<<<< HEAD
             FeeRateEstimationManager& feerate_estimatorman = EnsureAnyFeeRateEstimatorMan(request.context);
+=======
+<<<<<<< HEAD
+            FeeRateForecasterManager& feerate_forecasterman = EnsureAnyFeeRateForecasterMan(request.context);
+=======
+<<<<<<< HEAD
+            CBlockPolicyEstimator& fee_estimator = EnsureAnyFeeEstimator(request.context);
+=======
+            FeeRateForecasterManager& forecaster_man = EnsureAnyForecasterMan(request.context);
+>>>>>>> 5df30de34d9 (rpc: update `estimatefeesmartfee` to use forecaster_man)
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
+>>>>>>> 9095630a7f5 (rpc: update `estimatefeesmartfee` to use forecaster_man)
             const NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTxMemPool& mempool = EnsureMemPool(node);
-
             CHECK_NONFATAL(mempool.m_opts.signals)->SyncWithValidationInterfaceQueue();
+<<<<<<< HEAD
             unsigned int max_target = feerate_estimatorman.MaximumTarget();
+=======
+<<<<<<< HEAD
+            unsigned int max_target = feerate_forecasterman.MaximumTarget();
+=======
+<<<<<<< HEAD
+            unsigned int max_target = fee_estimator.MaximumTarget();
+=======
+
+            unsigned int max_target = forecaster_man.MaximumTarget();
+>>>>>>> 5df30de34d9 (rpc: update `estimatefeesmartfee` to use forecaster_man)
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
+>>>>>>> 9095630a7f5 (rpc: update `estimatefeesmartfee` to use forecaster_man)
             unsigned int conf_target = ParseConfirmTarget(request.params[0], max_target);
+
             FeeEstimateMode fee_mode;
             if (!FeeModeFromString(self.Arg<std::string_view>("estimate_mode"), fee_mode)) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, InvalidEstimateModeErrorMessage());
             }
+            bool conservative{fee_mode == FeeEstimateMode::CONSERVATIVE};
 
             UniValue result(UniValue::VOBJ);
             UniValue errors(UniValue::VARR);
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+            FeeCalculation feeCalc;
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
             bool conservative{fee_mode == FeeEstimateMode::CONSERVATIVE};
             EstimateResult forecast_result{feerate_estimatorman.GetFeeRateEstimate(conf_target, conservative)};
             if (!forecast_result.feerate.IsEmpty()) {
@@ -87,11 +133,54 @@ static RPCHelpMan estimatesmartfee()
                 result.pushKV("feerate", ValueFromAmount(feerate.GetFeePerK()));
             } else {
                 errors.push_back("Insufficient data or no feerate found");
+<<<<<<< HEAD
             }
             for (const auto& error: forecast_result.error_massages) {
                 errors.push_back(error);
             }
             result.pushKV("blocks", forecast_result.returned_target);
+=======
+                result.pushKV("errors", std::move(errors));
+=======
+
+            // Use block policy only if requested
+            bool use_block_policy_only = false;
+            if (!request.params[2].isNull()) {
+                use_block_policy_only = request.params[2].get_bool();
+>>>>>>> 5df30de34d9 (rpc: update `estimatefeesmartfee` to use forecaster_man)
+            }
+            CFeeRate feerate;
+            std::vector<std::string> errs;
+
+            if (use_block_policy_only) {
+                FeeCalculation feeCalc;
+                feerate = forecaster_man.GetBlockPolicyEstimator()->estimateSmartFee(conf_target, &feeCalc, conservative);
+                if (feerate == CFeeRate(0)) {
+                    errors.push_back("Insufficient data or no feerate found");
+                }
+                result.pushKV("blocks", feeCalc.returnedTarget);
+            } else {
+                auto results = forecaster_man.ForecastFeeRateFromForecasters(conf_target, conservative);
+                feerate = CFeeRate(results.first.feerate.fee, results.first.feerate.size);
+                if (feerate != CFeeRate(0)) {
+                    CHECK_NONFATAL(results.first.forecaster);
+                    result.pushKV("forecaster", forecastTypeToString(results.first.forecaster.value()));
+                }
+                result.pushKV("blocks", results.first.returned_target);
+                errs = results.second;
+            }
+
+            if (feerate != CFeeRate(0)) {
+                CFeeRate min_mempool_feerate = mempool.GetMinFee();
+                CFeeRate min_relay_feerate = mempool.m_opts.min_relay_feerate;
+                feerate = std::max({feerate, min_mempool_feerate, min_relay_feerate});
+                result.pushKV("feerate", ValueFromAmount(feerate.GetFeePerK()));
+            }
+            // Add any additional errors from forecasters
+            for (const auto& err : errs) {
+                errors.push_back(err);
+            }
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
             result.pushKV("errors", std::move(errors));
             return result;
         },

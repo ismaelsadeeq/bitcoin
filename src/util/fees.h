@@ -40,11 +40,21 @@ struct EstimateResult {
     //! The block height at which the estimate was made.
     unsigned int current_block_height{0};
 
+<<<<<<< HEAD:src/util/fees.h
     //! The number of block within which you expect a confirmation.
+=======
+<<<<<<< HEAD
+>>>>>>> 9095630a7f5 (rpc: update `estimatefeesmartfee` to use forecaster_man):src/policy/fees/forecaster_util.h
     unsigned int returned_target;
 
     //! A vecor of distinc error messages encountered during the estimate.
     std::vector<std::string> error_massages;
+=======
+    //! The confirmation target the forecast was made for.
+    unsigned int returned_target{0};
+
+    std::optional<std::string> error; ///< Optional error message.
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
 
     /**
      * Compare two EstimateResult objects based on fee rate.

@@ -57,8 +57,13 @@ public:
      * Polls all registered feerate estimator and selects the lowest fee rate.
      *
      * @param[in] target The target within which the transaction should be confirmed.
+<<<<<<< HEAD
      * @param[in] conservative True if the package cannot be fee bumped later.
      * @return forecast result
+=======
+     * @param[in] conservative If true, returns a higher fee rate for greater confirmation probability.
+     * @return A pair consisting of the forecast result and a vector of error messages.
+>>>>>>> 6706609a8ce (rpc: update `estimatefeesmartfee` to use forecaster_man)
      */
     virtual EstimateResult GetFeeRateEstimate(int target, bool conservative) const;
 
