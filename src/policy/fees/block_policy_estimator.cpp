@@ -709,7 +709,7 @@ CFeeRate CBlockPolicyEstimator::estimateFee(int confTarget) const
     return estimateRawFee(confTarget, DOUBLE_SUCCESS_PCT, FeeEstimateHorizon::MED_HALFLIFE);
 }
 
-ForecastResult CBlockPolicyEstimator::ForecastFeeRate(int target, bool conservative) const
+ForecastResult CBlockPolicyEstimator::ForecastFeeRate(int target, bool conservative)
 {
     ForecastResult result;
     result.forecaster = ForecastType::BLOCK_POLICY;

@@ -26,7 +26,7 @@ public:
      * @param conservative If true, returns a higher fee rate for greater confirmation probability.
      * @return Predicted fee rate.
      */
-    virtual ForecastResult ForecastFeeRate(int target, bool conservative) const = 0;
+    virtual ForecastResult ForecastFeeRate(int target, bool conservative) = 0;
 
     /**
      * @brief Returns the maximum supported confirmation target.

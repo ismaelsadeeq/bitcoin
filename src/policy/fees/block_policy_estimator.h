@@ -271,7 +271,7 @@ public:
 
 protected:
     /** Overridden from Forecaster. */
-    ForecastResult ForecastFeeRate(int target, bool conservative) const override
+    ForecastResult ForecastFeeRate(int target, bool conservative) override
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
 private:

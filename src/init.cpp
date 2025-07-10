@@ -1747,6 +1747,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         }
         node.forecasterman = std::make_unique<FeeRateForecasterManager>();
         auto mempool_forecaster = std::make_shared<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate()));
+        scheduler.scheduleEvery([mempool_forecaster] { mempool_forecaster->CaptureMempoolSnapshot(); }, CACHE_LIFE);
         node.forecasterman->RegisterForecaster(mempool_forecaster);
         auto block_policy_estimator = std::make_shared<CBlockPolicyEstimator>(FeeestPath(args), read_stale_estimates);
         // Flush block policy estimates to disk periodically

@@ -15,6 +15,8 @@
 
 
 #include <chrono>
+#include <deque>
+#include <map>
 
 class Chainstate;
 class CTxMemPool;
@@ -23,6 +25,20 @@ class CTxMemPool;
 // as mempool conditions are likely to change.
 constexpr int MEMPOOL_FORECAST_MAX_TARGET{2};
 constexpr std::chrono::seconds CACHE_LIFE{7};
+constexpr std::chrono::minutes INFLOW_DURATION{30};
+
+struct MempoolSnapshot {
+    std::map<int64_t, int32_t> m_feerate_buckets;
+    NodeClock::time_point m_timestamp;
+};
+
+struct BlockMempoolSnapshots {
+    unsigned int m_block_height;
+    MempoolSnapshot m_first;
+    MempoolSnapshot m_last;
+    BlockMempoolSnapshots(unsigned int block_height,  MempoolSnapshot first,  MempoolSnapshot last)
+    : m_block_height{block_height}, m_first{first}, m_last{last} {}
+};
 
 /**
  * CachedMempoolForecast holds a cache of recent fee rate forecasts.
@@ -80,21 +96,31 @@ public:
  */
 class MemPoolForecaster : public Forecaster
 {
+    const CTxMemPool* m_mempool;
+    Chainstate* m_chainstate;
+    mutable CachedMempoolForecast cache;
+    Mutex m_cs;
+    std::deque<BlockMempoolSnapshots> snapshots GUARDED_BY(m_cs);
+    int64_t SimulateMining(int block_target, int expected_blocks, std::map<int64_t, int32_t>& feerate_buckets, std::map<int64_t, int32_t>& total_inflow) const;
+    std::map<int64_t, int32_t> GetInflow() EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
+    void GetBlockTarget() EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
+    void MineBlock(std::map<int64_t, int32_t>& feerate_buckets) const;
+    int32_t economical_blocks;
+    int32_t conservative_blocks;
 public:
     MemPoolForecaster(const CTxMemPool* mempool, Chainstate* chainstate)
-        : Forecaster(ForecastType::MEMPOOL_FORECAST), m_mempool(mempool), m_chainstate(chainstate) {};
+        : Forecaster(ForecastType::MEMPOOL_FORECAST), m_mempool(mempool), m_chainstate(chainstate) 
+        {
+            GetBlockTarget();
+        };
     ~MemPoolForecaster() = default;
 
     /** Overridden from Forecaster. */
-    ForecastResult ForecastFeeRate(int target, bool conservative) const override;
+    ForecastResult ForecastFeeRate(int target, bool conservative) override EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
     unsigned int MaximumTarget() const override
     {
         return MEMPOOL_FORECAST_MAX_TARGET;
     };
-
-private:
-    const CTxMemPool* m_mempool;
-    Chainstate* m_chainstate;
-    mutable CachedMempoolForecast cache;
+    void CaptureMempoolSnapshot() EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
 };
 #endif // BITCOIN_POLICY_FEES_MEMPOOL_FORECASTER_H
