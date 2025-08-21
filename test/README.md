@@ -37,8 +37,8 @@ The ZMQ functional test requires a python ZMQ library. To install it:
 The IPC functional test requires a python IPC library. `pip3 install pycapnp` may work, but if not, install it from source:
 
 ```sh
-git clone -b v2.1.0 https://github.com/capnproto/pycapnp
-pip3 install ./pycapnp
+git clone https://github.com/capnproto/pycapnp.git
+pip install pycapnp
 ```
 
 If that does not work, try adding `-C force-bundled-libcapnp=True` to the `pip` command.
@@ -46,10 +46,13 @@ Depending on the system, it may be necessary to install and run in a venv:
 
 ```sh
 python -m venv venv
-git clone -b v2.1.0 https://github.com/capnproto/pycapnp
-venv/bin/pip3 install ./pycapnp -C force-bundled-libcapnp=True
+git clone https://github.com/capnproto/pycapnp.git
+venv/bin/pip3 install pycapnp -C force-bundled-libcapnp=True
 venv/bin/python3 build/test/functional/interface_ipc.py
 ```
+
+Note that pycapnp does not currently support Python 3.13
+(see https://github.com/capnproto/pycapnp/issues/372).
 
 On Windows the `PYTHONUTF8` environment variable must be set to 1:
 

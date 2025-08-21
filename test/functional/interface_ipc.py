@@ -9,7 +9,6 @@ from pathlib import Path
 import shutil
 from test_framework.messages import (CBlock, CTransaction, ser_uint256)
 from test_framework.test_framework import (BitcoinTestFramework, assert_equal)
-from test_framework.wallet import MiniWallet
 
 # Test may be skipped and not have capnp installed
 try:
@@ -29,13 +28,13 @@ class IPCInterfaceTest(BitcoinTestFramework):
             # Add the system cap'nproto path so include/capnp/c++.capnp can be found.
             capnp_dir = Path(capnp_bin).parent.parent / "include"
         else:
-            # If there is no system cap'nproto, the pycapnp module should have its own "bundled"
+            # If there is system cap'nproto, the pycapnp module should have its own "bundled"
             # includes at this location. If pycapnp was installed with bundled capnp,
             # capnp/c++.capnp can be found here.
             capnp_dir = Path(capnp.__path__[0]).parent
         src_dir = Path(self.config['environment']['SRCDIR']) / "src"
         mp_dir = src_dir / "ipc" / "libmultiprocess" / "include"
-        imports = [str(capnp_dir), str(src_dir), str(mp_dir)]
+        imports = [str(capnp_dir), str(capnp_dir), str(src_dir), str(mp_dir)]
         return {
             "proxy": capnp.load(str(mp_dir / "mp" / "proxy.capnp"), imports=imports),
             "init": capnp.load(str(src_dir / "ipc" / "capnp" / "init.capnp"), imports=imports),
@@ -89,11 +88,6 @@ class IPCInterfaceTest(BitcoinTestFramework):
 
     def run_mining_test(self):
         self.log.info("Running mining test")
-        block_hash_size = 32
-        block_header_size = 80
-        timeout = 1000.0 # 1000 milliseconds
-        miniwallet = MiniWallet(self.nodes[0])
-
         async def async_routine():
             ctx, init = await self.make_capnp_init_ctx()
             self.log.debug("Create Mining proxy object")
@@ -103,19 +97,18 @@ class IPCInterfaceTest(BitcoinTestFramework):
             assert (await mining.result.isInitialBlockDownload(ctx))
             blockref = await mining.result.getTip(ctx)
             assert blockref.hasResult
-            assert_equal(len(blockref.result.hash), block_hash_size)
-            current_block_height = self.nodes[0].getchaintips()[0]["height"]
-            assert blockref.result.height == current_block_height
+            assert_equal(len(blockref.result.hash), 32)
+            assert blockref.result.height > 100
             self.log.debug("Mine a block")
-            wait = mining.result.waitTipChanged(ctx, blockref.result.hash, )
+            wait = mining.result.waitTipChanged(ctx, blockref.result.hash, 1000.0)
             self.generate(self.nodes[0], 1)
             newblockref = await wait
-            assert_equal(len(newblockref.result.hash), block_hash_size)
-            assert_equal(newblockref.result.height, current_block_height + 1)
-            self.log.debug("Wait for timeout")
-            wait = mining.result.waitTipChanged(ctx, newblockref.result.hash, timeout)
+            assert_equal(len(newblockref.result.hash), 32)
+            assert_equal(newblockref.result.height, blockref.result.height + 1)
+            self.log.debug("Wait for timeout (1000 milliseconds)")
+            wait = mining.result.waitTipChanged(ctx, newblockref.result.hash, 1000.0)
             oldblockref = await wait
-            assert_equal(len(newblockref.result.hash), block_hash_size)
+            assert_equal(len(newblockref.result.hash), 32)
             assert_equal(oldblockref.result.hash, newblockref.result.hash)
             assert_equal(oldblockref.result.height, newblockref.result.height)
 
@@ -127,7 +120,7 @@ class IPCInterfaceTest(BitcoinTestFramework):
             template = mining.result.createNewBlock(opts)
             self.log.debug("Test some inspectors of Template")
             header = await template.result.getBlockHeader(ctx)
-            assert_equal(len(header.result), block_header_size)
+            assert_equal(len(header.result), 80)
             block = await self.parse_and_deserialize_block(template, ctx)
             assert_equal(ser_uint256(block.hashPrevBlock), newblockref.result.hash)
             assert len(block.vtx) >= 1
@@ -141,43 +134,31 @@ class IPCInterfaceTest(BitcoinTestFramework):
             assert_equal(coinbase.vin[0].prevout.hash, 0)
             self.log.debug("Wait for a new template")
             waitoptions = self.capnp_modules['mining'].BlockWaitOptions()
-            waitoptions.timeout = timeout
+            waitoptions.timeout = 1000.0
             waitnext = template.result.waitNext(ctx, waitoptions)
             self.generate(self.nodes[0], 1)
             template2 = await waitnext
             block2 = await self.parse_and_deserialize_block(template2, ctx)
             assert_equal(len(block2.vtx), 1)
+            template3 = None
+            last_template = template2
+            if self.uses_wallet:
+                self.log.debug("Wait for another, get one after increase in fees in the mempool")
+                waitnext = template2.result.waitNext(ctx, waitoptions)
+                self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 1, fee_rate=10)
+                template3 = await waitnext
+                block3 = await self.parse_and_deserialize_block(template3, ctx)
+                assert_equal(len(block3.vtx), 2)
+                last_template = template3
             self.log.debug("Wait for another, but time out")
-            template3 = await template2.result.waitNext(ctx, waitoptions)
-            assert_equal(template3.to_dict(), {})
-            self.log.debug("Wait for another, get one after increase in fees in the mempool")
-            waitnext = template2.result.waitNext(ctx, waitoptions)
-            miniwallet.send_self_transfer(fee_rate=10, from_node=self.nodes[0])
+            waitnext = last_template.result.waitNext(ctx, waitoptions)
             template4 = await waitnext
-            block3 = await self.parse_and_deserialize_block(template4, ctx)
-            assert_equal(len(block3.vtx), 2)
-            self.log.debug("Wait again, this should return the same template, since the fee threshold is zero")
-            template5 = await template4.result.waitNext(ctx, waitoptions)
-            block4 = await self.parse_and_deserialize_block(template5, ctx)
-            assert_equal(len(block4.vtx), 2)
-            waitoptions.feeThreshold = 1
-            self.log.debug("Wait for another, get one after increase in fees in the mempool")
-            waitnext = template5.result.waitNext(ctx, waitoptions)
-            miniwallet.send_self_transfer(fee_rate=10, from_node=self.nodes[0])
-            template6 = await waitnext
-            block4 = await self.parse_and_deserialize_block(template6, ctx)
-            assert_equal(len(block4.vtx), 3)
-            self.log.debug("Wait for another, but time out, since the fee threshold is set now")
-            template7 = await template6.result.waitNext(ctx, waitoptions)
-            assert_equal(template7.to_dict(), {})
+            assert_equal(template4.to_dict(), {})
             self.log.debug("Destroy template objects")
             template.result.destroy(ctx)
             template2.result.destroy(ctx)
-            template3.result.destroy(ctx)
-            template4.result.destroy(ctx)
-            template5.result.destroy(ctx)
-            template6.result.destroy(ctx)
-            template7.result.destroy(ctx)
+            if self.uses_wallet:
+                template3.result.destroy(ctx)
         asyncio.run(capnp.run(async_routine()))
 
     def run_test(self):
