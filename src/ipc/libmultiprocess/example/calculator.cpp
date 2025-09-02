@@ -54,7 +54,7 @@ int main(int argc, char** argv)
         std::cerr << argv[1] << " is not a number or is larger than an int\n";
         return 1;
     }
-    mp::EventLoop loop("mpcalculator", LogPrint);
+    mp::EventLoop loop("mpcalculator", {LogPrint});
     std::unique_ptr<Init> init = std::make_unique<InitImpl>();
     mp::ServeStream<InitInterface>(loop, fd, *init);
     loop.loop();

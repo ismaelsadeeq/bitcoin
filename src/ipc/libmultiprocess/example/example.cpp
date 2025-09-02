@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 
     std::promise<mp::EventLoop*> promise;
     std::thread loop_thread([&] {
-        mp::EventLoop loop("mpexample", LogPrint);
+        mp::EventLoop loop("mpexample", {LogPrint});
         promise.set_value(&loop);
         loop.loop();
     });
