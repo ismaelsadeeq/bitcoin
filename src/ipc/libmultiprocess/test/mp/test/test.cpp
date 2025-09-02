@@ -60,10 +60,11 @@ public:
 
     TestSetup(bool client_owns_connection = true)
         : thread{[&] {
-              EventLoop loop("mptest", [](bool raise, const std::string& log) {
+
+              EventLoop loop("mptest", {[](bool raise, const std::string& log) {
                   std::cout << "LOG" << raise << ": " << log << "\n";
                   if (raise) throw std::runtime_error(log);
-              });
+              }});
               auto pipe = loop.m_io_context.provider->newTwoWayPipe();
 
               auto server_connection =

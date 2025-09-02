@@ -62,7 +62,8 @@ public:
     {
         assert(!m_loop);
         mp::g_thread_context.thread_name = mp::ThreadName(exe_name);
-        m_loop.emplace(exe_name, &IpcLogFn, &m_context);
+        mp::LogOptions options = {&IpcLogFn};
+        m_loop.emplace(exe_name, options, &m_context);
         if (ready_fn) ready_fn();
         mp::ServeStream<messages::Init>(*m_loop, fd, init);
         m_parent_connection = &m_loop->m_incoming_connections.back();
@@ -90,7 +91,8 @@ public:
         std::promise<void> promise;
         m_loop_thread = std::thread([&] {
             util::ThreadRename("capnp-loop");
-            m_loop.emplace(exe_name, &IpcLogFn, &m_context);
+            mp::LogOptions options = {&IpcLogFn};
+            m_loop.emplace(exe_name, std::move(options), &m_context);
             m_loop_ref.emplace(*m_loop);
             promise.set_value();
             m_loop->loop();
