@@ -10,6 +10,7 @@
 #include <banman.h>
 #include <blockencodings.h>
 #include <blockfilter.h>
+#include <blocktemplatemanager.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <common/bloom.h>
@@ -592,7 +593,7 @@ class PeerManagerImpl final : public PeerManager
 public:
     PeerManagerImpl(CConnman& connman, AddrMan& addrman,
                     BanMan* banman, ChainstateManager& chainman,
-                    CTxMemPool& pool, node::Warnings& warnings, Options opts);
+                    CTxMemPool& pool, BlockTemplateManager* blocktemplateman, node::Warnings& warnings, Options opts);
 
     /** Overridden from CValidationInterface. */
     void ActiveTipChange(const CBlockIndex& new_tip, bool) override
@@ -844,6 +845,7 @@ private:
     BanMan* const m_banman;
     ChainstateManager& m_chainman;
     CTxMemPool& m_mempool;
+    BlockTemplateManager* m_block_templateman;
 
     /** Synchronizes tx download including TxRequestTracker, rejection filters, and TxOrphanage.
      * Lock invariants:
@@ -1980,14 +1982,14 @@ std::optional<std::string> PeerManagerImpl::FetchBlock(NodeId peer_id, const CBl
 
 std::unique_ptr<PeerManager> PeerManager::make(CConnman& connman, AddrMan& addrman,
                                                BanMan* banman, ChainstateManager& chainman,
-                                               CTxMemPool& pool, node::Warnings& warnings, Options opts)
+                                               CTxMemPool& pool, BlockTemplateManager* blocktemplateman, node::Warnings& warnings, Options opts)
 {
-    return std::make_unique<PeerManagerImpl>(connman, addrman, banman, chainman, pool, warnings, opts);
+    return std::make_unique<PeerManagerImpl>(connman, addrman, banman, chainman, pool, blocktemplateman, warnings, opts);
 }
 
 PeerManagerImpl::PeerManagerImpl(CConnman& connman, AddrMan& addrman,
                                  BanMan* banman, ChainstateManager& chainman,
-                                 CTxMemPool& pool, node::Warnings& warnings, Options opts)
+                                 CTxMemPool& pool, BlockTemplateManager* blocktemplateman, node::Warnings& warnings, Options opts)
     : m_rng{opts.deterministic_rng},
       m_fee_filter_rounder{CFeeRate{DEFAULT_MIN_RELAY_TX_FEE}, m_rng},
       m_chainparams(chainman.GetParams()),
@@ -1996,6 +1998,7 @@ PeerManagerImpl::PeerManagerImpl(CConnman& connman, AddrMan& addrman,
       m_banman(banman),
       m_chainman(chainman),
       m_mempool(pool),
+      m_block_templateman(blocktemplateman),
       m_txdownloadman(node::TxDownloadOptions{pool, m_rng, opts.deterministic_rng}),
       m_warnings{warnings},
       m_opts{opts}
@@ -5152,13 +5155,7 @@ void PeerManagerImpl::ProcessTemplateManActions(Peer& peer)
 
         m_template_man.next_template_update = now + TEMPLATE_UPDATE_INTERVAL;
 
-        auto& my_templates = m_template_man.my_templates;
-        while (my_templates.size() >= m_opts.share_template_count) {
-            m_template_man.DiscardTxs(my_templates.back().txs);
-            my_templates.pop_back();
-        }
-
-        const auto assemble_options = []() {
+        const auto options = []() {
             node::BlockAssembler::Options opt;
             opt.nBlockMaxWeight=MAX_TEMPLATE_WEIGHT;
             opt.blockMinFeeRate=CFeeRate(0);
@@ -5166,14 +5163,25 @@ void PeerManagerImpl::ProcessTemplateManActions(Peer& peer)
             opt.print_modified_fee=false;
             return opt;
         }();
-        node::BlockAssembler assembler{m_chainman.ActiveChainstate(), &m_mempool, assemble_options, node::BlockAssembler::ALLOW_OVERSIZED_BLOCKS};
-        auto& new_template = my_templates.emplace_front();
 
-        auto block_template = assembler.CreateNewBlock();
+        auto block_template = m_block_templateman->GetBlockTemplate(options, std::chrono::duration_cast<std::chrono::seconds>(TEMPLATE_UPDATE_INTERVAL));
+        auto block_hash = block_template->block.GetHash();
+        auto it = std::find_if(
+            m_template_man.my_templates.begin(),
+            m_template_man.my_templates.end(),
+            [&](const MyTemplate& t) { return t.hash == block_hash; }
+        );
+        if (it != m_template_man.my_templates.end()) return;
+        auto& my_templates = m_template_man.my_templates;
+        while (my_templates.size() >= m_opts.share_template_count) {
+            m_template_man.DiscardTxs(my_templates.back().txs);
+            my_templates.pop_back();
+        }
+        auto& new_template = my_templates.emplace_front();
         auto& block = block_template->block;
         assert(block.vtx[0]->IsCoinBase());
         block.vtx.erase(block.vtx.begin());
-        new_template.hash = block.GetHash();
+        new_template.hash = block_hash;
         new_template.compact = CBlockHeaderAndShortTxIDs(block, FastRandomContext().rand64());
         new_template.weight = 0;
         for (auto& tx : block.vtx) {
@@ -5201,6 +5209,7 @@ void PeerManagerImpl::ProcessTemplateManActions(Peer& peer)
 
     return;
 }
+
 
 bool PeerManagerImpl::ProcessMessages(CNode* pfrom, std::atomic<bool>& interruptMsgProc)
 {
