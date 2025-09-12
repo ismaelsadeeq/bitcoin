@@ -1790,7 +1790,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             return InitError(strprintf(_("acceptstalefeeestimates is not supported on %s chain."), chainparams.GetChainTypeString()));
         }
         node.forecasterman = std::make_unique<FeeRateForecasterManager>();
-        auto mempool_forecaster = std::make_shared<MemPoolForecaster>(node.mempool.get(), &(chainman.ActiveChainstate()));
+        auto mempool_forecaster = std::make_shared<MemPoolForecaster>(node.blocktemplateman.get());
         node.forecasterman->RegisterForecaster(mempool_forecaster);
         auto block_policy_estimator = std::make_shared<CBlockPolicyEstimator>(FeeestPath(args), read_stale_estimates);
         // Flush block policy estimates to disk periodically

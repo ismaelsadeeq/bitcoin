@@ -11,6 +11,7 @@
 #include <uint256.h>
 #include <util/feefrac.h>
 #include <util/strencodings.h>
+#include <util/time.h>
 #include <validation.h>
 
 
@@ -39,7 +40,7 @@ static inline CTransactionRef make_random_tx()
 
 BOOST_AUTO_TEST_CASE(MempoolForecaster)
 {
-    auto mempool_forecaster = std::make_unique<MemPoolForecaster>(m_node.mempool.get(), &(m_node.chainman->ActiveChainstate()));
+    auto mempool_forecaster = std::make_unique<MemPoolForecaster>(m_node.blocktemplateman.get());
     int conf_target = MEMPOOL_FORECAST_MAX_TARGET + 1;
     LOCK2(cs_main, m_node.mempool->cs);
     {
@@ -65,6 +66,7 @@ BOOST_AUTO_TEST_CASE(MempoolForecaster)
         while (static_cast<int>(m_node.mempool->GetTotalTxSize() * WITNESS_SCALE_FACTOR) <= static_cast<int>(0.25 * DEFAULT_BLOCK_MAX_WEIGHT)) {
             AddToMempool(*m_node.mempool, entry.Fee(high_fee).FromTx(make_random_tx()));
         }
+        SetMockTime(GetTime<std::chrono::seconds>() + CACHE_LIFE);
         const auto result = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/true);
         BOOST_CHECK(result.feerate.IsEmpty());
         BOOST_CHECK(*result.error == data_err);
@@ -75,6 +77,7 @@ BOOST_AUTO_TEST_CASE(MempoolForecaster)
         while (static_cast<int>(m_node.mempool->GetTotalTxSize() * WITNESS_SCALE_FACTOR) <= static_cast<int>(0.5 * DEFAULT_BLOCK_MAX_WEIGHT)) {
             AddToMempool(*m_node.mempool, entry.Fee(med_fee).FromTx(make_random_tx()));
         }
+        SetMockTime(GetTime<std::chrono::seconds>() + CACHE_LIFE);
         const auto result = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/true);
         BOOST_CHECK(result.feerate.IsEmpty());
         BOOST_CHECK(*result.error == data_err);
@@ -87,7 +90,7 @@ BOOST_AUTO_TEST_CASE(MempoolForecaster)
             const auto txref = make_random_tx();
             AddToMempool(*m_node.mempool, entry.Fee(low_fee).FromTx(make_random_tx()));
         }
-
+        SetMockTime(GetTime<std::chrono::seconds>() + CACHE_LIFE);
         const auto result_conservative = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/true);
         const auto result_economical = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/false);
         BOOST_CHECK(!result_conservative.feerate.IsEmpty() && !result_economical.feerate.IsEmpty());
