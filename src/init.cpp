@@ -39,6 +39,7 @@
 #include <key.h>
 #include <logging.h>
 #include <mapport.h>
+#include <blocktemplatemanager.h>
 #include <net.h>
 #include <net_permissions.h>
 #include <net_processing.h>
@@ -1793,6 +1794,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     ChainstateManager& chainman = *Assert(node.chainman);
     auto& kernel_notifications{*Assert(node.notifications)};
+
+    node.blocktemplateman = std::make_unique<BlockTemplateManager>(node.mempool.get(), chainman);
 
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman,

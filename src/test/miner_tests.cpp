@@ -9,6 +9,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <interfaces/mining.h>
+#include <blocktemplatemanager.h>
 #include <node/miner.h>
 #include <policy/policy.h>
 #include <test/util/random.h>
@@ -57,6 +58,7 @@ struct MinerTestingSetup : public TestingSetup {
         m_node.mempool.reset();
         bilingual_str error;
         m_node.mempool = std::make_unique<CTxMemPool>(MemPoolOptionsForTest(m_node), error);
+        m_node.blocktemplateman = std::make_unique<BlockTemplateManager>(m_node.mempool.get(), *m_node.chainman);
         Assert(error.empty());
         return *m_node.mempool;
     }

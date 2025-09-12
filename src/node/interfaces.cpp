@@ -25,6 +25,7 @@
 #include <kernel/mempool_entry.h>
 #include <logging.h>
 #include <mapport.h>
+#include <blocktemplatemanager.h>
 #include <net.h>
 #include <net_processing.h>
 #include <netaddress.h>
@@ -862,9 +863,9 @@ class BlockTemplateImpl : public BlockTemplate
 {
 public:
     explicit BlockTemplateImpl(BlockAssembler::Options assemble_options,
-                               std::unique_ptr<CBlockTemplate> block_template,
+                               std::shared_ptr<CBlockTemplate> block_template,
                                NodeContext& node) : m_assemble_options(std::move(assemble_options)),
-                                                    m_block_template(std::move(block_template)),
+                                                    m_block_template(block_template),
                                                     m_node(node)
     {
         assert(m_block_template);
@@ -925,7 +926,7 @@ public:
 
     const BlockAssembler::Options m_assemble_options;
 
-    const std::unique_ptr<CBlockTemplate> m_block_template;
+    const std::shared_ptr<CBlockTemplate> m_block_template;
 
     ChainstateManager& chainman() { return *Assert(m_node.chainman); }
     KernelNotifications& notifications() { return *Assert(m_node.notifications); }
@@ -964,7 +965,8 @@ public:
 
         BlockAssembler::Options assemble_options{options};
         ApplyArgsManOptions(*Assert(m_node.args), assemble_options);
-        return std::make_unique<BlockTemplateImpl>(assemble_options, BlockAssembler{chainman().ActiveChainstate(), context()->mempool.get(), assemble_options}.CreateNewBlock(), m_node);
+        std::chrono::seconds interval{0};
+        return std::make_unique<BlockTemplateImpl>(assemble_options, m_node.blocktemplateman->GetBlockTemplate(assemble_options, interval), m_node);
     }
 
     bool checkBlock(const CBlock& block, const node::BlockCheckOptions& options, std::string& reason, std::string& debug) override
