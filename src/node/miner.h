@@ -55,6 +55,7 @@ struct CBlockTemplate
      * miner code.
      */
     CoinbaseTx m_coinbase_tx;
+    NodeClock::time_point m_creation_time;
 };
 
 /** Generate a new block, without valid proof-of-work */
