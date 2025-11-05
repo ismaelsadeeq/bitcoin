@@ -135,6 +135,14 @@ private:
 };
 
 /**
+ * Helper to check whether two block assembler options are similar and block template built
+ * with either option can be safely shared between one another.
+ * Limit comparison to assembly options that impact the final block (without dummy coinbase
+ * scriptPubKey).
+ */
+bool ShareableOptions(const BlockAssembler::Options& a, const BlockAssembler::Options& b);
+
+/**
  * Get the minimum time a miner should use in the next block. This always
  * accounts for the BIP94 timewarp rule, so does not necessarily reflect the
  * consensus limit.
