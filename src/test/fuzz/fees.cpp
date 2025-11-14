@@ -2,7 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <common/messages.h>
 #include <consensus/amount.h>
 #include <policy/fees/block_policy_estimator.h>
 #include <test/fuzz/FuzzedDataProvider.h>
@@ -12,8 +11,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-
-using common::StringForFeeReason;
 
 FUZZ_TARGET(fees)
 {
@@ -26,6 +23,6 @@ FUZZ_TARGET(fees)
         const CAmount rounded_fee = fee_filter_rounder.round(current_minimum_fee);
         assert(MoneyRange(rounded_fee));
     }
-    const FeeReason fee_reason = fuzzed_data_provider.PickValueInArray({FeeReason::NONE, FeeReason::HALF_ESTIMATE, FeeReason::FULL_ESTIMATE, FeeReason::DOUBLE_ESTIMATE, FeeReason::CONSERVATIVE, FeeReason::MEMPOOL_MIN, FeeReason::PAYTXFEE, FeeReason::FALLBACK, FeeReason::REQUIRED});
+    const FeeReason fee_reason = fuzzed_data_provider.PickValueInArray({FeeReason::NONE, FeeReason::HALF_ESTIMATE, FeeReason::FULL_ESTIMATE, FeeReason::DOUBLE_ESTIMATE, FeeReason::CONSERVATIVE});
     (void)StringForFeeReason(fee_reason);
 }

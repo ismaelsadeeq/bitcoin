@@ -2,7 +2,8 @@
 // Distributed under the MIT software license. See the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <policy/fees/forecaster_util.h>
+#include <util/fees.h>
+
 #include <policy/policy.h>
 
 #include <algorithm>
@@ -44,14 +45,15 @@ Percentiles CalculatePercentiles(const std::vector<FeeFrac>& package_feerates, c
     return percentiles.p95.IsEmpty() ? Percentiles{} : percentiles;
 }
 
-std::string forecastTypeToString(ForecastType forecastType)
+std::string FeeRateEstimatorTypeToString(FeeRateEstimatorType FeeRateEstimatorType)
 {
-    switch (forecastType) {
-    case ForecastType::MEMPOOL_FORECAST:
-        return std::string("Mempool Forecast");
-    case ForecastType::BLOCK_POLICY:
+    switch (FeeRateEstimatorType) {
+    case FeeRateEstimatorType::MEMPOOL_POLICY:
+        return std::string("Mempool Policy Estimator");
+    case FeeRateEstimatorType::BLOCK_POLICY:
         return std::string("Block Policy Estimator");
     }
     // no default case, so the compiler can warn about missing cases
     assert(false);
 }
+

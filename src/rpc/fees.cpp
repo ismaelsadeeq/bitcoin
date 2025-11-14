@@ -8,6 +8,8 @@
 #include <node/context.h>
 #include <policy/feerate.h>
 #include <policy/fees/block_policy_estimator.h>
+#include <util/fees.h>
+#include <policy/fees/estimator_man.h>
 #include <rpc/protocol.h>
 #include <rpc/request.h>
 #include <rpc/server.h>
@@ -61,12 +63,12 @@ static RPCHelpMan estimatesmartfee()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            CBlockPolicyEstimator& fee_estimator = EnsureAnyFeeEstimator(request.context);
+            FeeRateEstimationManager& feerate_estimatorman = EnsureAnyFeeRateEstimatorMan(request.context);
             const NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTxMemPool& mempool = EnsureMemPool(node);
 
             CHECK_NONFATAL(mempool.m_opts.signals)->SyncWithValidationInterfaceQueue();
-            unsigned int max_target = fee_estimator.MaximumTarget();
+            unsigned int max_target = feerate_estimatorman.MaximumTarget();
             unsigned int conf_target = ParseConfirmTarget(request.params[0], max_target);
             FeeEstimateMode fee_mode;
             if (!FeeModeFromString(self.Arg<std::string_view>("estimate_mode"), fee_mode)) {
@@ -75,19 +77,22 @@ static RPCHelpMan estimatesmartfee()
 
             UniValue result(UniValue::VOBJ);
             UniValue errors(UniValue::VARR);
-            FeeCalculation feeCalc;
             bool conservative{fee_mode == FeeEstimateMode::CONSERVATIVE};
-            CFeeRate feeRate{fee_estimator.estimateSmartFee(conf_target, &feeCalc, conservative)};
-            if (feeRate != CFeeRate(0)) {
+            EstimateResult forecast_result{feerate_estimatorman.GetFeeRateEstimate(conf_target, conservative)};
+            if (!forecast_result.feerate.IsEmpty()) {
+                CFeeRate feerate{forecast_result.feerate.fee, forecast_result.feerate.size};
                 CFeeRate min_mempool_feerate{mempool.GetMinFee()};
                 CFeeRate min_relay_feerate{mempool.m_opts.min_relay_feerate};
-                feeRate = std::max({feeRate, min_mempool_feerate, min_relay_feerate});
-                result.pushKV("feerate", ValueFromAmount(feeRate.GetFeePerK()));
+                feerate = std::max({feerate, min_mempool_feerate, min_relay_feerate});
+                result.pushKV("feerate", ValueFromAmount(feerate.GetFeePerK()));
             } else {
                 errors.push_back("Insufficient data or no feerate found");
-                result.pushKV("errors", std::move(errors));
             }
-            result.pushKV("blocks", feeCalc.returnedTarget);
+            for (const auto& error: forecast_result.error_massages) {
+                errors.push_back(error);
+            }
+            result.pushKV("blocks", forecast_result.returned_target);
+            result.pushKV("errors", std::move(errors));
             return result;
         },
     };
@@ -150,11 +155,11 @@ static RPCHelpMan estimaterawfee()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            CBlockPolicyEstimator& fee_estimator = EnsureAnyFeeEstimator(request.context);
+            FeeRateEstimationManager& feerate_estimatorman = EnsureAnyFeeRateEstimatorMan(request.context);
             const NodeContext& node = EnsureAnyNodeContext(request.context);
 
             CHECK_NONFATAL(node.validation_signals)->SyncWithValidationInterfaceQueue();
-            unsigned int max_target = fee_estimator.HighestTargetTracked(FeeEstimateHorizon::LONG_HALFLIFE);
+            unsigned int max_target = feerate_estimatorman.BlockPolicyHighestTargetTracked(FeeEstimateHorizon::LONG_HALFLIFE);
             unsigned int conf_target = ParseConfirmTarget(request.params[0], max_target);
             double threshold = 0.95;
             if (!request.params[1].isNull()) {
@@ -171,9 +176,9 @@ static RPCHelpMan estimaterawfee()
                 EstimationResult buckets;
 
                 // Only output results for horizons which track the target
-                if (conf_target > fee_estimator.HighestTargetTracked(horizon)) continue;
+                if (conf_target > feerate_estimatorman.BlockPolicyHighestTargetTracked(horizon)) continue;
 
-                feeRate = fee_estimator.estimateRawFee(conf_target, threshold, horizon, &buckets);
+                feeRate = feerate_estimatorman.BlockPolicyEstimateRawFee(conf_target, threshold, horizon, &buckets);
                 UniValue horizon_result(UniValue::VOBJ);
                 UniValue errors(UniValue::VARR);
                 UniValue passbucket(UniValue::VOBJ);

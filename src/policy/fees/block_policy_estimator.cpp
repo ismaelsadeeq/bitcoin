@@ -10,7 +10,6 @@
 #include <kernel/mempool_entry.h>
 #include <logging.h>
 #include <policy/feerate.h>
-#include <policy/fees/forecaster_util.h>
 #include <primitives/transaction.h>
 #include <random.h>
 #include <serialize.h>
@@ -18,6 +17,7 @@
 #include <sync.h>
 #include <tinyformat.h>
 #include <uint256.h>
+#include <util/fees.h>
 #include <util/fs.h>
 #include <util/serfloat.h>
 #include <util/syserror.h>
@@ -47,6 +47,22 @@ std::string StringForFeeEstimateHorizon(FeeEstimateHorizon horizon)
     case FeeEstimateHorizon::LONG_HALFLIFE: return "long";
     } // no default case, so the compiler can warn about missing cases
     assert(false);
+}
+
+std::string StringForFeeReason(FeeReason reason)
+{
+    static const std::map<FeeReason, std::string> fee_reason_strings = {
+        {FeeReason::NONE, "None"},
+        {FeeReason::HALF_ESTIMATE, "Half Target 60% Threshold"},
+        {FeeReason::FULL_ESTIMATE, "Target 85% Threshold"},
+        {FeeReason::DOUBLE_ESTIMATE, "Double Target 95% Threshold"},
+        {FeeReason::CONSERVATIVE, "Conservative Double Target longer horizon"},
+    };
+    auto reason_string = fee_reason_strings.find(reason);
+
+    if (reason_string == fee_reason_strings.end()) return "Unknown";
+
+    return reason_string->second;
 }
 
 namespace {
@@ -542,7 +558,7 @@ bool CBlockPolicyEstimator::_removeTx(const Txid& hash, bool inBlock)
 }
 
 CBlockPolicyEstimator::CBlockPolicyEstimator(const fs::path& estimation_filepath, const bool read_stale_estimates)
-    : Forecaster(ForecastType::BLOCK_POLICY), m_estimation_filepath{estimation_filepath}
+    : Estimator(FeeRateEstimatorType::BLOCK_POLICY), m_estimation_filepath{estimation_filepath}
 {
     static_assert(MIN_BUCKET_FEERATE > 0, "Min feerate must be nonzero");
     size_t bucketIndex = 0;
@@ -578,21 +594,6 @@ CBlockPolicyEstimator::CBlockPolicyEstimator(const fs::path& estimation_filepath
 }
 
 CBlockPolicyEstimator::~CBlockPolicyEstimator() = default;
-
-void CBlockPolicyEstimator::TransactionAddedToMempool(const NewMempoolTransactionInfo& tx, uint64_t /*unused*/)
-{
-    processTransaction(tx);
-}
-
-void CBlockPolicyEstimator::TransactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason /*unused*/, uint64_t /*unused*/)
-{
-    removeTx(tx->GetHash());
-}
-
-void CBlockPolicyEstimator::MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block, unsigned int nBlockHeight)
-{
-    processBlock(txs_removed_for_block, nBlockHeight);
-}
 
 void CBlockPolicyEstimator::processTransaction(const NewMempoolTransactionInfo& tx)
 {
@@ -725,17 +726,18 @@ CFeeRate CBlockPolicyEstimator::estimateFee(int confTarget) const
     return estimateRawFee(confTarget, DOUBLE_SUCCESS_PCT, FeeEstimateHorizon::MED_HALFLIFE);
 }
 
-ForecastResult CBlockPolicyEstimator::ForecastFeeRate(int target, bool conservative) const
+EstimateResult CBlockPolicyEstimator::EstimateFeeRate(int target, bool conservative) const
 {
-    ForecastResult result;
-    result.forecaster = ForecastType::BLOCK_POLICY;
+    EstimateResult result;
+    result.Estimator = FeeRateEstimatorType::BLOCK_POLICY;
     FeeCalculation fee_calculation_result;
     CFeeRate feerate{estimateSmartFee(target, &fee_calculation_result, conservative)};
     result.current_block_height = fee_calculation_result.best_height;
     if (feerate == CFeeRate(0)) {
-        result.error = "Insufficient data or no feerate found";
         return result;
     }
+    result.current_block_height = fee_calculation_result.best_height;
+    result.returned_target = fee_calculation_result.returnedTarget;
     // Note: size can be any positive non-zero integer; the evaluated fee/size will result in the same fee rate,
     // and we only care that the fee rate remains consistent.
     int32_t size = 1000;
@@ -975,6 +977,16 @@ CFeeRate CBlockPolicyEstimator::estimateSmartFee(int confTarget, FeeCalculation 
     }
 
     if (median < 0) return CFeeRate(0); // error condition
+
+
+    LogDebug(BCLog::ESTIMATEFEE, "%s EstimateSmartFee Feerate :%d Tgt:%d (requested %d) Reason:\"%s\" Decay %.5f: Estimation: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out) Fail: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out)\n",
+              FeeRateEstimatorTypeToString(FeeRateEstimatorType::BLOCK_POLICY), median, feeCalc->returnedTarget, feeCalc->desiredTarget, StringForFeeReason(feeCalc->reason), feeCalc->est.decay,
+              feeCalc->est.pass.start, feeCalc->est.pass.end,
+              (feeCalc->est.pass.totalConfirmed + feeCalc->est.pass.inMempool + feeCalc->est.pass.leftMempool) > 0.0 ? 100 * feeCalc->est.pass.withinTarget / (feeCalc->est.pass.totalConfirmed + feeCalc->est.pass.inMempool + feeCalc->est.pass.leftMempool) : 0.0,
+              feeCalc->est.pass.withinTarget, feeCalc->est.pass.totalConfirmed, feeCalc->est.pass.inMempool, feeCalc->est.pass.leftMempool,
+              feeCalc->est.fail.start, feeCalc->est.fail.end,
+              (feeCalc->est.fail.totalConfirmed + feeCalc->est.fail.inMempool + feeCalc->est.fail.leftMempool) > 0.0 ? 100 * feeCalc->est.fail.withinTarget / (feeCalc->est.fail.totalConfirmed + feeCalc->est.fail.inMempool + feeCalc->est.fail.leftMempool) : 0.0,
+              feeCalc->est.fail.withinTarget, feeCalc->est.fail.totalConfirmed, feeCalc->est.fail.inMempool, feeCalc->est.fail.leftMempool);
 
     return CFeeRate(llround(median));
 }

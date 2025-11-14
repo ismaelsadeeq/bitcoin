@@ -2,14 +2,14 @@
 // Distributed under the MIT software license. See the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <policy/fees/forecaster.h>
-#include <policy/fees/forecaster_util.h>
-#include <policy/fees/mempool_forecaster.h>
+#include <policy/fees/estimator.h>
+#include <policy/fees/mempool_policy_estimator.h>
 #include <random.h>
 #include <test/util/txmempool.h>
 #include <txmempool.h>
 #include <uint256.h>
 #include <util/feefrac.h>
+#include <util/fees.h>
 #include <util/strencodings.h>
 #include <validation.h>
 
@@ -21,7 +21,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(mempoolforecaster_tests, TestChain100Setup)
+BOOST_FIXTURE_TEST_SUITE(mempoolpolicyestimator_tests, TestChain100Setup)
 
 static inline CTransactionRef make_random_tx()
 {
@@ -37,17 +37,17 @@ static inline CTransactionRef make_random_tx()
     return MakeTransactionRef(tx);
 }
 
-BOOST_AUTO_TEST_CASE(MempoolForecaster)
+BOOST_AUTO_TEST_CASE(MempoolPolicyEstimator)
 {
-    auto mempool_forecaster = std::make_unique<MemPoolForecaster>(m_node.mempool.get(), &(m_node.chainman->ActiveChainstate()));
-    int conf_target = MEMPOOL_FORECAST_MAX_TARGET + 1;
+    auto mempool_policy_estimator = std::make_unique<MempoolPolicyEstimator>(m_node.mempool.get(), &(m_node.chainman->ActiveChainstate()));
+    int conf_target = MEMPOOL_POLICY_ESTIMATOR_MAX_TARGET + 1;
     LOCK2(cs_main, m_node.mempool->cs);
     {
-        // Test when targetBlocks > MEMPOOL_FORECAST_MAX_TARGET
-        const auto result = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/true);
+        // Test when targetBlocks > MEMPOOL_POLICY_ESTIMATOR_MAX_TARGET
+        const auto result = mempool_policy_estimator->EstimateFeeRate(conf_target, /*conservative=*/true);
         BOOST_CHECK(result.feerate.IsEmpty());
-        BOOST_CHECK(*result.error == strprintf("Confirmation target %s exceeds the maximum limit of %s. mempool conditions might change",
-                                                 conf_target, MEMPOOL_FORECAST_MAX_TARGET));
+        BOOST_CHECK(result.error_massages.back() == strprintf("%s: Confirmation target %s exceeds the maximum limit of %s. mempool conditions might change",
+                                                FeeRateEstimatorTypeToString(FeeRateEstimatorType::MEMPOOL_POLICY), conf_target, MEMPOOL_POLICY_ESTIMATOR_MAX_TARGET));
     }
 
     BOOST_CHECK(m_node.mempool->GetTotalTxSize() == 0);
@@ -56,18 +56,18 @@ BOOST_AUTO_TEST_CASE(MempoolForecaster)
     const CAmount low_fee{CENT / 3000};
     const CAmount med_fee{CENT / 100};
     const CAmount high_fee{CENT / 10};
-    std::string data_err = "Forecaster unable to provide a fee rate due to insufficient data";
+    std::string data_err = strprintf("%s: unable to provide a fee rate due to insufficient data", FeeRateEstimatorTypeToString(FeeRateEstimatorType::MEMPOOL_POLICY));
 
-    conf_target = MEMPOOL_FORECAST_MAX_TARGET;
+    conf_target = MEMPOOL_POLICY_ESTIMATOR_MAX_TARGET;
     // Test when there are not enough mempool transactions to get an accurate forecast
     {
         // Add transactions with high_fee fee until mempool transactions weight is more than 25th percent of DEFAULT_BLOCK_MAX_WEIGHT
         while (static_cast<int>(m_node.mempool->GetTotalTxSize() * WITNESS_SCALE_FACTOR) <= static_cast<int>(0.25 * DEFAULT_BLOCK_MAX_WEIGHT)) {
             AddToMempool(*m_node.mempool, entry.Fee(high_fee).FromTx(make_random_tx()));
         }
-        const auto result = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/true);
+        const auto result = mempool_policy_estimator->EstimateFeeRate(conf_target, /*conservative=*/true);
         BOOST_CHECK(result.feerate.IsEmpty());
-        BOOST_CHECK(*result.error == data_err);
+        BOOST_CHECK(result.error_massages.back() == data_err);
     }
 
     {
@@ -75,9 +75,9 @@ BOOST_AUTO_TEST_CASE(MempoolForecaster)
         while (static_cast<int>(m_node.mempool->GetTotalTxSize() * WITNESS_SCALE_FACTOR) <= static_cast<int>(0.5 * DEFAULT_BLOCK_MAX_WEIGHT)) {
             AddToMempool(*m_node.mempool, entry.Fee(med_fee).FromTx(make_random_tx()));
         }
-        const auto result = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/true);
+        const auto result = mempool_policy_estimator->EstimateFeeRate(conf_target, /*conservative=*/true);
         BOOST_CHECK(result.feerate.IsEmpty());
-        BOOST_CHECK(*result.error == data_err);
+        BOOST_CHECK(result.error_massages.back() == data_err);
     }
 
     // Mempool transactions are enough to provide feerate forecast
@@ -88,8 +88,8 @@ BOOST_AUTO_TEST_CASE(MempoolForecaster)
             AddToMempool(*m_node.mempool, entry.Fee(low_fee).FromTx(make_random_tx()));
         }
 
-        const auto result_conservative = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/true);
-        const auto result_economical = mempool_forecaster->ForecastFeeRate(conf_target, /*conservative=*/false);
+        const auto result_conservative = mempool_policy_estimator->EstimateFeeRate(conf_target, /*conservative=*/true);
+        const auto result_economical = mempool_policy_estimator->EstimateFeeRate(conf_target, /*conservative=*/false);
         BOOST_CHECK(!result_conservative.feerate.IsEmpty() && !result_economical.feerate.IsEmpty());
         const auto tx_vsize = entry.FromTx(make_random_tx()).GetTxSize();
         BOOST_CHECK(result_economical.feerate == FeeFrac(low_fee, tx_vsize));

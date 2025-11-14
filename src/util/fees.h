@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_POLICY_FEES_FORECASTER_UTIL_H
-#define BITCOIN_POLICY_FEES_FORECASTER_UTIL_H
+#ifndef BITCOIN_UTIL_FEES_H
+#define BITCOIN_UTIL_FEES_H
 
 #include <util/feefrac.h>
 
@@ -11,36 +11,47 @@
 #include <string>
 
 /**
- * @enum ForecastType
- * Identifier for fee rate forecasters.
+ * @enum FeeRateEstimatorType
+ * Identifier for fee rate estimators.
  */
-enum class ForecastType {
+enum class FeeRateEstimatorType {
     BLOCK_POLICY,
-    MEMPOOL_FORECAST,
+    MEMPOOL_POLICY,
+};
+
+/* Used to determine type of fee estimation requested */
+enum class FeeEstimateMode {
+    UNSET,        //!< Use default settings based on other criteria
+    ECONOMICAL,   //!< Force fee rate estimator to return non-conservative estimates
+    CONSERVATIVE, //!< Force fee rate estimator to return conservative estimates
 };
 
 /**
- * @struct ForecastResult
- * Represents the response returned by a fee rate forecaster.
+ * @struct EstimateResult
+ * Represents the response returned by a fee rate estimator.
  */
-struct ForecastResult {
-    //! This identifies which forecaster is providing this feerate forecast
-    std::optional<ForecastType> forecaster;
+struct EstimateResult {
+    //! This identifies which esimator is providing this feerate estimate
+    FeeRateEstimatorType estimator;
 
     //! Fee rate sufficient to confirm a package within target.
     FeeFrac feerate;
 
-    //! The block height at which the forecast was made.
+    //! The block height at which the estimate was made.
     unsigned int current_block_height{0};
 
-    std::optional<std::string> error; ///< Optional error message.
+    //! The number of block within which you expect a confirmation.
+    unsigned int returned_target;
+
+    //! A vecor of distinc error messages encountered during the estimate.
+    std::vector<std::string> error_massages;
 
     /**
-     * Compare two ForecastResult objects based on fee rate.
-     * @param other The other ForecastResult object to compare with.
+     * Compare two EstimateResult objects based on fee rate.
+     * @param other The other EstimateResult object to compare with.
      * @return true if the current object's fee rate is less than the other, false otherwise.
      */
-    bool operator<(const ForecastResult& other) const
+    bool operator<(const EstimateResult& other) const
     {
         return feerate << other.feerate;
     }
@@ -76,6 +87,5 @@ struct Percentiles {
  */
 Percentiles CalculatePercentiles(const std::vector<FeeFrac>& package_feerates, const int32_t total_weight);
 
-std::string forecastTypeToString(ForecastType forecastType);
-
-#endif // BITCOIN_POLICY_FEES_FORECASTER_UTIL_H
+std::string FeeRateEstimatorTypeToString(FeeRateEstimatorType feerate_estimator_type);
+#endif // BITCOIN_UTIL_FEES_H

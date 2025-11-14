@@ -32,7 +32,7 @@ enum class RBFTransactionState;
 enum class ChainstateRole;
 struct bilingual_str;
 struct CBlockLocator;
-struct FeeCalculation;
+struct EstimateResult;
 namespace node {
 struct NodeContext;
 } // namespace node
@@ -262,11 +262,11 @@ public:
     //! Check if transaction will pass the mempool's chain limits.
     virtual util::Result<void> checkChainLimits(const CTransactionRef& tx) = 0;
 
-    //! Estimate smart fee.
-    virtual CFeeRate estimateSmartFee(int num_blocks, bool conservative, FeeCalculation* calc = nullptr) = 0;
+    //! Get a fee rate estimate.
+    virtual EstimateResult GetFeeRateEstimate(int num_blocks, bool conservative) = 0;
 
-    //! Fee estimator max target.
-    virtual unsigned int estimateMaxBlocks() = 0;
+    //! fee rate estimator max target.
+    virtual unsigned int FeeRateEstimatorMaximumTarget() = 0;
 
     //! Mempool minimum fee.
     virtual CFeeRate mempoolMinFee() = 0;

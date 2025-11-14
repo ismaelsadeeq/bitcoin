@@ -8,12 +8,22 @@
 
 #include <consensus/amount.h>
 
-class CFeeRate;
-struct FeeCalculation;
+#include <string>
 
+class CFeeRate;
 namespace wallet {
 class CCoinControl;
 class CWallet;
+
+enum class FeeRateSource {
+    FEERATE_ESTIMATOR,
+    MEMPOOL_MIN,
+    PAYTXFEE,
+    FALLBACK,
+    REQUIRED,
+};
+
+std::string StringForFeeRateSource(FeeRateSource& source);
 
 /**
  * Return the minimum required absolute fee for this size
@@ -25,7 +35,7 @@ CAmount GetRequiredFee(const CWallet& wallet, unsigned int nTxBytes);
  * Estimate the minimum fee considering user set parameters
  * and the required fee
  */
-CAmount GetMinimumFee(const CWallet& wallet, unsigned int nTxBytes, const CCoinControl& coin_control, FeeCalculation* feeCalc);
+CAmount GetMinimumFee(const CWallet& wallet, unsigned int nTxBytes, const CCoinControl& coin_control, unsigned int* returned_target, FeeRateSource* feerate_source);
 
 /**
  * Return the minimum required feerate taking into account the
@@ -37,7 +47,7 @@ CFeeRate GetRequiredFeeRate(const CWallet& wallet);
  * Estimate the minimum fee rate considering user set parameters
  * and the required fee
  */
-CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_control, FeeCalculation* feeCalc);
+CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_control, unsigned int* returned_target, FeeRateSource* feerate_source);
 
 /**
  * Return the maximum feerate for discarding change.

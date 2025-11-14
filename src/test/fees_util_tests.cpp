@@ -3,13 +3,13 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#include <policy/fees/forecaster_util.h>
 #include <policy/policy.h>
+#include <util/fees.h>
 
 #include <boost/test/unit_test.hpp>
 #include <vector>
 
-BOOST_AUTO_TEST_SUITE(forecaster_util_tests)
+BOOST_AUTO_TEST_SUITE(fees_util_tests)
 
 BOOST_AUTO_TEST_CASE(calculate_percentile_test)
 {

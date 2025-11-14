@@ -2,23 +2,24 @@
 // Distributed under the MIT software license. See the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_POLICY_FEES_FORECASTER_H
-#define BITCOIN_POLICY_FEES_FORECASTER_H
+#ifndef BITCOIN_POLICY_FEES_ESTIMATOR_H
+#define BITCOIN_POLICY_FEES_ESTIMATOR_H
 
-#include <policy/fees/forecaster_util.h>
+#include <util/fees.h>
 
-/** \class Forecaster
- *  @brief Abstract base class for fee rate forecasters.
+
+/** \class FeeRateEstimator
+ *  @brief Abstract base class for fee rate estimators.
  */
-class Forecaster
+class FeeRateEstimator
 {
 protected:
-    const ForecastType m_forecast_type;
+    const FeeRateEstimatorType m_feerate_estimator_type;
 
 public:
-    explicit Forecaster(ForecastType forecast_type) : m_forecast_type(forecast_type) {}
+    explicit FeeRateEstimator(FeeRateEstimatorType feerate_estimator_type) : m_feerate_estimator_type(feerate_estimator_type) {}
 
-    ForecastType GetForecastType() const { return m_forecast_type; }
+    FeeRateEstimatorType GetForecastType() const { return m_feerate_estimator_type; }
 
     /**
      * @brief Returns the estimated fee rate for a package to confirm within the given target.
@@ -26,14 +27,14 @@ public:
      * @param conservative If true, returns a higher fee rate for greater confirmation probability.
      * @return Predicted fee rate.
      */
-    virtual ForecastResult ForecastFeeRate(int target, bool conservative) const = 0;
+    virtual EstimateResult EstimateFeeRate(int target, bool conservative) const = 0;
 
     /**
      * @brief Returns the maximum supported confirmation target.
      */
     virtual unsigned int MaximumTarget() const = 0;
 
-    virtual ~Forecaster() = default;
+    virtual ~FeeRateEstimator() = default;
 };
 
-#endif // BITCOIN_POLICY_FEES_FORECASTER_H
+#endif // BITCOIN_POLICY_FEES_ESTIMATOR_H

@@ -40,7 +40,7 @@
 #include <node/types.h>
 #include <node/warnings.h>
 #include <policy/feerate.h>
-#include <policy/fees/block_policy_estimator.h>
+#include <policy/fees/estimator_man.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
 #include <policy/settings.h>
@@ -55,6 +55,7 @@
 #include <uint256.h>
 #include <univalue.h>
 #include <util/check.h>
+#include <util/fees.h>
 #include <util/result.h>
 #include <util/signalinterrupt.h>
 #include <util/string.h>
@@ -724,15 +725,15 @@ public:
         LOCK(m_node.mempool->cs);
         return m_node.mempool->CheckPackageLimits({tx}, entry.GetTxSize());
     }
-    CFeeRate estimateSmartFee(int num_blocks, bool conservative, FeeCalculation* calc) override
+    EstimateResult GetFeeRateEstimate(int num_blocks, bool conservative) override
     {
-        if (!m_node.fee_estimator) return {};
-        return m_node.fee_estimator->estimateSmartFee(num_blocks, calc, conservative);
+        if (!m_node.feerate_estimatorman) return {};
+        return m_node.feerate_estimatorman->GetFeeRateEstimate(num_blocks, conservative);
     }
-    unsigned int estimateMaxBlocks() override
+    unsigned int FeeRateEstimatorMaximumTarget() override
     {
-        if (!m_node.fee_estimator) return 0;
-        return m_node.fee_estimator->HighestTargetTracked(FeeEstimateHorizon::LONG_HALFLIFE);
+        if (!m_node.feerate_estimatorman) return 0;
+        return m_node.feerate_estimatorman->MaximumTarget();
     }
     CFeeRate mempoolMinFee() override
     {
