@@ -45,8 +45,8 @@ BOOST_AUTO_TEST_CASE(MempoolFeeRateEstimator)
         const auto result = mempool_estimator.EstimateFeeRate(conf_target, /*conservative=*/true);
         BOOST_CHECK(result.feerate.IsEmpty());
         BOOST_CHECK(result.errors.back() ==
-                    strprintf("Confirmation target %s exceeds the maximum limit of %s. mempool conditions might change",
-                              conf_target, MEMPOOL_FEE_ESTIMATOR_MAX_TARGET));
+                    strprintf("%s: Confirmation target %s exceeds the maximum limit of %s. mempool conditions might change",
+                              FeeRateEstimatorTypeToString(FeeRateEstimatorType::MEMPOOL_POLICY), conf_target, MEMPOOL_FEE_ESTIMATOR_MAX_TARGET));
     }
     {
         LOCK(m_node.mempool->cs);
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(MempoolFeeRateEstimator)
     const CAmount low_fee{CENT / 3000};
     const CAmount med_fee{CENT / 100};
     const CAmount high_fee{CENT / 10};
-    std::string data_err = "Unable to provide a fee rate due to insufficient data";
+    std::string data_err = strprintf("%s: Unable to provide a fee rate due to insufficient data", FeeRateEstimatorTypeToString(FeeRateEstimatorType::MEMPOOL_POLICY));
     conf_target = MEMPOOL_FEE_ESTIMATOR_MAX_TARGET;
     // Test when there are not enough mempool transactions to get an accurate estimate
     {
