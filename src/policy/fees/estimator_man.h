@@ -16,6 +16,7 @@
 class CFeeRate;
 class FeeRateEstimator;
 
+struct BlockData;
 struct FeeRateEstimatorResult;
 struct EstimationResult;
 struct NewMempoolTransactionInfo;
@@ -85,6 +86,11 @@ public:
      *
      */
     unsigned int BlockPolicyHighestTargetTracked(FeeEstimateHorizon horizon);
+
+    /**
+     * @brief Returns the mempool fee estimator previously mined blocks statistics
+     */
+    std::vector<BlockData> MempoolPolicyEstimatorBlocksStats();
 
 protected:
     /** Overridden from CValidationInterface. */
