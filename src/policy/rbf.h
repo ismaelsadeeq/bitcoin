@@ -17,6 +17,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <vector>
 
 class CFeeRate;
 class uint256;
@@ -35,11 +36,20 @@ enum class RBFTransactionState {
     FINAL,
 };
 
-enum class DiagramCheckError {
+enum class DiagramCheckStatus {
     /** Unable to calculate due to topology or other reason */
     UNCALCULABLE,
     /** New diagram wasn't strictly superior  */
     FAILURE,
+    /* New diagram is strictly superior */
+    IMPROVED,
+};
+
+struct DiagramCheckResult {
+    DiagramCheckStatus status;
+    std::vector<FeeFrac> old_diagram{};
+    std::vector<FeeFrac> new_diagram{};
+    std::string error_message{""};
 };
 
 /**
@@ -102,8 +112,8 @@ std::optional<std::string> PaysForRBF(CAmount original_fees,
 /**
  * The replacement transaction must improve the feerate diagram of the mempool.
  * @param[in]   changeset           The changeset containing proposed additions/removals
- * @returns error type and string if mempool diagram doesn't improve, otherwise std::nullopt.
+ * @returns DiagramCheckResult.
  */
-std::optional<std::pair<DiagramCheckError, std::string>> ImprovesFeerateDiagram(CTxMemPool::ChangeSet& changeset);
+DiagramCheckResult ImprovesFeerateDiagram(CTxMemPool::ChangeSet& changeset);
 
 #endif // BITCOIN_POLICY_RBF_H

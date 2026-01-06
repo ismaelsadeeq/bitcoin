@@ -1037,11 +1037,13 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
         return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "too-large-cluster", "");
     }
 
-    if (const auto err_string{ImprovesFeerateDiagram(*m_subpackage.m_changeset)}) {
+
+    auto diagram_check_result{ImprovesFeerateDiagram(*m_subpackage.m_changeset)};
+    if (diagram_check_result.status != DiagramCheckStatus::IMPROVED) {
         // We checked above for the cluster size limits being respected, so a
         // failure here can only be due to an insufficient fee.
-        Assume(err_string->first == DiagramCheckError::FAILURE);
-        return state.Invalid(TxValidationResult::TX_RECONSIDERABLE, "replacement-failed", err_string->second);
+        Assume(diagram_check_result.status == DiagramCheckStatus::FAILURE);
+        return state.Invalid(TxValidationResult::TX_RECONSIDERABLE, "replacement-failed", diagram_check_result.error_message);
     }
 
     return true;
@@ -1133,10 +1135,11 @@ bool MemPoolAccept::PackageMempoolChecks(const std::vector<CTransactionRef>& txn
     }
 
     // Check if it's economically rational to mine this package rather than the ones it replaces.
-    if (const auto err_tup{ImprovesFeerateDiagram(*m_subpackage.m_changeset)}) {
-        Assume(err_tup->first == DiagramCheckError::FAILURE);
+    const auto diagram_check_result{ImprovesFeerateDiagram(*m_subpackage.m_changeset)};
+    if (diagram_check_result.status != DiagramCheckStatus::IMPROVED) {
+        Assume(diagram_check_result.status == DiagramCheckStatus::FAILURE);
         return package_state.Invalid(PackageValidationResult::PCKG_POLICY,
-                                     "package RBF failed: " + err_tup.value().second, "");
+                                     "package RBF failed: " + diagram_check_result.error_message, "");
     }
 
     LogDebug(BCLog::TXPACKAGES, "package RBF checks passed: parent %s (wtxid=%s), child %s (wtxid=%s), package hash (%s)\n",

@@ -229,19 +229,27 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
     }
 
     // If internals report error, wrapper should too
-    auto err_tuple{ImprovesFeerateDiagram(*changeset)};
+    auto diagram_check_result{ImprovesFeerateDiagram(*changeset)};
     if (!calc_results.has_value()) {
-         assert(err_tuple.value().first == DiagramCheckError::UNCALCULABLE);
+        assert(diagram_check_result.status == DiagramCheckStatus::UNCALCULABLE);
+        assert(diagram_check_result.old_diagram.size() == 0);
+        assert(diagram_check_result.new_diagram.size() == 0);
     } else {
         // Diagram check succeeded
         auto old_sum = std::accumulate(calc_results->first.begin(), calc_results->first.end(), FeeFrac{});
         auto new_sum = std::accumulate(calc_results->second.begin(), calc_results->second.end(), FeeFrac{});
-        if (!err_tuple.has_value()) {
+        auto old_sum_from_res = std::accumulate(diagram_check_result.old_diagram.begin(), diagram_check_result.old_diagram.end(), FeeFrac{});
+        auto new_sum_from_res = std::accumulate(diagram_check_result.new_diagram.begin(), diagram_check_result.new_diagram.end(), FeeFrac{});
+        if (diagram_check_result.status == DiagramCheckStatus::IMPROVED) {
             // New diagram's final fee should always match or exceed old diagram's
             assert(old_sum.fee <= new_sum.fee);
+            assert(old_sum_from_res == old_sum);
+            assert(new_sum_from_res == new_sum);
         } else if (old_sum.fee > new_sum.fee) {
             // Or it failed, and if old diagram had higher fees, it should be a failure
-            assert(err_tuple.value().first == DiagramCheckError::FAILURE);
+            assert(diagram_check_result.status == DiagramCheckStatus::FAILURE);
+            assert(diagram_check_result.old_diagram.size() == 0);
+            assert(diagram_check_result.new_diagram.size() == 0);
         }
     }
 }

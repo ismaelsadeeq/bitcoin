@@ -14,12 +14,15 @@
 #define BITCOIN_NODE_TYPES_H
 
 #include <consensus/amount.h>
-#include <cstddef>
-#include <cstdint>
 #include <policy/policy.h>
 #include <script/script.h>
 #include <uint256.h>
 #include <util/time.h>
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <vector>
 
 namespace node {
 enum class TransactionError {

@@ -279,10 +279,11 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     changeset->StageRemoval(entry2);
     changeset->StageAddition(tx1_conflict, tx1_fee, 0, 1, 0, false, 4, LockPoints());
     changeset->StageAddition(tx3, tx2_fee, 0, 1, 0, false, 4, LockPoints());
-    const auto res1 = ImprovesFeerateDiagram(*changeset);
-    BOOST_CHECK(res1.has_value());
-    BOOST_CHECK(res1.value().first == DiagramCheckError::FAILURE);
-    BOOST_CHECK(res1.value().second == "insufficient feerate: does not improve feerate diagram");
+    const auto res1{ImprovesFeerateDiagram(*changeset)};
+    BOOST_CHECK(res1.status == DiagramCheckStatus::FAILURE);
+    BOOST_CHECK(res1.error_message == "insufficient feerate: does not improve feerate diagram");
+    BOOST_CHECK(res1.old_diagram == std::vector<FeeFrac>{});
+    BOOST_CHECK(res1.new_diagram == std::vector<FeeFrac>{});
 
     // With one more satoshi it does
     changeset.reset();
@@ -291,7 +292,13 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     changeset->StageRemoval(entry2);
     changeset->StageAddition(tx1_conflict, tx1_fee+1, 0, 1, 0, false, 4, LockPoints());
     changeset->StageAddition(tx3, tx2_fee, 0, 1, 0, false, 4, LockPoints());
-    BOOST_CHECK(ImprovesFeerateDiagram(*changeset) == std::nullopt);
+    auto diagrams2{changeset->CalculateChunksForRBF()};
+    const auto res2{ImprovesFeerateDiagram(*changeset)};
+    BOOST_CHECK(res2.status == DiagramCheckStatus::IMPROVED);
+    BOOST_CHECK(diagrams2.has_value());
+    BOOST_CHECK(res2.old_diagram == diagrams2.value().first);
+    BOOST_CHECK(res2.new_diagram == diagrams2.value().second);
+    BOOST_CHECK(res2.error_message == "");
 
     changeset.reset();
     // With prioritisation of in-mempool conflicts, it affects the results of the comparison using the same args as just above
@@ -301,10 +308,12 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     changeset->StageRemoval(entry2);
     changeset->StageAddition(tx1_conflict, tx1_fee+1, 0, 1, 0, false, 4, LockPoints());
     changeset->StageAddition(tx3, tx2_fee, 0, 1, 0, false, 4, LockPoints());
-    const auto res2 = ImprovesFeerateDiagram(*changeset);
-    BOOST_CHECK(res2.has_value());
-    BOOST_CHECK(res2.value().first == DiagramCheckError::FAILURE);
-    BOOST_CHECK(res2.value().second == "insufficient feerate: does not improve feerate diagram");
+    const auto res3{ImprovesFeerateDiagram(*changeset)};
+    BOOST_CHECK(res3.status == DiagramCheckStatus::FAILURE);
+    BOOST_CHECK(res3.error_message == "insufficient feerate: does not improve feerate diagram");
+    BOOST_CHECK(res3.old_diagram == std::vector<FeeFrac>{});
+    BOOST_CHECK(res3.new_diagram == std::vector<FeeFrac>{});
+
     changeset.reset();
 
     pool.PrioritiseTransaction(entry1->GetSharedTx()->GetHash(), /*nFeeDelta=*/-1);
@@ -318,7 +327,14 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     changeset->StageRemoval(entry2);
     changeset->StageAddition(tx1_conflict, tx1_fee, 0, 1, 0, false, 4, LockPoints());
     changeset->StageAddition(entry4.GetSharedTx(), tx2_fee, 0, 1, 0, false, 4, LockPoints());
-    BOOST_CHECK(ImprovesFeerateDiagram(*changeset) == std::nullopt);
+    auto diagrams4{changeset->CalculateChunksForRBF()};
+    const auto res4{ImprovesFeerateDiagram(*changeset)};
+    BOOST_CHECK(res4.status == DiagramCheckStatus::IMPROVED);
+    BOOST_CHECK(diagrams4.has_value());
+    BOOST_CHECK(res4.old_diagram == diagrams4.value().first);
+    BOOST_CHECK(res4.new_diagram == diagrams4.value().second);
+    BOOST_CHECK(res4.error_message == "");
+
     changeset.reset();
 
     // Adding a grandchild makes the cluster size 3, which is also calculable
@@ -332,8 +348,13 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     changeset->StageRemoval(entry5);
     changeset->StageAddition(tx1_conflict, tx1_fee, 0, 1, 0, false, 4, LockPoints());
     changeset->StageAddition(entry4.GetSharedTx(), tx2_fee + entry5->GetModifiedFee() + 1, 0, 1, 0, false, 4, LockPoints());
-    const auto res3 = ImprovesFeerateDiagram(*changeset);
-    BOOST_CHECK(res3 == std::nullopt);
+    auto diagrams5{changeset->CalculateChunksForRBF()};
+    const auto res5{ImprovesFeerateDiagram(*changeset)};
+    BOOST_CHECK(res5.status == DiagramCheckStatus::IMPROVED);
+    BOOST_CHECK(diagrams5.has_value());
+    BOOST_CHECK(res5.old_diagram == diagrams5.value().first);
+    BOOST_CHECK(res5.new_diagram == diagrams5.value().second);
+    BOOST_CHECK(res5.error_message == "");
 }
 
 BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
