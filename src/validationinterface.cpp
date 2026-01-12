@@ -14,6 +14,7 @@
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <util/check.h>
+#include <util/feefrac.h>
 #include <util/task_runner.h>
 
 #include <future>
@@ -199,6 +200,16 @@ void ValidationSignals::TransactionAddedToMempool(const NewMempoolTransactionInf
     ENQUEUE_AND_LOG_EVENT(event, "%s: txid=%s wtxid=%s", __func__,
                           tx.info.m_tx->GetHash().ToString(),
                           tx.info.m_tx->GetWitnessHash().ToString());
+}
+
+void ValidationSignals::MempoolDiagramUpdate(std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> feerate_diagrams)
+{
+    auto event = [feerate_diagrams, this] {
+        m_internals->Iterate([&](CValidationInterface& callbacks) { callbacks.MempoolDiagramUpdate(feerate_diagrams); });
+    };
+    ENQUEUE_AND_LOG_EVENT(event, "%s: old diagram size=%d new diagram size=%d", __func__,
+                          feerate_diagrams.first.size(),
+                          feerate_diagrams.second.size());
 }
 
 void ValidationSignals::TransactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason, uint64_t mempool_sequence) {

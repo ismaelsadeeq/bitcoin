@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace kernel {
@@ -26,6 +27,7 @@ class TaskRunnerInterface;
 class BlockValidationState;
 class CBlock;
 class CBlockIndex;
+struct FeeFrac;
 struct CBlockLocator;
 enum class MemPoolRemovalReason;
 struct RemovedMempoolTransactionInfo;
@@ -73,6 +75,13 @@ protected:
      * Called on a background thread.
      */
     virtual void TransactionAddedToMempool(const NewMempoolTransactionInfo& tx, uint64_t mempool_sequence) {}
+
+    /*
+     * Notifies listeners of a new mempool update.
+     * It returns the old and the new feerate diagram
+     * Called on a background thread.
+     */
+    virtual void MempoolDiagramUpdate(const std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>& feerate_diagrams) {}
 
     /**
      * Notifies listeners of a transaction leaving mempool.
@@ -221,6 +230,7 @@ public:
     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
     void ActiveTipChange(const CBlockIndex&, bool);
     void TransactionAddedToMempool(const NewMempoolTransactionInfo&, uint64_t mempool_sequence);
+    void MempoolDiagramUpdate(std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> feerate_diagrams);
     void TransactionRemovedFromMempool(const CTransactionRef&, MemPoolRemovalReason, uint64_t mempool_sequence);
     void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>&, unsigned int nBlockHeight);
     void BlockConnected(const kernel::ChainstateRole&, const std::shared_ptr<const CBlock>&, const CBlockIndex* pindex);

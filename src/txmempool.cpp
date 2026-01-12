@@ -805,6 +805,17 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     for (txiter removeit : toremove) {
         CalculateDescendants(removeit, stage);
     }
+    {
+        auto change_set = GetChangeSet();
+        for (txiter it : stage) {
+            change_set->StageRemoval(it);
+        }
+        auto feerate_diagrams = change_set->CalculateChunksForRBF();
+        Assume(feerate_diagrams.has_value());
+        if (m_opts.signals) {
+            m_opts.signals->MempoolDiagramUpdate(std::make_pair(std::move(feerate_diagrams->first), std::move(feerate_diagrams->second)));
+        }
+    }
     RemoveStaged(stage, MemPoolRemovalReason::EXPIRY);
     return stage.size();
 }
@@ -848,9 +859,12 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpends
     unsigned nTxnRemoved = 0;
     CFeeRate maxFeeRateRemoved(0);
 
+    std::vector<FeeFrac> removed_chunks;
     while (!mapTx.empty() && DynamicMemoryUsage() > sizelimit) {
         const auto &[worst_chunk, feeperweight] = m_txgraph->GetWorstMainChunk();
+        removed_chunks.emplace_back(feeperweight.fee, feeperweight.size);
         FeePerVSize feerate = ToFeePerVSize(feeperweight);
+
         CFeeRate removed{feerate.fee, feerate.size};
 
         // We set the new mempool min fee to the feerate of the removed set, plus the
@@ -888,6 +902,7 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpends
         }
     }
 
+    if (m_opts.signals) m_opts.signals->MempoolDiagramUpdate(std::make_pair(std::move(removed_chunks), std::vector<FeeFrac>{}));
     if (maxFeeRateRemoved > CFeeRate(0)) {
         LogDebug(BCLog::MEMPOOL, "Removed %u txn, rolling minimum fee bumped to %s\n", nTxnRemoved, maxFeeRateRemoved.ToString());
     }
