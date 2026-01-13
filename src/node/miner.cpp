@@ -3,8 +3,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <node/miner.h>
-
 #include <chain.h>
 #include <chainparams.h>
 #include <coins.h>
@@ -17,18 +15,20 @@
 #include <deploymentstatus.h>
 #include <logging.h>
 #include <node/kernel_notifications.h>
+#include <node/miner.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
 #include <pow.h>
 #include <primitives/transaction.h>
+#include <sync.h>
 #include <util/moneystr.h>
 #include <util/signalinterrupt.h>
 #include <util/time.h>
 #include <validation.h>
 
 #include <algorithm>
-#include <utility>
 #include <numeric>
+#include <utility>
 
 namespace node {
 
@@ -339,6 +339,39 @@ bool ShareableOptions(const BlockAssembler::Options& a, const BlockAssembler::Op
            a.blockMinFeeRate == b.blockMinFeeRate &&
            a.coinbase_output_max_additional_sigops == b.coinbase_output_max_additional_sigops &&
            a.nBlockMaxWeight == b.nBlockMaxWeight;
+}
+
+BlockTemplateCache::BlockTemplateCache(CTxMemPool& mempool, ChainstateManager& chainman, size_t block_template_cache_size)
+    : m_mempool(mempool), m_chainman(chainman), m_block_template_cache_size(block_template_cache_size)
+{
+}
+BlockTemplateRef BlockTemplateCache::CreateBlockTemplateInternal(const BlockAssembler::Options& options)
+{
+    BlockAssembler assembler{m_chainman.ActiveChainstate(), &m_mempool, options};
+    auto block_template = std::make_shared<const CBlockTemplate>(*assembler.CreateNewBlock());
+    Assume(m_block_templates.size() <= m_block_template_cache_size);
+    m_block_templates.emplace_back(options, block_template);
+    if (m_block_templates.size() > m_block_template_cache_size) m_block_templates.pop_front();
+    return block_template;
+}
+
+BlockTemplateRef BlockTemplateCache::GetBlockTemplate(const BlockAssembler::Options& options)
+{
+    LOCK2(cs_main, m_mutex);
+    for (auto it = m_block_templates.rbegin(); it != m_block_templates.rend(); it++) {
+        if (ShareableOptions(it->first, options) && !TimeIntervalElapsed(it->second->m_creation_time, options.max_template_age)) {
+            if (options.test_block_validity && !it->first.test_block_validity) {
+                if (BlockValidationState state{TestBlockValidity(m_chainman.ActiveChainstate(), it->second->block,
+                                                                 /*check_pow=*/false, /*check_merkle_root=*/false)};
+                    !state.IsValid()) {
+                    throw std::runtime_error(strprintf("TestBlockValidity failed: %s", state.ToString()));
+                }
+                it->first.test_block_validity = true;
+            }
+            return it->second;
+        }
+    }
+    return CreateBlockTemplateInternal(options);
 }
 
 void AddMerkleRootAndCoinbase(CBlock& block, CTransactionRef coinbase, uint32_t version, uint32_t timestamp, uint32_t nonce)
