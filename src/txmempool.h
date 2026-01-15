@@ -103,8 +103,7 @@ public:
     }
 };
 
-// Multi_index tag names
-struct entry_time {};
+// Multi_index tag name
 struct index_by_wtxid {};
 
 /**
@@ -162,7 +161,7 @@ struct TxMempoolInfo
  * interfaces to the rest of the codebase, such as:
  *  - to validation for replace-by-fee calculations and cluster size limits
  *    when evaluating unconfirmed transactions
- *  - to validation for evicting transactions due to expiry or the mempool size
+ *  - to validation for evicting transactions due to the mempool size
  *    limit being hit
  *  - to validation for updating the mempool to be consistent with the best
  *    chain after a new block is connected or after a reorg.
@@ -174,10 +173,9 @@ struct TxMempoolInfo
  * functions.)
  *
  * Within CTxMemPool, the mempool entries are stored in a boost::multi_index
- * mapTx, which sorts the mempool on 3 criteria:
+ * mapTx, which sorts the mempool on 2 criteria:
  * - transaction hash (txid)
  * - witness-transaction hash (wtxid)
- * - time in mempool
  *
  * We also maintain a map from COutPoint to the (in-mempool) transaction that
  * spends it (mapNextTx). This allows us to recover from a reorg and find
@@ -222,12 +220,6 @@ public:
                 boost::multi_index::tag<index_by_wtxid>,
                 mempoolentry_wtxid,
                 SaltedWtxidHasher
-            >,
-            // sorted by entry time
-            boost::multi_index::ordered_non_unique<
-                boost::multi_index::tag<entry_time>,
-                boost::multi_index::identity<CTxMemPoolEntry>,
-                CompareTxMemPoolEntryByEntryTime
             >
         >
         {};
@@ -462,9 +454,6 @@ public:
       */
     void TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpendsRemaining = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
-    /** Expire all transaction (and their dependencies) in the mempool older than time. Return the number of removed transactions. */
-    int Expire(std::chrono::seconds time) EXCLUSIVE_LOCKS_REQUIRED(cs);
-
     /**
      * Calculate the ancestor and cluster count for the given transaction.
      * The counts include the transaction itself.
@@ -624,7 +613,7 @@ public:
      * This class is used for all mempool additions and associated removals (eg
      * due to rbf). Removals that don't need to be evaluated for acceptance,
      * such as removing transactions that appear in a block, or due to reorg,
-     * or removals related to mempool limiting or expiry do not need to use
+     * or removals related to mempool limiting do not need to use
      * this.
      *
      * Callers can interleave calls to StageAddition()/StageRemoval(), and

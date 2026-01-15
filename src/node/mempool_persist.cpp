@@ -100,27 +100,22 @@ bool LoadMempool(CTxMemPool& pool, const fs::path& load_path, Chainstate& active
             if (amountdelta && opts.apply_fee_delta_priority) {
                 pool.PrioritiseTransaction(tx->GetHash(), amountdelta);
             }
-            if (nTime > TicksSinceEpoch<std::chrono::seconds>(now - pool.m_opts.expiry)) {
-                LOCK(cs_main);
-                const auto& accepted = AcceptToMemoryPool(active_chainstate, tx, nTime, /*bypass_limits=*/false, /*test_accept=*/false);
-                if (accepted.m_result_type == MempoolAcceptResult::ResultType::VALID) {
-                    ++count;
-                } else {
-                    // mempool may contain the transaction already, e.g. from
-                    // wallet(s) having loaded it while we were processing
-                    // mempool transactions; consider these as valid, instead of
-                    // failed, but mark them as 'already there'
-                    if (pool.exists(tx->GetHash())) {
-                        ++already_there;
-                    } else {
-                        ++failed;
-                    }
-                }
+            LOCK(cs_main);
+            const auto& accepted = AcceptToMemoryPool(active_chainstate, tx, nTime, /*bypass_limits=*/false, /*test_accept=*/false);
+            if (accepted.m_result_type == MempoolAcceptResult::ResultType::VALID) {
+                ++count;
             } else {
-                ++expired;
+                // mempool may contain the transaction already, e.g. from
+                // wallet(s) having loaded it while we were processing
+                // mempool transactions; consider these as valid, instead of
+                // failed, but mark them as 'already there'
+                if (pool.exists(tx->GetHash())) {
+                    ++already_there;
+                } else {
+                    ++failed;
+                }
             }
-            if (active_chainstate.m_chainman.m_interrupt)
-                return false;
+            if (active_chainstate.m_chainman.m_interrupt) return false;
         }
         std::map<Txid, CAmount> mapDeltas;
         file >> mapDeltas;
@@ -146,7 +141,7 @@ bool LoadMempool(CTxMemPool& pool, const fs::path& load_path, Chainstate& active
         return false;
     }
 
-    LogInfo("Imported mempool transactions from file: %i succeeded, %i failed, %i expired, %i already there, %i waiting for initial broadcast\n", count, failed, expired, already_there, unbroadcast);
+    LogInfo("Imported mempool transactions from file: %i succeeded, %i failed, %i already there, %i waiting for initial broadcast\n", count, failed, already_there, unbroadcast);
     return true;
 }
 
