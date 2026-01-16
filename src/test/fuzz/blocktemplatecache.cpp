@@ -110,7 +110,7 @@ FUZZ_TARGET(block_template_cache, .init = initialize_block_template_cache)
         {
             // Different options should produce a newer template despite long maximum block age
             modified_options.max_template_age = MillisecondsDouble::max();
-            assert(!node::ShareableOptions(modified_options, base_options));
+            assert(!node::NonShareableOptionsEqual(modified_options, base_options));
             block_template = template_cache->GetBlockTemplate(modified_options);
             assert(block_template->m_creation_time > prev_time);
 

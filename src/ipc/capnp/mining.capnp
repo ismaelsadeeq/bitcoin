@@ -37,7 +37,7 @@ interface BlockTemplate $Proxy.wrap("interfaces::BlockTemplate") {
     interruptWait @11() -> ();
 }
 
-struct BlockCreateOptions $Proxy.wrap("node::BlockCreateOptions") {
+struct BlockCreateOptions $Proxy.wrap("node::NonShareableBlockCreateOptions") {
     useMempool @0 :Bool $Proxy.name("use_mempool");
     blockReservedWeight @1 :UInt64 $Proxy.name("block_reserved_weight");
     coinbaseOutputMaxAdditionalSigops @2 :UInt64 $Proxy.name("coinbase_output_max_additional_sigops");

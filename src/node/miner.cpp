@@ -324,24 +324,12 @@ void BlockAssembler::addChunks()
     }
 }
 
-bool ShareableOptions(const BlockAssembler::Options& a, const BlockAssembler::Options& b)
+bool NonShareableOptionsEqual(const BlockAssembler::Options& a,
+                            const BlockAssembler::Options& b)
 {
-    // We intentionally do not compare the coinbase output script.
-    // It’s acceptable for them to differ because, as long as the reserved
-    // weight and additional sigops for the coinbase match, we can assume
-    // that the cumulative weight and sigops (even if the coinbase output script differs)
-    // remain within acceptable limits.
-    //
-    // We also don’t compare whether block validity has been checked,
-    // since validity can always be tested again.
-    // Note: we should update this helper when the constraint changes.
-    return a.use_mempool == b.use_mempool &&
-           a.block_reserved_weight == b.block_reserved_weight &&
-           a.blockMinFeeRate == b.blockMinFeeRate &&
-           a.coinbase_output_max_additional_sigops == b.coinbase_output_max_additional_sigops &&
-           a.nBlockMaxWeight == b.nBlockMaxWeight;
+    return static_cast<const NonShareableBlockCreateOptions&>(a) ==
+           static_cast<const NonShareableBlockCreateOptions&>(b);
 }
-
 BlockTemplateCache::BlockTemplateCache(CTxMemPool& mempool, ChainstateManager& chainman, size_t block_template_cache_size)
     : m_mempool(mempool), m_chainman(chainman), m_block_template_cache_size(block_template_cache_size)
 {
@@ -383,7 +371,7 @@ BlockTemplateRef BlockTemplateCache::GetBlockTemplate(const BlockAssembler::Opti
 {
     LOCK2(cs_main, m_mutex);
     for (auto it = m_block_templates.rbegin(); it != m_block_templates.rend(); it++) {
-        if (ShareableOptions(it->first, options) && !TimeIntervalElapsed(it->second->m_creation_time, options.max_template_age)) {
+        if (NonShareableOptionsEqual(it->first, options) && !TimeIntervalElapsed(it->second->m_creation_time, options.max_template_age)) {
             if (options.test_block_validity && !it->first.test_block_validity) {
                 if (BlockValidationState state{TestBlockValidity(m_chainman.ActiveChainstate(), it->second->block,
                                                                  /*check_pow=*/false, /*check_merkle_root=*/false)};

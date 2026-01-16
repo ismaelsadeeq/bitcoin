@@ -906,7 +906,7 @@ BOOST_AUTO_TEST_CASE(blocktemplate_cache)
         // test_block_validity being true does not make us generate a new template and we consider options similar
         auto custom_options = base_options;
         custom_options.test_block_validity = true;
-        BOOST_CHECK(ShareableOptions(custom_options, base_options));
+        BOOST_CHECK(NonShareableOptionsEqual(custom_options, base_options));
         BOOST_CHECK(template_cache->GetBlockTemplate(custom_options)->m_creation_time == prev_time);
     }
 
@@ -915,7 +915,7 @@ BOOST_AUTO_TEST_CASE(blocktemplate_cache)
         auto custom_options = base_options;
         auto custom_script{CScript() << OP_FALSE};
         custom_options.coinbase_output_script = custom_script;
-        BOOST_CHECK(ShareableOptions(custom_options, base_options));
+        BOOST_CHECK(NonShareableOptionsEqual(custom_options, base_options));
         BOOST_CHECK(template_cache->GetBlockTemplate(custom_options)->m_creation_time == prev_time);
     }
 
@@ -942,7 +942,7 @@ BOOST_AUTO_TEST_CASE(blocktemplate_cache)
         // Custom nBlockMaxWeight will trigger a new block
         auto custom_options = base_options;
         custom_options.nBlockMaxWeight -= 1;
-        BOOST_CHECK(!ShareableOptions(custom_options, base_options));
+        BOOST_CHECK(!NonShareableOptionsEqual(custom_options, base_options));
         // When the options are not similar, create a new template even with large max_template_age
         base_options.max_template_age = MillisecondsDouble::max();
         SetMockTime(GetMockTime() + std::chrono::seconds{1});
@@ -955,7 +955,7 @@ BOOST_AUTO_TEST_CASE(blocktemplate_cache)
         // Different use_mempool will trigger a new block
         auto custom_options = base_options;
         custom_options.use_mempool = false;
-        BOOST_CHECK(!ShareableOptions(custom_options, base_options));
+        BOOST_CHECK(!NonShareableOptionsEqual(custom_options, base_options));
         SetMockTime(GetMockTime() + std::chrono::seconds{1});
         block_template = template_cache->GetBlockTemplate(custom_options);
         BOOST_CHECK(block_template->m_creation_time > prev_time);
@@ -966,7 +966,7 @@ BOOST_AUTO_TEST_CASE(blocktemplate_cache)
         // Custom coinbase_output_max_additional_sigops will trigger a new block
         auto custom_options = base_options;
         custom_options.coinbase_output_max_additional_sigops -= 1;
-        BOOST_CHECK(!ShareableOptions(custom_options, base_options));
+        BOOST_CHECK(!NonShareableOptionsEqual(custom_options, base_options));
         SetMockTime(GetMockTime() + std::chrono::seconds{1});
         block_template = template_cache->GetBlockTemplate(custom_options);
         BOOST_CHECK(block_template->m_creation_time > prev_time);
@@ -977,7 +977,7 @@ BOOST_AUTO_TEST_CASE(blocktemplate_cache)
         // Custom blockMinFeeRate will trigger a new block
         auto custom_options = base_options;
         custom_options.blockMinFeeRate += CFeeRate(1);
-        BOOST_CHECK(!ShareableOptions(custom_options, base_options));
+        BOOST_CHECK(!NonShareableOptionsEqual(custom_options, base_options));
         SetMockTime(GetMockTime() + std::chrono::seconds{1});
         block_template = template_cache->GetBlockTemplate(custom_options);
         BOOST_CHECK(block_template->m_creation_time > prev_time);

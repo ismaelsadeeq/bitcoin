@@ -968,7 +968,7 @@ public:
         return WaitTipChanged(chainman(), notifications(), current_tip, timeout);
     }
 
-    std::unique_ptr<BlockTemplate> createNewBlock(const BlockCreateOptions& options) override
+    std::unique_ptr<BlockTemplate> createNewBlock(const NonShareableBlockCreateOptions& options) override
     {
         // Ensure m_tip_block is set so consumers of BlockTemplate can rely on that.
         if (!waitTipChanged(uint256::ZERO, MillisecondsDouble::max())) return {};

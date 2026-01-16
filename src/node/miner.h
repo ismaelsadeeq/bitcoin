@@ -43,7 +43,6 @@ using kernel::ChainstateRole;
 namespace node {
 class KernelNotifications;
 
-static const bool DEFAULT_PRINT_MODIFIED_FEE = false;
 static constexpr size_t DEFAULT_BLOCK_TEMPLATE_CACHE_SIZE{10};
 
 // Return true if current time is greater or equal to `prev_time + time_interval`, or if
@@ -97,16 +96,7 @@ private:
     Chainstate& m_chainstate;
 
 public:
-    struct Options : BlockCreateOptions {
-        // Configuration parameters for the block size
-        size_t nBlockMaxWeight{DEFAULT_BLOCK_MAX_WEIGHT};
-        CFeeRate blockMinFeeRate{DEFAULT_BLOCK_MIN_TX_FEE};
-        // Whether to call TestBlockValidity() at the end of CreateNewBlock().
-        bool test_block_validity{true};
-        bool print_modified_fee{DEFAULT_PRINT_MODIFIED_FEE};
-        // By default always return a fresh template.
-        MillisecondsDouble max_template_age{0};
-    };
+    struct Options: NonShareableBlockCreateOptions, ShareableBlockCreateOptions {};
 
     explicit BlockAssembler(Chainstate& chainstate, const CTxMemPool* mempool, const Options& options);
 
@@ -149,7 +139,7 @@ private:
  * Limit comparison to assembly options that impact the final block (without dummy coinbase
  * scriptPubKey).
  */
-bool ShareableOptions(const BlockAssembler::Options& a, const BlockAssembler::Options& b);
+bool NonShareableOptionsEqual(const BlockAssembler::Options& a, const BlockAssembler::Options& b);
 
 /*
  * BlockTemplateCache provides a thread-safe interface for creating and reusing

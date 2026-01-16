@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <optional>
 #include <policy/policy.h>
+#include <policy/feerate.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
 #include <uint256.h>
@@ -36,38 +37,58 @@ enum class TransactionError {
     INVALID_PACKAGE,
 };
 
-struct BlockCreateOptions {
+static bool DEFAULT_PRINT_MODIFIED_FEE{true};
+
+// This are block creation option that does not affect the outcome of the final block template.
+struct ShareableBlockCreateOptions {
     /**
-     * Set false to omit mempool transactions
-     */
-    bool use_mempool{true};
-    /**
-     * The default reserved weight for the fixed-size block header,
-     * transaction count and coinbase transaction.
-     */
-    size_t block_reserved_weight{DEFAULT_BLOCK_RESERVED_WEIGHT};
+    * Script to put in the coinbase transaction. The default is an
+    * anyone-can-spend dummy.
+    *
+    * Should only be used for tests, when the default doesn't suffice.
+    *
+    * Note that higher level code like the getblocktemplate RPC may omit the
+    * coinbase transaction entirely. It's instead constructed by pool software
+    * using fields like coinbasevalue, coinbaseaux and default_witness_commitment.
+    * This software typically also controls the payout outputs, even for solo
+    * mining.
+    *
+    * The size and sigops are not checked against
+    * coinbase_max_additional_weight and coinbase_output_max_additional_sigops
+    */
+    CScript coinbase_output_script{CScript() << OP_TRUE};
+    // By default always return a fresh template.
+    MillisecondsDouble max_template_age{0};
+    // Whether to call TestBlockValidity() at the end of CreateNewBlock().
+    bool test_block_validity{true};
+    bool print_modified_fee{DEFAULT_PRINT_MODIFIED_FEE};
+};
+
+// This block templare creation option affect the outcome of the final block template.
+struct NonShareableBlockCreateOptions {
     /**
      * The maximum additional sigops which the pool will add in coinbase
      * transaction outputs.
      */
     size_t coinbase_output_max_additional_sigops{400};
+
     /**
-     * Script to put in the coinbase transaction. The default is an
-     * anyone-can-spend dummy.
-     *
-     * Should only be used for tests, when the default doesn't suffice.
-     *
-     * Note that higher level code like the getblocktemplate RPC may omit the
-     * coinbase transaction entirely. It's instead constructed by pool software
-     * using fields like coinbasevalue, coinbaseaux and default_witness_commitment.
-     * This software typically also controls the payout outputs, even for solo
-     * mining.
-     *
-     * The size and sigops are not checked against
-     * coinbase_max_additional_weight and coinbase_output_max_additional_sigops.
+     * The default reserved weight for the fixed-size block header,
+     * transaction count and coinbase transaction.
      */
-    CScript coinbase_output_script{CScript() << OP_TRUE};
-};
+    size_t block_reserved_weight{DEFAULT_BLOCK_RESERVED_WEIGHT};
+
+    /**
+     * Set false to omit mempool transactions
+     */
+    bool use_mempool{true};
+
+    // Configuration parameters for the block size
+    size_t nBlockMaxWeight{DEFAULT_BLOCK_MAX_WEIGHT};
+    CFeeRate blockMinFeeRate{DEFAULT_BLOCK_MIN_TX_FEE};
+    auto operator<=>(const NonShareableBlockCreateOptions&) const = default;
+ };
+
 
 struct BlockWaitOptions {
     /**
