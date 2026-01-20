@@ -282,8 +282,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res1{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res1.status == DiagramCheckStatus::FAILURE);
     BOOST_CHECK(res1.error_message == "insufficient feerate: does not improve feerate diagram");
-    BOOST_CHECK(res1.old_diagram == std::vector<FeeFrac>{});
-    BOOST_CHECK(res1.new_diagram == std::vector<FeeFrac>{});
+    BOOST_CHECK(res1.diagrams == (std::pair<ChunksWithId, ChunksWithId>{}));
 
     // With one more satoshi it does
     changeset.reset();
@@ -296,7 +295,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res2{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res2.status == DiagramCheckStatus::IMPROVED);
     BOOST_CHECK(diagrams2.has_value());
-    BOOST_CHECK(res2.diagrams == diagrams2);
+    BOOST_CHECK(res2.diagrams == *diagrams2);
     BOOST_CHECK(res2.error_message == "");
 
     changeset.reset();
@@ -329,7 +328,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res4{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res4.status == DiagramCheckStatus::IMPROVED);
     BOOST_CHECK(diagrams4.has_value());
-    BOOST_CHECK(res4.diagrams == diagrams4);
+    BOOST_CHECK(res4.diagrams == *diagrams4);
 
     changeset.reset();
 
@@ -348,7 +347,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res5{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res5.status == DiagramCheckStatus::IMPROVED);
     BOOST_CHECK(diagrams5.has_value());
-    BOOST_CHECK(res5.diagrams == diagrams5);
+    BOOST_CHECK(res5.diagrams == *diagrams5);
     BOOST_CHECK(res5.error_message == "");
 }
 
