@@ -1,144 +1,853 @@
 [  1%] Generating bitcoin-build-info.h
 [  1%] Built target secp256k1_precomputed
-[  1%] Built target crc32c
 [  1%] Built target mputil
+[  1%] Built target crc32c
 [  1%] Built target exhaustive_tests
 [  2%] Built target univalue
 [  2%] Built target bitcoin_cli
 [  5%] Built target minisketch
 [  8%] Built target bitcoin_crypto
 [ 11%] Built target bitcoin_consensus
+[ 12%] Built target tests
 [ 12%] Built target secp256k1
 [ 12%] Built target noverify_tests
-[ 12%] Built target tests
+[ 12%] Built target mpgen
+[ 12%] Built target object
 [ 13%] Built target multiprocess
-[ 13%] Built target mpgen
-[ 13%] Built target object
 [ 23%] Built target unitester
 [ 29%] Built target leveldb
 [ 31%] Built target test_util
 [ 32%] Built target bitcoin_ipc_headers
 [ 33%] Built target mptest
 [ 33%] Built target mptests
-[ 34%] Built target bitcoin_ipc_test
 [ 38%] Built target bitcoin_ipc
+[ 38%] Built target bitcoin_ipc_test
 [ 38%] Built target generate_build_info
 [ 38%] Built target bitcoin_clientversion
 [ 43%] Built target bitcoin_util
 [ 52%] Built target bitcoin_common
 [ 57%] Built target bitcoin_wallet
+[ 57%] Built target bitcoin-cli
 [ 57%] Built target bitcoin
 [ 57%] Built target bitcoin-tx
-[ 57%] Built target bitcoin-cli
 [ 57%] Built target bitcoin-util
 [ 58%] Built target bitcoin-wallet
-[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/txgraph.cpp.o
 [ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/txmempool.cpp.o
-[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/validation.cpp.o
-[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/validationinterface.cpp.o
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.cpp:205:6: error: no declaration matches ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >)’
-  205 | void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>> feerate_diagrams)
-      |      ^~~~~~~~~~~~~~~~~
-In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.cpp:6:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:10: note: candidate is: ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
-  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
-      |          ^~~~~~~~~~~~~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:176:7: note: ‘class ValidationSignals’ defined here
-  176 | class ValidationSignals {
-      |       ^~~~~~~~~~~~~~~~~
-make[2]: *** [src/CMakeFiles/bitcoin_node.dir/build.make:1339: src/CMakeFiles/bitcoin_node.dir/validationinterface.cpp.o] Error 1
+[ 58%] Linking CXX static library ../lib/libbitcoin_node.a
+[ 74%] Built target bitcoin_node
+[ 74%] Linking CXX executable ../bin/bitcoind
+[ 75%] Linking CXX executable ../bin/bitcoin-node
+[ 75%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/sock_tests.cpp.o
+[ 75%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/rbf_tests.cpp.o
+[ 75%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/streams_tests.cpp.o
+[ 75%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/sigopcount_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/sync_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/system_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/system_ram_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/testnet4_miner_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/span_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/torcontrol_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/timeoffsets_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/skiplist_tests.cpp.o
+[ 76%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/transaction_tests.cpp.o
+[ 77%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/translation_tests.cpp.o
+[ 77%] Built target bitcoind
+[ 77%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txdownload_tests.cpp.o
+[ 77%] Built target bitcoin-node
+[ 77%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txgraph_tests.cpp.o
+[ 77%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txindex_tests.cpp.o
+[ 77%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txpackage_tests.cpp.o
+[ 77%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txreconciliation_tests.cpp.o
+[ 77%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txrequest_tests.cpp.o
+[ 78%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txvalidation_tests.cpp.o
+[ 78%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/txvalidationcache_tests.cpp.o
+[ 78%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/uint256_tests.cpp.o
+[ 78%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/util_check_tests.cpp.o
+[ 78%] Building CXX object src/test/CMakeFiles/test_bitcoin.dir/util_expected_tests.cpp.o
+In file included from include/boost/test/test_tools.hpp:45,
+                 from include/boost/test/unit_test.hpp:18,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:13:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp: In member function ‘void rbf_tests::improves_feerate::test_method()’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:285:22: error: ‘const struct DiagramCheckResult’ has no member named ‘old_diagram’
+  285 |     BOOST_CHECK(res1.old_diagram == std::vector<FeeFrac>{});
+      |                      ^~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:286:22: error: ‘const struct DiagramCheckResult’ has no member named ‘new_diagram’
+  286 |     BOOST_CHECK(res1.new_diagram == std::vector<FeeFrac>{});
+      |                      ^~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:31: error: no match for ‘operator==’ (operand types are ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ and ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’)
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                 ~~~~~~~~~~~~~ ^~ ~~~~~~~~~
+      |                      |           |
+      |                      |           util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >
+      |                      const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >
+In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/memusage.h:10,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/core_memusage.h:10,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/coins.h:10,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.h:9,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/policy/rbf.h:11,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:5:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/support/allocators/pool.h:349:6: note: candidate: ‘template<class T1, class T2, long unsigned int MAX_BLOCK_SIZE_BYTES, long unsigned int ALIGN_BYTES> bool operator==(const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>&, const PoolAllocator<T2, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>&)’ (reversed)
+  349 | bool operator==(const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>& a,
+      |      ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/support/allocators/pool.h:349:6: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/x86_64-unknown-linux-gnu/bits/c++allocator.h:33,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:46,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string:43,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/common/system.h:13,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:4:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note: candidate: ‘template<class _Up> constexpr bool std::operator==(const __new_allocator<FeeFrac>&, const __new_allocator<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__new_allocator<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note: candidate: ‘template<class _Up> constexpr bool std::operator==(const __new_allocator<uint256>&, const __new_allocator<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__new_allocator<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/common/system.h:12:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1292:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const optional<_Tp>&, nullopt_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1292:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::optional<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:235:5: note: candidate: ‘template<class _T1, class _T2> constexpr bool std::operator==(const allocator<_CharT>&, const allocator<_T2>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:235:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::allocator<_CharT>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string:48:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:527:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const reverse_iterator<_IteratorL>&, const reverse_iterator<_IteratorR>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:527:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::reverse_iterator<_IteratorL>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1667:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorR>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1667:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_algobase.h:64,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string:51:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_pair.h:1010:5: note: candidate: ‘template<class _T1, class _T2, class _U1, class _U2> constexpr bool std::operator==(const pair<_T1, _T2>&, const pair<_U1, _U2>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_pair.h:1010:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::pair<_T1, _T2>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:47,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string:54:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string_view:612:5: note: candidate: ‘template<class _CharT, class _Traits> constexpr bool std::operator==(basic_string_view<_CharT, _Traits>, type_identity_t<basic_string_view<_CharT, _Traits> >)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string_view:612:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘std::basic_string_view<_CharT, _Traits>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3772:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const _CharT*)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3772:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/uses_allocator_args.h:39,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/memory_resource.h:41,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string:68:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/tuple:2560:5: note: candidate: ‘template<class ... _TElements, class ... _UElements> constexpr bool std::operator==(const tuple<_UTypes ...>&, const tuple<_Elements ...>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/tuple:2560:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::tuple<_UTypes ...>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/memory:78,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/serialize.h:22,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/script/script.h:12,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/primitives/transaction.h:12,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/policy/rbf.h:9:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:838:5: note: candidate: ‘template<class _Tp, class _Dp, class _Up, class _Ep> bool std::operator==(const unique_ptr<_Tp, _Dp>&, const unique_ptr<_Up, _Ep>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:838:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:846:5: note: candidate: ‘template<class _Tp, class _Dp> bool std::operator==(const unique_ptr<_Tp, _Dp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:846:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:53,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/memory:80:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1797:5: note: candidate: ‘template<class _Tp1, class _Tp2, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp1, _Lp>&, const __shared_ptr<_Tp2, _Lp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1797:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__shared_ptr<_Tp1, _Lp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1803:5: note: candidate: ‘template<class _Tp, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp, _Lp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1803:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__shared_ptr<_Tp, _Lp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:554:5: note: candidate: ‘template<class _Tp, class _Up> bool std::operator==(const shared_ptr<_Tp>&, const shared_ptr<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:554:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::shared_ptr<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:560:5: note: candidate: ‘template<class _Tp> bool std::operator==(const shared_ptr<_Tp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:560:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::shared_ptr<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/functional:59,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/coins.h:22:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_function.h:743:5: note: candidate: ‘template<class _Res, class ... _Args> bool std::operator==(const function<_Res(_ArgTypes ...)>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_function.h:743:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::function<_Res(_ArgTypes ...)>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from include/boost/container_hash/hash.hpp:33,
+                 from include/boost/multi_index/detail/hash_index_args.hpp:17,
+                 from include/boost/multi_index/hashed_index_fwd.hpp:16,
+                 from include/boost/multi_index/hashed_index.hpp:43,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.h:28:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:477:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const _Tp&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:477:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::complex<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/ios_base.h:46,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/locale_facets.h:43,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/locale:42,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/string.h:13,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/strencodings.h:14,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:11,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/primitives/transaction_identifier.h:9,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/primitives/transaction.h:11:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:465:3: note: candidate: ‘bool std::operator==(const error_code&, const error_condition&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:465:32: note:   no known conversion for argument 1 from ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ to ‘const std::error_code&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1232:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const optional<_Up>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1232:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::optional<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1360:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const _Up&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1360:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::optional<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1366:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Up, _Tp> std::operator==(const _Up&, const optional<_Tp>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1366:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::optional<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/char_traits.h:42,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string:42:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/postypes.h:192:5: note: candidate: ‘template<class _StateT> bool std::operator==(const fpos<_StateT>&, const fpos<_StateT>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/postypes.h:192:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::fpos<_StateT>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:586:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const reverse_iterator<_IteratorL>&, const reverse_iterator<_IteratorL>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:586:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::reverse_iterator<_IteratorL>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1737:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorL>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1737:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3755:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3755:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/span:43,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/span.h:10,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:10:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/array:303:5: note: candidate: ‘template<class _Tp, long unsigned int _Nm> constexpr bool std::operator==(const array<_Tp, _Nm>&, const array<_Tp, _Nm>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/array:303:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::array<_Tp, _Nm>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/locale_facets.h:48:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/streambuf_iterator.h:234:5: note: candidate: ‘template<class _CharT, class _Traits> bool std::operator==(const istreambuf_iterator<_CharT, _Traits>&, const istreambuf_iterator<_CharT, _Traits>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/streambuf_iterator.h:234:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::istreambuf_iterator<_CharT, _Traits>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/vector:66,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/string.h:17:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_vector.h:2071:5: note: candidate: ‘template<class _Tp, class _Alloc> constexpr bool std::operator==(const vector<_Tp, _Alloc>&, const vector<_Tp, _Alloc>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_vector.h:2071:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::vector<_Tp, _Alloc>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/primitives/transaction_identifier.h:15:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1266:3: note: candidate: ‘template<class ... _Types> constexpr bool std::operator==(const variant<_Types ...>&, const variant<_Types ...>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1266:3: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::variant<_Types ...>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/map:63,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/serialize.h:21:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_map.h:1512:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const map<_Key, _Tp, _Compare, _Allocator>&, const map<_Key, _Tp, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_map.h:1512:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::map<_Key, _Tp, _Compare, _Allocator>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/map:64:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multimap.h:1134:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const multimap<_Key, _Tp, _Compare, _Allocator>&, const multimap<_Key, _Tp, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multimap.h:1134:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::multimap<_Key, _Tp, _Compare, _Allocator>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/set:63,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/serialize.h:23:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_set.h:987:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const set<_Key, _Compare, _Allocator>&, const set<_Key, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_set.h:987:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::set<_Key, _Compare, _Allocator>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/set:64:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multiset.h:973:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const multiset<_Key, _Compare, _Allocator>&, const multiset<_Key, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multiset.h:973:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::multiset<_Key, _Compare, _Allocator>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/list:65,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/support/allocators/pool.h:11:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_list.h:2131:5: note: candidate: ‘template<class _Tp, class _Alloc> bool std::operator==(const __cxx11::list<_Tp, _Alloc>&, const __cxx11::list<_Tp, _Alloc>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_list.h:2131:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__cxx11::list<_Tp, _Alloc>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/unordered_map:41,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/memusage.h:20:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2144:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2144:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2158:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2158:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/unordered_set:41,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/memusage.h:21:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1813:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1813:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1827:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1827:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:472:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const complex<_Tp>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:472:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:299:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::complex<_Tp>’
+  299 |     BOOST_CHECK(res2.diagrams == diagrams2);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:7: note: candidate: ‘constexpr bool std::operator==(const allocator<FeeFrac>&, const allocator<FeeFrac>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:18: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::allocator<FeeFrac>&’
+In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/policy/policy.h:14,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/kernel/mempool_entry.h:11,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.h:13:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/feefrac.h:151:24: note: candidate: ‘bool operator==(const FeeFrac&, const FeeFrac&)’
+  151 |     friend inline bool operator==(const FeeFrac& a, const FeeFrac& b) noexcept
+      |                        ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/feefrac.h:151:50: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const FeeFrac&’
+  151 |     friend inline bool operator==(const FeeFrac& a, const FeeFrac& b) noexcept
+      |                                   ~~~~~~~~~~~~~~~^
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:7: note: candidate: ‘constexpr bool std::operator==(const allocator<uint256>&, const allocator<uint256>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:18: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::allocator<uint256>&’
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:66:27: note: candidate: ‘constexpr bool operator==(const base_blob<256>&, const base_blob<256>&)’
+   66 |     friend constexpr bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
+      |                           ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:66:55: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const base_blob<256>&’
+   66 |     friend constexpr bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
+      |                                      ~~~~~~~~~~~~~~~~~^
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:449:3: note: candidate: ‘bool std::operator==(const error_code&, const error_code&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:449:32: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::error_code&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:480:3: note: candidate: ‘bool std::operator==(const error_condition&, const error_condition&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:480:37: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::error_condition&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1273:18: note: candidate: ‘constexpr bool std::operator==(monostate, monostate)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1273:29: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘std::monostate’
+In file included from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/stop_token:40,
+                 from /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/condition_variable:49,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/sync.h:18,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/kernel/cs_main.h:8,
+                 from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.h:12:
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_thread.h:333:3: note: candidate: ‘bool std::operator==(thread::id, thread::id)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_thread.h:333:25: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘std::thread::id’
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:31: error: no match for ‘operator==’ (operand types are ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ and ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’)
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                 ~~~~~~~~~~~~~ ^~ ~~~~~~~~~
+      |                      |           |
+      |                      |           util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >
+      |                      const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/support/allocators/pool.h:349:6: note: candidate: ‘template<class T1, class T2, long unsigned int MAX_BLOCK_SIZE_BYTES, long unsigned int ALIGN_BYTES> bool operator==(const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>&, const PoolAllocator<T2, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>&)’ (reversed)
+  349 | bool operator==(const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>& a,
+      |      ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/support/allocators/pool.h:349:6: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note: candidate: ‘template<class _Up> constexpr bool std::operator==(const __new_allocator<FeeFrac>&, const __new_allocator<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__new_allocator<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note: candidate: ‘template<class _Up> constexpr bool std::operator==(const __new_allocator<uint256>&, const __new_allocator<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__new_allocator<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1292:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const optional<_Tp>&, nullopt_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1292:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::optional<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:235:5: note: candidate: ‘template<class _T1, class _T2> constexpr bool std::operator==(const allocator<_CharT>&, const allocator<_T2>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:235:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::allocator<_CharT>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:527:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const reverse_iterator<_IteratorL>&, const reverse_iterator<_IteratorR>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:527:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::reverse_iterator<_IteratorL>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1667:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorR>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1667:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_pair.h:1010:5: note: candidate: ‘template<class _T1, class _T2, class _U1, class _U2> constexpr bool std::operator==(const pair<_T1, _T2>&, const pair<_U1, _U2>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_pair.h:1010:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::pair<_T1, _T2>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string_view:612:5: note: candidate: ‘template<class _CharT, class _Traits> constexpr bool std::operator==(basic_string_view<_CharT, _Traits>, type_identity_t<basic_string_view<_CharT, _Traits> >)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string_view:612:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘std::basic_string_view<_CharT, _Traits>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3772:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const _CharT*)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3772:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/tuple:2560:5: note: candidate: ‘template<class ... _TElements, class ... _UElements> constexpr bool std::operator==(const tuple<_UTypes ...>&, const tuple<_Elements ...>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/tuple:2560:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::tuple<_UTypes ...>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:838:5: note: candidate: ‘template<class _Tp, class _Dp, class _Up, class _Ep> bool std::operator==(const unique_ptr<_Tp, _Dp>&, const unique_ptr<_Up, _Ep>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:838:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:846:5: note: candidate: ‘template<class _Tp, class _Dp> bool std::operator==(const unique_ptr<_Tp, _Dp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:846:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1797:5: note: candidate: ‘template<class _Tp1, class _Tp2, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp1, _Lp>&, const __shared_ptr<_Tp2, _Lp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1797:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__shared_ptr<_Tp1, _Lp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1803:5: note: candidate: ‘template<class _Tp, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp, _Lp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1803:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__shared_ptr<_Tp, _Lp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:554:5: note: candidate: ‘template<class _Tp, class _Up> bool std::operator==(const shared_ptr<_Tp>&, const shared_ptr<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:554:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::shared_ptr<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:560:5: note: candidate: ‘template<class _Tp> bool std::operator==(const shared_ptr<_Tp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:560:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::shared_ptr<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_function.h:743:5: note: candidate: ‘template<class _Res, class ... _Args> bool std::operator==(const function<_Res(_ArgTypes ...)>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_function.h:743:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::function<_Res(_ArgTypes ...)>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:477:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const _Tp&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:477:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::complex<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:465:3: note: candidate: ‘bool std::operator==(const error_code&, const error_condition&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:465:32: note:   no known conversion for argument 1 from ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ to ‘const std::error_code&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1232:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const optional<_Up>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1232:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::optional<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1360:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const _Up&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1360:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::optional<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1366:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Up, _Tp> std::operator==(const _Up&, const optional<_Tp>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1366:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::optional<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/postypes.h:192:5: note: candidate: ‘template<class _StateT> bool std::operator==(const fpos<_StateT>&, const fpos<_StateT>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/postypes.h:192:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::fpos<_StateT>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:586:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const reverse_iterator<_IteratorL>&, const reverse_iterator<_IteratorL>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:586:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::reverse_iterator<_IteratorL>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1737:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorL>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1737:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3755:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3755:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/array:303:5: note: candidate: ‘template<class _Tp, long unsigned int _Nm> constexpr bool std::operator==(const array<_Tp, _Nm>&, const array<_Tp, _Nm>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/array:303:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::array<_Tp, _Nm>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/streambuf_iterator.h:234:5: note: candidate: ‘template<class _CharT, class _Traits> bool std::operator==(const istreambuf_iterator<_CharT, _Traits>&, const istreambuf_iterator<_CharT, _Traits>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/streambuf_iterator.h:234:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::istreambuf_iterator<_CharT, _Traits>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_vector.h:2071:5: note: candidate: ‘template<class _Tp, class _Alloc> constexpr bool std::operator==(const vector<_Tp, _Alloc>&, const vector<_Tp, _Alloc>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_vector.h:2071:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::vector<_Tp, _Alloc>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1266:3: note: candidate: ‘template<class ... _Types> constexpr bool std::operator==(const variant<_Types ...>&, const variant<_Types ...>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1266:3: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::variant<_Types ...>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_map.h:1512:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const map<_Key, _Tp, _Compare, _Allocator>&, const map<_Key, _Tp, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_map.h:1512:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::map<_Key, _Tp, _Compare, _Allocator>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multimap.h:1134:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const multimap<_Key, _Tp, _Compare, _Allocator>&, const multimap<_Key, _Tp, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multimap.h:1134:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::multimap<_Key, _Tp, _Compare, _Allocator>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_set.h:987:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const set<_Key, _Compare, _Allocator>&, const set<_Key, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_set.h:987:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::set<_Key, _Compare, _Allocator>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multiset.h:973:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const multiset<_Key, _Compare, _Allocator>&, const multiset<_Key, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multiset.h:973:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::multiset<_Key, _Compare, _Allocator>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_list.h:2131:5: note: candidate: ‘template<class _Tp, class _Alloc> bool std::operator==(const __cxx11::list<_Tp, _Alloc>&, const __cxx11::list<_Tp, _Alloc>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_list.h:2131:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__cxx11::list<_Tp, _Alloc>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2144:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2144:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2158:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2158:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1813:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1813:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1827:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1827:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:472:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const complex<_Tp>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:472:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:332:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::complex<_Tp>’
+  332 |     BOOST_CHECK(res4.diagrams == diagrams4);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:7: note: candidate: ‘constexpr bool std::operator==(const allocator<FeeFrac>&, const allocator<FeeFrac>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:18: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::allocator<FeeFrac>&’
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/feefrac.h:151:24: note: candidate: ‘bool operator==(const FeeFrac&, const FeeFrac&)’
+  151 |     friend inline bool operator==(const FeeFrac& a, const FeeFrac& b) noexcept
+      |                        ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/feefrac.h:151:50: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const FeeFrac&’
+  151 |     friend inline bool operator==(const FeeFrac& a, const FeeFrac& b) noexcept
+      |                                   ~~~~~~~~~~~~~~~^
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:7: note: candidate: ‘constexpr bool std::operator==(const allocator<uint256>&, const allocator<uint256>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:18: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::allocator<uint256>&’
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:66:27: note: candidate: ‘constexpr bool operator==(const base_blob<256>&, const base_blob<256>&)’
+   66 |     friend constexpr bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
+      |                           ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:66:55: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const base_blob<256>&’
+   66 |     friend constexpr bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
+      |                                      ~~~~~~~~~~~~~~~~~^
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:449:3: note: candidate: ‘bool std::operator==(const error_code&, const error_code&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:449:32: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::error_code&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:480:3: note: candidate: ‘bool std::operator==(const error_condition&, const error_condition&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:480:37: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::error_condition&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1273:18: note: candidate: ‘constexpr bool std::operator==(monostate, monostate)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1273:29: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘std::monostate’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_thread.h:333:3: note: candidate: ‘bool std::operator==(thread::id, thread::id)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_thread.h:333:25: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘std::thread::id’
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:31: error: no match for ‘operator==’ (operand types are ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ and ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’)
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                 ~~~~~~~~~~~~~ ^~ ~~~~~~~~~
+      |                      |           |
+      |                      |           util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >
+      |                      const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/support/allocators/pool.h:349:6: note: candidate: ‘template<class T1, class T2, long unsigned int MAX_BLOCK_SIZE_BYTES, long unsigned int ALIGN_BYTES> bool operator==(const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>&, const PoolAllocator<T2, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>&)’ (reversed)
+  349 | bool operator==(const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>& a,
+      |      ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/support/allocators/pool.h:349:6: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const PoolAllocator<T1, MAX_BLOCK_SIZE_BYTES, ALIGN_BYTES>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note: candidate: ‘template<class _Up> constexpr bool std::operator==(const __new_allocator<FeeFrac>&, const __new_allocator<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__new_allocator<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note: candidate: ‘template<class _Up> constexpr bool std::operator==(const __new_allocator<uint256>&, const __new_allocator<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/new_allocator.h:215:2: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__new_allocator<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1292:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const optional<_Tp>&, nullopt_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1292:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::optional<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:235:5: note: candidate: ‘template<class _T1, class _T2> constexpr bool std::operator==(const allocator<_CharT>&, const allocator<_T2>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:235:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::allocator<_CharT>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:527:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const reverse_iterator<_IteratorL>&, const reverse_iterator<_IteratorR>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:527:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::reverse_iterator<_IteratorL>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1667:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorR>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1667:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_pair.h:1010:5: note: candidate: ‘template<class _T1, class _T2, class _U1, class _U2> constexpr bool std::operator==(const pair<_T1, _T2>&, const pair<_U1, _U2>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_pair.h:1010:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::pair<_T1, _T2>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string_view:612:5: note: candidate: ‘template<class _CharT, class _Traits> constexpr bool std::operator==(basic_string_view<_CharT, _Traits>, type_identity_t<basic_string_view<_CharT, _Traits> >)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/string_view:612:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘std::basic_string_view<_CharT, _Traits>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3772:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const _CharT*)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3772:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/tuple:2560:5: note: candidate: ‘template<class ... _TElements, class ... _UElements> constexpr bool std::operator==(const tuple<_UTypes ...>&, const tuple<_Elements ...>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/tuple:2560:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::tuple<_UTypes ...>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:838:5: note: candidate: ‘template<class _Tp, class _Dp, class _Up, class _Ep> bool std::operator==(const unique_ptr<_Tp, _Dp>&, const unique_ptr<_Up, _Ep>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:838:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:846:5: note: candidate: ‘template<class _Tp, class _Dp> bool std::operator==(const unique_ptr<_Tp, _Dp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unique_ptr.h:846:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1797:5: note: candidate: ‘template<class _Tp1, class _Tp2, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp1, _Lp>&, const __shared_ptr<_Tp2, _Lp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1797:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__shared_ptr<_Tp1, _Lp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1803:5: note: candidate: ‘template<class _Tp, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp, _Lp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr_base.h:1803:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::__shared_ptr<_Tp, _Lp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:554:5: note: candidate: ‘template<class _Tp, class _Up> bool std::operator==(const shared_ptr<_Tp>&, const shared_ptr<_Tp>&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:554:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::shared_ptr<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:560:5: note: candidate: ‘template<class _Tp> bool std::operator==(const shared_ptr<_Tp>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/shared_ptr.h:560:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::shared_ptr<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_function.h:743:5: note: candidate: ‘template<class _Res, class ... _Args> bool std::operator==(const function<_Res(_ArgTypes ...)>&, nullptr_t)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_function.h:743:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::function<_Res(_ArgTypes ...)>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:477:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const _Tp&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:477:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::complex<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:465:3: note: candidate: ‘bool std::operator==(const error_code&, const error_condition&)’ (reversed)
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:465:32: note:   no known conversion for argument 1 from ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ to ‘const std::error_code&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1232:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const optional<_Up>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1232:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::optional<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1360:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const _Up&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1360:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::optional<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1366:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Up, _Tp> std::operator==(const _Up&, const optional<_Tp>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/optional:1366:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘util::Result<std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > > >’ is not derived from ‘const std::optional<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/postypes.h:192:5: note: candidate: ‘template<class _StateT> bool std::operator==(const fpos<_StateT>&, const fpos<_StateT>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/postypes.h:192:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::fpos<_StateT>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:586:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const reverse_iterator<_IteratorL>&, const reverse_iterator<_IteratorL>&) requires requires{{std::operator==::__x->base() == std::operator==::__y->base()} -> decltype(auto) [requires std::convertible_to<<placeholder>, bool>];}’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:586:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::reverse_iterator<_IteratorL>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1737:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorL>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_iterator.h:1737:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3755:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> constexpr bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/basic_string.h:3755:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/array:303:5: note: candidate: ‘template<class _Tp, long unsigned int _Nm> constexpr bool std::operator==(const array<_Tp, _Nm>&, const array<_Tp, _Nm>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/array:303:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::array<_Tp, _Nm>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/streambuf_iterator.h:234:5: note: candidate: ‘template<class _CharT, class _Traits> bool std::operator==(const istreambuf_iterator<_CharT, _Traits>&, const istreambuf_iterator<_CharT, _Traits>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/streambuf_iterator.h:234:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::istreambuf_iterator<_CharT, _Traits>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_vector.h:2071:5: note: candidate: ‘template<class _Tp, class _Alloc> constexpr bool std::operator==(const vector<_Tp, _Alloc>&, const vector<_Tp, _Alloc>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_vector.h:2071:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::vector<_Tp, _Alloc>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1266:3: note: candidate: ‘template<class ... _Types> constexpr bool std::operator==(const variant<_Types ...>&, const variant<_Types ...>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1266:3: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::variant<_Types ...>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_map.h:1512:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const map<_Key, _Tp, _Compare, _Allocator>&, const map<_Key, _Tp, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_map.h:1512:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::map<_Key, _Tp, _Compare, _Allocator>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multimap.h:1134:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const multimap<_Key, _Tp, _Compare, _Allocator>&, const multimap<_Key, _Tp, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multimap.h:1134:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::multimap<_Key, _Tp, _Compare, _Allocator>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_set.h:987:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const set<_Key, _Compare, _Allocator>&, const set<_Key, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_set.h:987:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::set<_Key, _Compare, _Allocator>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multiset.h:973:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const multiset<_Key, _Compare, _Allocator>&, const multiset<_Key, _Compare, _Allocator>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_multiset.h:973:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::multiset<_Key, _Compare, _Allocator>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_list.h:2131:5: note: candidate: ‘template<class _Tp, class _Alloc> bool std::operator==(const __cxx11::list<_Tp, _Alloc>&, const __cxx11::list<_Tp, _Alloc>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/stl_list.h:2131:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::__cxx11::list<_Tp, _Alloc>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2144:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2144:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2158:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_map.h:2158:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1813:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1813:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1827:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/unordered_set.h:1827:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:472:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const complex<_Tp>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/complex:472:5: note:   template argument deduction/substitution failed:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/test/rbf_tests.cpp:351:34: note:   ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ is not derived from ‘const std::complex<_Tp>’
+  351 |     BOOST_CHECK(res5.diagrams == diagrams5);
+      |                                  ^~~~~~~~~
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:7: note: candidate: ‘constexpr bool std::operator==(const allocator<FeeFrac>&, const allocator<FeeFrac>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:18: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::allocator<FeeFrac>&’
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/feefrac.h:151:24: note: candidate: ‘bool operator==(const FeeFrac&, const FeeFrac&)’
+  151 |     friend inline bool operator==(const FeeFrac& a, const FeeFrac& b) noexcept
+      |                        ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/util/feefrac.h:151:50: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const FeeFrac&’
+  151 |     friend inline bool operator==(const FeeFrac& a, const FeeFrac& b) noexcept
+      |                                   ~~~~~~~~~~~~~~~^
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:7: note: candidate: ‘constexpr bool std::operator==(const allocator<uint256>&, const allocator<uint256>&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/allocator.h:214:18: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::allocator<uint256>&’
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:66:27: note: candidate: ‘constexpr bool operator==(const base_blob<256>&, const base_blob<256>&)’
+   66 |     friend constexpr bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
+      |                           ^~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/uint256.h:66:55: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const base_blob<256>&’
+   66 |     friend constexpr bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
+      |                                      ~~~~~~~~~~~~~~~~~^
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:449:3: note: candidate: ‘bool std::operator==(const error_code&, const error_code&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:449:32: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::error_code&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:480:3: note: candidate: ‘bool std::operator==(const error_condition&, const error_condition&)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/system_error:480:37: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘const std::error_condition&’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1273:18: note: candidate: ‘constexpr bool std::operator==(monostate, monostate)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/variant:1273:29: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘std::monostate’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_thread.h:333:3: note: candidate: ‘bool std::operator==(thread::id, thread::id)’
+/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-gcc-14.3.0/include/c++/14.3.0/bits/std_thread.h:333:25: note:   no known conversion for argument 1 from ‘const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >’ to ‘std::thread::id’
+make[2]: *** [src/test/CMakeFiles/test_bitcoin.dir/build.make:1160: src/test/CMakeFiles/test_bitcoin.dir/rbf_tests.cpp.o] Error 1
 make[2]: *** Waiting for unfinished jobs....
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::removeForReorg(CChain&, std::function<bool(boost::multi_index::detail::hashed_index_iterator<boost::multi_index::detail::hashed_index_node<boost::multi_index::detail::hashed_index_node<boost::multi_index::detail::ordered_index_node<boost::multi_index::detail::null_augment_policy, boost::multi_index::detail::index_node_base<CTxMemPoolEntry, std::allocator<CTxMemPoolEntry> > > > >, boost::multi_index::detail::bucket_array<std::allocator<CTxMemPoolEntry> >, boost::multi_index::detail::hashed_unique_tag, boost::multi_index::detail::hashed_index_global_iterator_tag>)>)’:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:362:5: error: ‘SetEntries’ was not declared in this scope; did you mean ‘setEntries’?
-  362 |     SetEntries all_iters;
-      |     ^~~~~~~~~~
-      |     setEntries
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:364:9: error: ‘all_iters’ was not declared in this scope
-  364 |         all_iters.insert(mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref)));
-      |         ^~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:369:26: error: ‘all_iters’ was not declared in this scope
-  369 |         for (txiter it : all_iters) {
-      |                          ^~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:375:72: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
-  375 |             m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
-      |                                                  ~~~~~~~~~~~~~~~~~~~~~~^~
-      |                                                                        |
-      |                                                                        pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
-In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:27:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
-  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
-      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:380:22: error: ‘all_iters’ was not declared in this scope
-  380 |     for (txiter it : all_iters) {
-      |                      ^~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::removeForBlock(const std::vector<std::shared_ptr<const CTransaction> >&, unsigned int)’:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:413:9: error: ‘SetEntries’ was not declared in this scope; did you mean ‘setEntries’?
-  413 |         SetEntries conflicts;
-      |         ^~~~~~~~~~
-      |         setEntries
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:419:21: error: ‘conflicts’ was not declared in this scope
-  419 |                     conflicts.insert(it);
-      |                     ^~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:424:25: error: ‘conflicts’ was not declared in this scope
-  424 |         for (txiter it: conflicts) {
-      |                         ^~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:435:72: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
-  435 |             m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
-      |                                                  ~~~~~~~~~~~~~~~~~~~~~~^~
-      |                                                                        |
-      |                                                                        pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
-  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
-      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::check(const CCoinsViewCache&, int64_t) const’:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:518:36: error: base operand of ‘->’ has non-pointer type ‘const CTransaction’
-  518 |         for (const CTxIn &txin : tx->vin) {
-      |                                    ^~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘int CTxMemPool::Expire(std::chrono::seconds)’:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:860:72: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
-  860 |             m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
-      |                                                  ~~~~~~~~~~~~~~~~~~~~~~^~
-      |                                                                        |
-      |                                                                        pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
-  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
-      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::TrimToSize(size_t, std::vector<COutPoint>*)’:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:949:76: error: cannot convert ‘pair<std::vector<FeeFrac>,std::vector<FeeFrac>>’ to ‘pair<std::pair<uint256, std::vector<FeeFrac> >,std::pair<uint256, std::vector<FeeFrac> >>’
-  949 |     if (m_opts.signals) m_opts.signals->MempoolDiagramUpdate(std::make_pair(std::move(removed_chunks), std::vector<FeeFrac>{}));
-      |                                                              ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      |                                                                            |
-      |                                                                            pair<std::vector<FeeFrac>,std::vector<FeeFrac>>
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
-  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
-      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: At global scope:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:1044:5: error: expected unqualified-id before ‘return’
- 1044 |     return txs;
-      |     ^~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:1045:1: error: expected declaration before ‘}’ token
- 1045 | }
-      | ^
-make[2]: *** [src/CMakeFiles/bitcoin_node.dir/build.make:1297: src/CMakeFiles/bitcoin_node.dir/txmempool.cpp.o] Error 1
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp: In member function ‘MempoolAcceptResult {anonymous}::MemPoolAccept::AcceptSingleTransactionInternal(const CTransactionRef&, ATMPArgs&)’:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp:1450:90: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
- 1450 |         m_pool.m_opts.signals->MempoolDiagramUpdate(m_subpackage.m_feerate_diagrams.value());
-      |                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
-      |                                                                                          |
-      |                                                                                          pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
-In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp:65:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
-  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
-      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp: In member function ‘PackageMempoolAcceptResult {anonymous}::MemPoolAccept::AcceptMultipleTransactionsInternal(const std::vector<std::shared_ptr<const CTransaction> >&, ATMPArgs&)’:
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp:1601:85: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
- 1601 |     if (m_pool.m_opts.signals) m_pool.m_opts.signals->MempoolDiagramUpdate(std::move(m_subpackage.m_feerate_diagrams.value()));
-      |                                                                            ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      |                                                                                     |
-      |                                                                                     pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
-/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
-  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
-      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
-make[2]: *** [src/CMakeFiles/bitcoin_node.dir/build.make:1325: src/CMakeFiles/bitcoin_node.dir/validation.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:861: src/CMakeFiles/bitcoin_node.dir/all] Error 2
+make[1]: *** [CMakeFiles/Makefile2:2217: src/test/CMakeFiles/test_bitcoin.dir/all] Error 2
 make: *** [Makefile:146: all] Error 2
