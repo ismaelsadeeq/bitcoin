@@ -208,14 +208,14 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
 
         // Feerates are monotonically decreasing.
         FeeFrac first_sum;
-        for (size_t i = 0; i < calc_results->first.size(); ++i) {
-            first_sum += calc_results->first[i];
-            if (i) assert(!(calc_results->first[i - 1] << calc_results->first[i]));
+        for (size_t i = 0; i < calc_results->first.second.size(); ++i) {
+            first_sum += calc_results->first.second[i];
+            if (i) assert(!(calc_results->first.second[i - 1] << calc_results->first.second[i]));
         }
         FeeFrac second_sum;
-        for (size_t i = 0; i < calc_results->second.size(); ++i) {
-            second_sum += calc_results->second[i];
-            if (i) assert(!(calc_results->second[i - 1] << calc_results->second[i]));
+        for (size_t i = 0; i < calc_results->second.second.size(); ++i) {
+            second_sum += calc_results->second.second[i];
+            if (i) assert(!(calc_results->second.second[i - 1] << calc_results->second.second[i]));
         }
 
         FeeFrac replaced;
@@ -232,14 +232,14 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
     auto diagram_check_result{ImprovesFeerateDiagram(*changeset)};
     if (!calc_results.has_value()) {
         assert(diagram_check_result.status == DiagramCheckStatus::UNCALCULABLE);
-        assert(diagram_check_result.old_diagram.size() == 0);
-        assert(diagram_check_result.new_diagram.size() == 0);
+        assert(diagram_check_result.diagrams.first.second.size() == 0);
+        assert(diagram_check_result.diagrams.second.second.size() == 0);
     } else {
         // Diagram check succeeded
-        auto old_sum = std::accumulate(calc_results->first.begin(), calc_results->first.end(), FeeFrac{});
-        auto new_sum = std::accumulate(calc_results->second.begin(), calc_results->second.end(), FeeFrac{});
-        auto old_sum_from_res = std::accumulate(diagram_check_result.old_diagram.begin(), diagram_check_result.old_diagram.end(), FeeFrac{});
-        auto new_sum_from_res = std::accumulate(diagram_check_result.new_diagram.begin(), diagram_check_result.new_diagram.end(), FeeFrac{});
+        auto old_sum = std::accumulate(calc_results->first.second.begin(), calc_results->first.second.end(), FeeFrac{});
+        auto new_sum = std::accumulate(calc_results->second.second.begin(), calc_results->second.second.end(), FeeFrac{});
+        auto old_sum_from_res = std::accumulate(diagram_check_result.diagrams.first.second.begin(), diagram_check_result.diagrams.first.second.end(), FeeFrac{});
+        auto new_sum_from_res = std::accumulate(diagram_check_result.diagrams.second.second.begin(), diagram_check_result.diagrams.second.second.end(), FeeFrac{});
         if (diagram_check_result.status == DiagramCheckStatus::IMPROVED) {
             // New diagram's final fee should always match or exceed old diagram's
             assert(old_sum.fee <= new_sum.fee);
@@ -248,8 +248,8 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
         } else if (old_sum.fee > new_sum.fee) {
             // Or it failed, and if old diagram had higher fees, it should be a failure
             assert(diagram_check_result.status == DiagramCheckStatus::FAILURE);
-            assert(diagram_check_result.old_diagram.size() == 0);
-            assert(diagram_check_result.new_diagram.size() == 0);
+            assert(diagram_check_result.diagrams.first.second.size() == 0);
+            assert(diagram_check_result.diagrams.second.second.size() == 0);
         }
     }
 }

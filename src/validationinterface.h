@@ -9,6 +9,7 @@
 #include <kernel/cs_main.h>
 #include <primitives/transaction.h>
 #include <sync.h>
+#include <uint256.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -81,7 +82,7 @@ protected:
      * It returns the old and the new feerate diagram
      * Called on a background thread.
      */
-    virtual void MempoolDiagramUpdate(const std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>& feerate_diagrams) {}
+    virtual void MempoolDiagramUpdate(const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>>& feerate_diagrams) {}
 
     /**
      * Notifies listeners of a transaction leaving mempool.
@@ -230,7 +231,7 @@ public:
     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
     void ActiveTipChange(const CBlockIndex&, bool);
     void TransactionAddedToMempool(const NewMempoolTransactionInfo&, uint64_t mempool_sequence);
-    void MempoolDiagramUpdate(std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> feerate_diagrams);
+    void MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>> feerate_diagrams);
     void TransactionRemovedFromMempool(const CTransactionRef&, MemPoolRemovalReason, uint64_t mempool_sequence);
     void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>&, unsigned int nBlockHeight);
     void BlockConnected(const kernel::ChainstateRole&, const std::shared_ptr<const CBlock>&, const CBlockIndex* pindex);

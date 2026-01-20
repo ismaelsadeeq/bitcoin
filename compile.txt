@@ -1,0 +1,144 @@
+[  1%] Generating bitcoin-build-info.h
+[  1%] Built target secp256k1_precomputed
+[  1%] Built target crc32c
+[  1%] Built target mputil
+[  1%] Built target exhaustive_tests
+[  2%] Built target univalue
+[  2%] Built target bitcoin_cli
+[  5%] Built target minisketch
+[  8%] Built target bitcoin_crypto
+[ 11%] Built target bitcoin_consensus
+[ 12%] Built target secp256k1
+[ 12%] Built target noverify_tests
+[ 12%] Built target tests
+[ 13%] Built target multiprocess
+[ 13%] Built target mpgen
+[ 13%] Built target object
+[ 23%] Built target unitester
+[ 29%] Built target leveldb
+[ 31%] Built target test_util
+[ 32%] Built target bitcoin_ipc_headers
+[ 33%] Built target mptest
+[ 33%] Built target mptests
+[ 34%] Built target bitcoin_ipc_test
+[ 38%] Built target bitcoin_ipc
+[ 38%] Built target generate_build_info
+[ 38%] Built target bitcoin_clientversion
+[ 43%] Built target bitcoin_util
+[ 52%] Built target bitcoin_common
+[ 57%] Built target bitcoin_wallet
+[ 57%] Built target bitcoin
+[ 57%] Built target bitcoin-tx
+[ 57%] Built target bitcoin-cli
+[ 57%] Built target bitcoin-util
+[ 58%] Built target bitcoin-wallet
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/txgraph.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/txmempool.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/validation.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/validationinterface.cpp.o
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.cpp:205:6: error: no declaration matches ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac> >, std::pair<std::vector<uint256>, std::vector<FeeFrac> > >)’
+  205 | void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>> feerate_diagrams)
+      |      ^~~~~~~~~~~~~~~~~
+In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.cpp:6:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:10: note: candidate is: ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
+  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
+      |          ^~~~~~~~~~~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:176:7: note: ‘class ValidationSignals’ defined here
+  176 | class ValidationSignals {
+      |       ^~~~~~~~~~~~~~~~~
+make[2]: *** [src/CMakeFiles/bitcoin_node.dir/build.make:1339: src/CMakeFiles/bitcoin_node.dir/validationinterface.cpp.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::removeForReorg(CChain&, std::function<bool(boost::multi_index::detail::hashed_index_iterator<boost::multi_index::detail::hashed_index_node<boost::multi_index::detail::hashed_index_node<boost::multi_index::detail::ordered_index_node<boost::multi_index::detail::null_augment_policy, boost::multi_index::detail::index_node_base<CTxMemPoolEntry, std::allocator<CTxMemPoolEntry> > > > >, boost::multi_index::detail::bucket_array<std::allocator<CTxMemPoolEntry> >, boost::multi_index::detail::hashed_unique_tag, boost::multi_index::detail::hashed_index_global_iterator_tag>)>)’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:362:5: error: ‘SetEntries’ was not declared in this scope; did you mean ‘setEntries’?
+  362 |     SetEntries all_iters;
+      |     ^~~~~~~~~~
+      |     setEntries
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:364:9: error: ‘all_iters’ was not declared in this scope
+  364 |         all_iters.insert(mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref)));
+      |         ^~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:369:26: error: ‘all_iters’ was not declared in this scope
+  369 |         for (txiter it : all_iters) {
+      |                          ^~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:375:72: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
+  375 |             m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
+      |                                                  ~~~~~~~~~~~~~~~~~~~~~~^~
+      |                                                                        |
+      |                                                                        pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
+In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:27:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
+  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:380:22: error: ‘all_iters’ was not declared in this scope
+  380 |     for (txiter it : all_iters) {
+      |                      ^~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::removeForBlock(const std::vector<std::shared_ptr<const CTransaction> >&, unsigned int)’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:413:9: error: ‘SetEntries’ was not declared in this scope; did you mean ‘setEntries’?
+  413 |         SetEntries conflicts;
+      |         ^~~~~~~~~~
+      |         setEntries
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:419:21: error: ‘conflicts’ was not declared in this scope
+  419 |                     conflicts.insert(it);
+      |                     ^~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:424:25: error: ‘conflicts’ was not declared in this scope
+  424 |         for (txiter it: conflicts) {
+      |                         ^~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:435:72: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
+  435 |             m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
+      |                                                  ~~~~~~~~~~~~~~~~~~~~~~^~
+      |                                                                        |
+      |                                                                        pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
+  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::check(const CCoinsViewCache&, int64_t) const’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:518:36: error: base operand of ‘->’ has non-pointer type ‘const CTransaction’
+  518 |         for (const CTxIn &txin : tx->vin) {
+      |                                    ^~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘int CTxMemPool::Expire(std::chrono::seconds)’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:860:72: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
+  860 |             m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
+      |                                                  ~~~~~~~~~~~~~~~~~~~~~~^~
+      |                                                                        |
+      |                                                                        pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
+  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: In member function ‘void CTxMemPool::TrimToSize(size_t, std::vector<COutPoint>*)’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:949:76: error: cannot convert ‘pair<std::vector<FeeFrac>,std::vector<FeeFrac>>’ to ‘pair<std::pair<uint256, std::vector<FeeFrac> >,std::pair<uint256, std::vector<FeeFrac> >>’
+  949 |     if (m_opts.signals) m_opts.signals->MempoolDiagramUpdate(std::make_pair(std::move(removed_chunks), std::vector<FeeFrac>{}));
+      |                                                              ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                            |
+      |                                                                            pair<std::vector<FeeFrac>,std::vector<FeeFrac>>
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
+  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp: At global scope:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:1044:5: error: expected unqualified-id before ‘return’
+ 1044 |     return txs;
+      |     ^~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/txmempool.cpp:1045:1: error: expected declaration before ‘}’ token
+ 1045 | }
+      | ^
+make[2]: *** [src/CMakeFiles/bitcoin_node.dir/build.make:1297: src/CMakeFiles/bitcoin_node.dir/txmempool.cpp.o] Error 1
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp: In member function ‘MempoolAcceptResult {anonymous}::MemPoolAccept::AcceptSingleTransactionInternal(const CTransactionRef&, ATMPArgs&)’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp:1450:90: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
+ 1450 |         m_pool.m_opts.signals->MempoolDiagramUpdate(m_subpackage.m_feerate_diagrams.value());
+      |                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+      |                                                                                          |
+      |                                                                                          pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
+In file included from /home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp:65:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
+  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp: In member function ‘PackageMempoolAcceptResult {anonymous}::MemPoolAccept::AcceptMultipleTransactionsInternal(const std::vector<std::shared_ptr<const CTransaction> >&, ATMPArgs&)’:
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validation.cpp:1601:85: error: cannot convert ‘pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>’ to ‘pair<pair<uint256,[...]>,pair<uint256,[...]>>’
+ 1601 |     if (m_pool.m_opts.signals) m_pool.m_opts.signals->MempoolDiagramUpdate(std::move(m_subpackage.m_feerate_diagrams.value()));
+      |                                                                            ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                     |
+      |                                                                                     pair<pair<std::vector<uint256>,[...]>,pair<std::vector<uint256>,[...]>>
+/home/ismaelsadeeq/bitcoin-dev/bitcoin-core/bitcoin-fee-increase/src/validationinterface.h:234:125: note:   initializing argument 1 of ‘void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac> >, std::pair<uint256, std::vector<FeeFrac> > >)’
+  234 |     void MempoolDiagramUpdate(std::pair<std::pair<uint256, std::vector<FeeFrac>>, std::pair<uint256, std::vector<FeeFrac>>> feerate_diagrams);
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+make[2]: *** [src/CMakeFiles/bitcoin_node.dir/build.make:1325: src/CMakeFiles/bitcoin_node.dir/validation.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:861: src/CMakeFiles/bitcoin_node.dir/all] Error 2
+make: *** [Makefile:146: all] Error 2

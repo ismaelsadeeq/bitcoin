@@ -399,7 +399,7 @@ FUZZ_TARGET(txgraph)
             std::vector<SimTxGraph::Pos> linearization;
             linearization.reserve(cluster.size());
             for (auto refptr : cluster) linearization.push_back(sim.Find(refptr));
-            for (const FeeFrac& chunk_feerate : ChunkLinearization(sim.graph, linearization)) {
+            for (const FeeFrac& chunk_feerate : ChunkLinearization(sim.graph, linearization).second) {
                 chunk_feerates.push_back(chunk_feerate);
             }
         }
@@ -768,8 +768,8 @@ FUZZ_TARGET(txgraph)
             } else if (sims.size() == 2 && !sims[0].IsOversized() && !sims[1].IsOversized() && command-- == 0) {
                 // GetMainStagingDiagrams()
                 auto [real_main_diagram, real_staged_diagram] = real->GetMainStagingDiagrams();
-                auto real_sum_main = std::accumulate(real_main_diagram.begin(), real_main_diagram.end(), FeeFrac{});
-                auto real_sum_staged = std::accumulate(real_staged_diagram.begin(), real_staged_diagram.end(), FeeFrac{});
+                auto real_sum_main = std::accumulate(real_main_diagram.begin(), real_main_diagram.end(), FeeFrac{}, [](const FeeFrac& sum, const auto& chunk) { return sum + chunk.second; });
+                auto real_sum_staged = std::accumulate(real_staged_diagram.begin(), real_staged_diagram.end(), FeeFrac{}, [](const FeeFrac& sum, const auto& chunk) { return sum + chunk.second; });
                 auto real_gain = real_sum_staged - real_sum_main;
                 auto sim_gain = sims[1].SumAll() - sims[0].SumAll();
                 // Just check that the total fee gained/lost and size gained/lost according to the
@@ -778,10 +778,10 @@ FUZZ_TARGET(txgraph)
                 assert(sim_gain == real_gain);
                 // Check that the feerates in each diagram are monotonically decreasing.
                 for (size_t i = 1; i < real_main_diagram.size(); ++i) {
-                    assert(FeeRateCompare(real_main_diagram[i], real_main_diagram[i - 1]) <= 0);
+                    assert(FeeRateCompare(real_main_diagram[i].second, real_main_diagram[i - 1].second) <= 0);
                 }
                 for (size_t i = 1; i < real_staged_diagram.size(); ++i) {
-                    assert(FeeRateCompare(real_staged_diagram[i], real_staged_diagram[i - 1]) <= 0);
+                    assert(FeeRateCompare(real_staged_diagram[i].second, real_staged_diagram[i - 1].second) <= 0);
                 }
                 break;
             } else if (block_builders.size() < 4 && !main_sim.IsOversized() && command-- == 0) {
@@ -1065,9 +1065,9 @@ FUZZ_TARGET(txgraph)
         // If the real graph claims to be optimal (the last DoWork() call returned true), verify
         // that calling Linearize on it does not improve it further.
         if (sims[0].real_is_optimal) {
-            auto real_diagram = ChunkLinearization(sims[0].graph, vec1);
+            auto real_diagram = ChunkLinearization(sims[0].graph, vec1).second;
             auto [sim_lin, _optimal, _cost] = Linearize(sims[0].graph, 300000, rng.rand64(), vec1);
-            auto sim_diagram = ChunkLinearization(sims[0].graph, sim_lin);
+            auto sim_diagram = ChunkLinearization(sims[0].graph, sim_lin).second;
             auto cmp = CompareChunks(real_diagram, sim_diagram);
             assert(cmp == 0);
         }
@@ -1123,7 +1123,7 @@ FUZZ_TARGET(txgraph)
         // Check that the implied ordering gives rise to a combined diagram that matches the
         // diagram constructed from the individual cluster linearization chunkings.
         auto main_real_diagram = get_diagram_fn(TxGraph::Level::MAIN);
-        auto main_implied_diagram = ChunkLinearization(sims[0].graph, vec1);
+        auto main_implied_diagram = ChunkLinearization(sims[0].graph, vec1).second;
         assert(CompareChunks(main_real_diagram, main_implied_diagram) == 0);
 
         if (sims.size() >= 2 && !sims[1].IsOversized()) {
@@ -1132,33 +1132,33 @@ FUZZ_TARGET(txgraph)
             auto [main_cmp_diagram, stage_cmp_diagram] = real->GetMainStagingDiagrams();
             // Check that the feerates in each diagram are monotonically decreasing.
             for (size_t i = 1; i < main_cmp_diagram.size(); ++i) {
-                assert(FeeRateCompare(main_cmp_diagram[i], main_cmp_diagram[i - 1]) <= 0);
+                assert(FeeRateCompare(main_cmp_diagram[i].second, main_cmp_diagram[i - 1].second) <= 0);
             }
             for (size_t i = 1; i < stage_cmp_diagram.size(); ++i) {
-                assert(FeeRateCompare(stage_cmp_diagram[i], stage_cmp_diagram[i - 1]) <= 0);
+                assert(FeeRateCompare(stage_cmp_diagram[i].second, stage_cmp_diagram[i - 1].second) <= 0);
             }
             // Treat the diagrams as sets of chunk feerates, and sort them in the same way so that
             // std::set_difference can be used on them below. The exact ordering does not matter
             // here, but it has to be consistent with the one used in main_real_diagram and
             // stage_real_diagram).
-            std::sort(main_cmp_diagram.begin(), main_cmp_diagram.end(), std::greater{});
-            std::sort(stage_cmp_diagram.begin(), stage_cmp_diagram.end(), std::greater{});
+            std::sort(main_cmp_diagram.begin(), main_cmp_diagram.end(), [](auto& a, auto& b) { return a.second > b.second; });
+            std::sort(stage_cmp_diagram.begin(), stage_cmp_diagram.end(), [](auto& a, auto& b) { return a.second > b.second; });
             // Find the chunks that appear in main_diagram but are missing from main_cmp_diagram.
             // This is allowed, because GetMainStagingDiagrams omits clusters in main unaffected
             // by staging.
-            std::vector<FeeFrac> missing_main_cmp;
+            std::vector<TxGraph::FeeRateChunk> missing_main_cmp;
             std::set_difference(main_real_diagram.begin(), main_real_diagram.end(),
                                 main_cmp_diagram.begin(), main_cmp_diagram.end(),
                                 std::inserter(missing_main_cmp, missing_main_cmp.end()),
-                                std::greater{});
+                                [](auto& a, auto& b) { return a.second > b.second; });
             assert(main_cmp_diagram.size() + missing_main_cmp.size() == main_real_diagram.size());
             // Do the same for chunks in stage_diagram missing from stage_cmp_diagram.
             auto stage_real_diagram = get_diagram_fn(TxGraph::Level::TOP);
-            std::vector<FeeFrac> missing_stage_cmp;
+            std::vector<TxGraph::FeeRateChunk> missing_stage_cmp;
             std::set_difference(stage_real_diagram.begin(), stage_real_diagram.end(),
                                 stage_cmp_diagram.begin(), stage_cmp_diagram.end(),
                                 std::inserter(missing_stage_cmp, missing_stage_cmp.end()),
-                                std::greater{});
+                                [](auto& a, auto& b) { return a.second > b.second; });
             assert(stage_cmp_diagram.size() + missing_stage_cmp.size() == stage_real_diagram.size());
             // The missing chunks must be equal across main & staging (otherwise they couldn't have
             // been omitted).
@@ -1169,7 +1169,7 @@ FUZZ_TARGET(txgraph)
             // copied from main. Note that due to the reordering of removals w.r.t. dependency
             // additions, it is possible that the real implementation found more unaffected things.
             FeeFrac missing_real;
-            for (const auto& feerate : missing_main_cmp) missing_real += feerate;
+            for (const auto& chunk : missing_main_cmp) missing_real += chunk.second;
             FeeFrac missing_expected = sims[1].graph.FeeRate(sims[1].graph.Positions() - sims[1].modified);
             // Note that missing_real.fee < missing_expected.fee is possible to due the presence of
             // negative-fee transactions.

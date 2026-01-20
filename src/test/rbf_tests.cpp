@@ -296,8 +296,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res2{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res2.status == DiagramCheckStatus::IMPROVED);
     BOOST_CHECK(diagrams2.has_value());
-    BOOST_CHECK(res2.old_diagram == diagrams2.value().first);
-    BOOST_CHECK(res2.new_diagram == diagrams2.value().second);
+    BOOST_CHECK(res2.diagrams == diagrams2);
     BOOST_CHECK(res2.error_message == "");
 
     changeset.reset();
@@ -311,8 +310,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res3{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res3.status == DiagramCheckStatus::FAILURE);
     BOOST_CHECK(res3.error_message == "insufficient feerate: does not improve feerate diagram");
-    BOOST_CHECK(res3.old_diagram == std::vector<FeeFrac>{});
-    BOOST_CHECK(res3.new_diagram == std::vector<FeeFrac>{});
+    BOOST_CHECK(res3.diagrams == (std::pair<ChunksWithId, ChunksWithId>{}));
 
     changeset.reset();
 
@@ -331,9 +329,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res4{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res4.status == DiagramCheckStatus::IMPROVED);
     BOOST_CHECK(diagrams4.has_value());
-    BOOST_CHECK(res4.old_diagram == diagrams4.value().first);
-    BOOST_CHECK(res4.new_diagram == diagrams4.value().second);
-    BOOST_CHECK(res4.error_message == "");
+    BOOST_CHECK(res4.diagrams == diagrams4);
 
     changeset.reset();
 
@@ -352,8 +348,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
     const auto res5{ImprovesFeerateDiagram(*changeset)};
     BOOST_CHECK(res5.status == DiagramCheckStatus::IMPROVED);
     BOOST_CHECK(diagrams5.has_value());
-    BOOST_CHECK(res5.old_diagram == diagrams5.value().first);
-    BOOST_CHECK(res5.new_diagram == diagrams5.value().second);
+    BOOST_CHECK(res5.diagrams == diagrams5);
     BOOST_CHECK(res5.error_message == "");
 }
 
@@ -385,9 +380,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
         const auto replace_one{changeset->CalculateChunksForRBF()};
         BOOST_CHECK(replace_one.has_value());
         std::vector<FeeFrac> expected_old_chunks{{low_fee, low_size}};
-        BOOST_CHECK(replace_one->first == expected_old_chunks);
+        BOOST_CHECK(replace_one->first.second == expected_old_chunks);
         std::vector<FeeFrac> expected_new_chunks{{0, entry_replacement.GetAdjustedWeight()}};
-        BOOST_CHECK(replace_one->second == expected_new_chunks);
+        BOOST_CHECK(replace_one->second.second == expected_new_chunks);
     }
 
     // Non-zero replacement fee/size
@@ -398,9 +393,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
         const auto replace_one_fee{changeset->CalculateChunksForRBF()};
         BOOST_CHECK(replace_one_fee.has_value());
         std::vector<FeeFrac> expected_old_diagram{{low_fee, low_size}};
-        BOOST_CHECK(replace_one_fee->first == expected_old_diagram);
+        BOOST_CHECK(replace_one_fee->first.second == expected_old_diagram);
         std::vector<FeeFrac> expected_new_diagram{{high_fee, entry_replacement.GetAdjustedWeight()}};
-        BOOST_CHECK(replace_one_fee->second == expected_new_diagram);
+        BOOST_CHECK(replace_one_fee->second.second == expected_new_diagram);
     }
 
     // Add a second transaction to the cluster that will make a single chunk, to be evicted in the RBF
@@ -417,9 +412,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
         const auto replace_single_chunk{changeset->CalculateChunksForRBF()};
         BOOST_CHECK(replace_single_chunk.has_value());
         std::vector<FeeFrac> expected_old_chunks{{low_fee + high_fee, low_size + high_size}};
-        BOOST_CHECK(replace_single_chunk->first == expected_old_chunks);
+        BOOST_CHECK(replace_single_chunk->first.second == expected_old_chunks);
         std::vector<FeeFrac> expected_new_chunks{{high_fee, entry_replacement.GetAdjustedWeight()}};
-        BOOST_CHECK(replace_single_chunk->second == expected_new_chunks);
+        BOOST_CHECK(replace_single_chunk->second.second == expected_new_chunks);
     }
 
     // Conflict with the 2nd tx, resulting in new diagram with three entries
@@ -430,9 +425,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
         const auto replace_cpfp_child{changeset->CalculateChunksForRBF()};
         BOOST_CHECK(replace_cpfp_child.has_value());
         std::vector<FeeFrac> expected_old_chunks{{low_fee + high_fee, low_size + high_size}};
-        BOOST_CHECK(replace_cpfp_child->first == expected_old_chunks);
+        BOOST_CHECK(replace_cpfp_child->first.second == expected_old_chunks);
         std::vector<FeeFrac> expected_new_chunks{{high_fee, entry_replacement.GetAdjustedWeight()}, {low_fee, low_size}};
-        BOOST_CHECK(replace_cpfp_child->second == expected_new_chunks);
+        BOOST_CHECK(replace_cpfp_child->second.second == expected_new_chunks);
     }
 
     // Make a size 2 cluster that is itself two chunks; evict both txns
@@ -454,9 +449,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
         const auto replace_two_chunks_single_cluster{changeset->CalculateChunksForRBF()};
         BOOST_CHECK(replace_two_chunks_single_cluster.has_value());
         std::vector<FeeFrac> expected_old_chunks{{high_fee, high_size_2}, {low_fee, low_size_2}};
-        BOOST_CHECK(replace_two_chunks_single_cluster->first == expected_old_chunks);
+        BOOST_CHECK(replace_two_chunks_single_cluster->first.second == expected_old_chunks);
         std::vector<FeeFrac> expected_new_chunks{{high_fee, low_size_2}};
-        BOOST_CHECK(replace_two_chunks_single_cluster->second == expected_new_chunks);
+        BOOST_CHECK(replace_two_chunks_single_cluster->second.second == expected_new_chunks);
     }
 
     // You can have more than two direct conflicts
@@ -480,8 +475,8 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
         changeset->StageAddition(replacement_tx, high_fee, 0, 1, 0, false, 4, LockPoints());
         const auto replace_multiple_clusters{changeset->CalculateChunksForRBF()};
         BOOST_CHECK(replace_multiple_clusters.has_value());
-        BOOST_CHECK(replace_multiple_clusters->first.size() == 3);
-        BOOST_CHECK(replace_multiple_clusters->second.size() == 1);
+        BOOST_CHECK(replace_multiple_clusters->first.second.size() == 3);
+        BOOST_CHECK(replace_multiple_clusters->second.second.size() == 1);
     }
 
     // Add a child transaction to conflict_1 and make it cluster size 2, two chunks due to same feerate
@@ -499,8 +494,8 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
         const auto replace_multiple_clusters_2{changeset->CalculateChunksForRBF()};
 
         BOOST_CHECK(replace_multiple_clusters_2.has_value());
-        BOOST_CHECK(replace_multiple_clusters_2->first.size() == 4);
-        BOOST_CHECK(replace_multiple_clusters_2->second.size() == 1);
+        BOOST_CHECK(replace_multiple_clusters_2->first.second.size() == 4);
+        BOOST_CHECK(replace_multiple_clusters_2->second.second.size() == 1);
     }
 }
 

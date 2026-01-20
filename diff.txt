@@ -1,0 +1,900 @@
+diff --git a/src/cluster_linearize.h b/src/cluster_linearize.h
+index 73c8a0378fc..b86d8ce4315 100644
+--- a/src/cluster_linearize.h
++++ b/src/cluster_linearize.h
+@@ -406,21 +406,21 @@ struct SetInfo
+ 
+ /** Compute the feerates of the chunks of linearization. */
+ template<typename SetType>
+-std::vector<FeeFrac> ChunkLinearization(const DepGraph<SetType>& depgraph, std::span<const DepGraphIndex> linearization) noexcept
++std::pair<std::vector<std::vector<DepGraphIndex>>, std::vector<FeeFrac>> ChunkLinearization(const DepGraph<SetType>& depgraph, std::span<const DepGraphIndex> linearization) noexcept
+ {
+     std::vector<FeeFrac> ret;
++    std::vector<std::vector<DepGraphIndex>> chunks;
+     for (DepGraphIndex i : linearization) {
+-        /** The new chunk to be added, initially a singleton. */
+         auto new_chunk = depgraph.FeeRate(i);
+-        // As long as the new chunk has a higher feerate than the last chunk so far, absorb it.
++        if (chunks.empty() || new_chunk << ret.back()) chunks.emplace_back(std::vector<DepGraphIndex>{i});
+         while (!ret.empty() && new_chunk >> ret.back()) {
+             new_chunk += ret.back();
+             ret.pop_back();
++            chunks.back().emplace_back(i);
+         }
+-        // Actually move that new chunk into the chunking.
+         ret.push_back(std::move(new_chunk));
+     }
+-    return ret;
++    return std::make_pair(std::move(chunks), std::move(ret));
+ }
+ 
+ /** Data structure encapsulating the chunking of a linearization, permitting removal of subsets. */
+diff --git a/src/policy/rbf.cpp b/src/policy/rbf.cpp
+index c9ed563c7b7..ee39f4082ad 100644
+--- a/src/policy/rbf.cpp
++++ b/src/policy/rbf.cpp
+@@ -136,14 +136,13 @@ DiagramCheckResult ImprovesFeerateDiagram(CTxMemPool::ChangeSet& changeset)
+         return result;
+     }
+ 
+-    if (!std::is_gt(CompareChunks(chunk_results.value().second, chunk_results.value().first))) {
++    if (!std::is_gt(CompareChunks(chunk_results.value().second.second, chunk_results.value().first.second))) {
+         result.status = DiagramCheckStatus::FAILURE;
+         result.error_message = "insufficient feerate: does not improve feerate diagram";
+         return result;
+     }
+ 
+     result.status = DiagramCheckStatus::IMPROVED;
+-    result.old_diagram = chunk_results.value().first;
+-    result.new_diagram = chunk_results.value().second;
++    result.diagrams = chunk_results.value();
+     return result;
+ }
+diff --git a/src/policy/rbf.h b/src/policy/rbf.h
+index d5ae95099ef..895e9150fe7 100644
+--- a/src/policy/rbf.h
++++ b/src/policy/rbf.h
+@@ -47,8 +47,7 @@ enum class DiagramCheckStatus {
+ 
+ struct DiagramCheckResult {
+     DiagramCheckStatus status;
+-    std::vector<FeeFrac> old_diagram{};
+-    std::vector<FeeFrac> new_diagram{};
++    std::pair<ChunksWithId, ChunksWithId> diagrams{ChunksWithId{{}, {}}, ChunksWithId{{}, {}}};
+     std::string error_message{""};
+ };
+ 
+diff --git a/src/test/fuzz/cluster_linearize.cpp b/src/test/fuzz/cluster_linearize.cpp
+index c1ee78028d2..ca2c100a178 100644
+--- a/src/test/fuzz/cluster_linearize.cpp
++++ b/src/test/fuzz/cluster_linearize.cpp
+@@ -256,7 +256,7 @@ std::vector<DepGraphIndex> ExhaustiveLinearize(const DepGraph<SetType>& depgraph
+         if (topo_length == perm_linearization.size()) {
+             // If all of perm_linearization is topological, check if it is perhaps our best
+             // linearization so far.
+-            auto perm_chunking = ChunkLinearization(depgraph, perm_linearization);
++            auto perm_chunking = ChunkLinearization(depgraph, perm_linearization).second;
+             auto cmp = CompareChunks(perm_chunking, chunking);
+             // If the diagram is better, or if it is equal but with more chunks (because we
+             // prefer minimal chunks), consider this better.
+@@ -733,7 +733,7 @@ FUZZ_TARGET(clusterlin_chunking)
+     auto linearization = ReadLinearization(depgraph, reader);
+ 
+     // Invoke the chunking function.
+-    auto chunking = ChunkLinearization(depgraph, linearization);
++    auto chunking = ChunkLinearization(depgraph, linearization).second;
+ 
+     // Verify that chunk feerates are monotonically non-increasing.
+     for (size_t i = 1; i < chunking.size(); ++i) {
+@@ -1041,7 +1041,7 @@ FUZZ_TARGET(clusterlin_linearization_chunking)
+         }
+ 
+         // Compute the chunking for linearization_left.
+-        auto chunking_left = ChunkLinearization(depgraph, linearization_left);
++        auto chunking_left = ChunkLinearization(depgraph, linearization_left).second;
+ 
+         // Verify that it matches the feerates of the chunks of chunking.
+         assert(chunking.NumChunksLeft() == chunking_left.size());
+@@ -1140,7 +1140,7 @@ FUZZ_TARGET(clusterlin_simple_linearize)
+     // Invoke SimpleLinearize().
+     auto [linearization, optimal] = SimpleLinearize(depgraph, iter_count);
+     SanityCheck(depgraph, linearization);
+-    auto simple_chunking = ChunkLinearization(depgraph, linearization);
++    auto simple_chunking = ChunkLinearization(depgraph, linearization).second;
+ 
+     // If the iteration count is sufficiently high, an optimal linearization must be found.
+     // SimpleLinearize on k transactions can take up to 2^(k-1) iterations (one per non-empty
+@@ -1154,8 +1154,8 @@ FUZZ_TARGET(clusterlin_simple_linearize)
+     // n! linearizations), test that the result is as good as every valid linearization.
+     if (optimal && depgraph.TxCount() <= 8) {
+         auto exh_linearization = ExhaustiveLinearize(depgraph);
+-        auto exh_chunking = ChunkLinearization(depgraph, exh_linearization);
+-        auto cmp = CompareChunks(simple_chunking, exh_chunking);
++        auto exh_chunking = ChunkLinearization(depgraph, exh_linearization).second;
++        auto cmp = CompareChunks(simple_chunking, exh_chunking).second;
+         assert(cmp == 0);
+         assert(simple_chunking.size() == exh_chunking.size());
+     }
+@@ -1163,7 +1163,7 @@ FUZZ_TARGET(clusterlin_simple_linearize)
+     if (optimal) {
+         // Compare with a linearization read from the fuzz input.
+         auto read = ReadLinearization(depgraph, reader);
+-        auto read_chunking = ChunkLinearization(depgraph, read);
++        auto read_chunking = ChunkLinearization(depgraph, read).second;
+         auto cmp = CompareChunks(simple_chunking, read_chunking);
+         assert(cmp >= 0);
+     }
+@@ -1205,11 +1205,11 @@ FUZZ_TARGET(clusterlin_linearize)
+     auto [linearization, optimal, cost] = Linearize(depgraph, iter_count, rng_seed, old_linearization);
+     assert(cost <= iter_count);
+     SanityCheck(depgraph, linearization);
+-    auto chunking = ChunkLinearization(depgraph, linearization);
++    auto chunking = ChunkLinearization(depgraph, linearization).second;
+ 
+     // Linearization must always be as good as the old one, if provided.
+     if (!old_linearization.empty()) {
+-        auto old_chunking = ChunkLinearization(depgraph, old_linearization);
++        auto old_chunking = ChunkLinearization(depgraph, old_linearization).second;
+         auto cmp = CompareChunks(chunking, old_chunking);
+         assert(cmp >= 0);
+     }
+@@ -1224,7 +1224,7 @@ FUZZ_TARGET(clusterlin_linearize)
+         // It must be as good as SimpleLinearize.
+         auto [simple_linearization, simple_optimal] = SimpleLinearize(depgraph, MAX_SIMPLE_ITERATIONS);
+         SanityCheck(depgraph, simple_linearization);
+-        auto simple_chunking = ChunkLinearization(depgraph, simple_linearization);
++        auto simple_chunking = ChunkLinearization(depgraph, simple_linearization).second;
+         auto cmp = CompareChunks(chunking, simple_chunking);
+         assert(cmp >= 0);
+         // If SimpleLinearize finds the optimal result too, they must be equal (if not,
+@@ -1236,7 +1236,7 @@ FUZZ_TARGET(clusterlin_linearize)
+ 
+         // Compare with a linearization read from the fuzz input.
+         auto read = ReadLinearization(depgraph, reader);
+-        auto read_chunking = ChunkLinearization(depgraph, read);
++        auto read_chunking = ChunkLinearization(depgraph, read).second;
+         auto cmp_read = CompareChunks(chunking, read_chunking);
+         assert(cmp_read >= 0);
+     }
+@@ -1264,8 +1264,8 @@ FUZZ_TARGET(clusterlin_postlinearize)
+     SanityCheck(depgraph, post_linearization);
+ 
+     // Compare diagrams: post-linearization cannot worsen anywhere.
+-    auto chunking = ChunkLinearization(depgraph, linearization);
+-    auto post_chunking = ChunkLinearization(depgraph, post_linearization);
++    auto chunking = ChunkLinearization(depgraph, linearization).second;
++    auto post_chunking = ChunkLinearization(depgraph, post_linearization).second;
+     auto cmp = CompareChunks(post_chunking, chunking);
+     assert(cmp >= 0);
+ 
+@@ -1273,7 +1273,7 @@ FUZZ_TARGET(clusterlin_postlinearize)
+     auto post_post_linearization = post_linearization;
+     PostLinearize(depgraph, post_post_linearization);
+     SanityCheck(depgraph, post_post_linearization);
+-    auto post_post_chunking = ChunkLinearization(depgraph, post_post_linearization);
++    auto post_post_chunking = ChunkLinearization(depgraph, post_post_linearization).second;
+     cmp = CompareChunks(post_post_chunking, post_chunking);
+     assert(cmp >= 0);
+ 
+@@ -1312,8 +1312,8 @@ FUZZ_TARGET(clusterlin_postlinearize_tree)
+     SanityCheck(depgraph_tree, post_linearization);
+ 
+     // Compare diagrams.
+-    auto chunking = ChunkLinearization(depgraph_tree, linearization);
+-    auto post_chunking = ChunkLinearization(depgraph_tree, post_linearization);
++    auto chunking = ChunkLinearization(depgraph_tree, linearization).second;
++    auto post_chunking = ChunkLinearization(depgraph_tree, post_linearization).second;
+     auto cmp = CompareChunks(post_chunking, chunking);
+     assert(cmp >= 0);
+ 
+@@ -1322,14 +1322,14 @@ FUZZ_TARGET(clusterlin_postlinearize_tree)
+     auto post_post_linearization = post_linearization;
+     PostLinearize(depgraph_tree, post_post_linearization);
+     SanityCheck(depgraph_tree, post_post_linearization);
+-    auto post_post_chunking = ChunkLinearization(depgraph_tree, post_post_linearization);
++    auto post_post_chunking = ChunkLinearization(depgraph_tree, post_post_linearization).second;
+     auto cmp_post = CompareChunks(post_post_chunking, post_chunking);
+     assert(cmp_post == 0);
+ 
+     // Try to find an even better linearization directly. This must not change the diagram for the
+     // same reason.
+     auto [opt_linearization, _optimal, _cost] = Linearize(depgraph_tree, 100000, rng_seed, post_linearization);
+-    auto opt_chunking = ChunkLinearization(depgraph_tree, opt_linearization);
++    auto opt_chunking = ChunkLinearization(depgraph_tree, opt_linearization).second;
+     auto cmp_opt = CompareChunks(opt_chunking, post_chunking);
+     assert(cmp_opt == 0);
+ }
+@@ -1370,9 +1370,9 @@ FUZZ_TARGET(clusterlin_postlinearize_moved_leaf)
+     SanityCheck(depgraph, lin_moved);
+ 
+     // Compare diagrams (applying the fee delta after computing the old one).
+-    auto old_chunking = ChunkLinearization(depgraph, lin);
++    auto old_chunking = ChunkLinearization(depgraph, lin).second;
+     depgraph.FeeRate(lin_leaf.back()).fee += fee_inc;
+-    auto new_chunking = ChunkLinearization(depgraph, lin_moved);
++    auto new_chunking = ChunkLinearization(depgraph, lin_moved).second;
+     auto cmp = CompareChunks(new_chunking, old_chunking);
+     assert(cmp >= 0);
+ }
+@@ -1394,9 +1394,9 @@ FUZZ_TARGET(clusterlin_merge)
+     auto lin_merged = MergeLinearizations(depgraph, lin1, lin2);
+ 
+     // Compute chunkings and compare.
+-    auto chunking1 = ChunkLinearization(depgraph, lin1);
+-    auto chunking2 = ChunkLinearization(depgraph, lin2);
+-    auto chunking_merged = ChunkLinearization(depgraph, lin_merged);
++    auto chunking1 = ChunkLinearization(depgraph, lin1).second;
++    auto chunking2 = ChunkLinearization(depgraph, lin2).second;
++    auto chunking_merged = ChunkLinearization(depgraph, lin_merged).second;
+     auto cmp1 = CompareChunks(chunking_merged, chunking1);
+     assert(cmp1 >= 0);
+     auto cmp2 = CompareChunks(chunking_merged, chunking2);
+diff --git a/src/test/fuzz/rbf.cpp b/src/test/fuzz/rbf.cpp
+index 81e382c7eaf..f310ddd84f4 100644
+--- a/src/test/fuzz/rbf.cpp
++++ b/src/test/fuzz/rbf.cpp
+@@ -208,14 +208,14 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
+ 
+         // Feerates are monotonically decreasing.
+         FeeFrac first_sum;
+-        for (size_t i = 0; i < calc_results->first.size(); ++i) {
+-            first_sum += calc_results->first[i];
+-            if (i) assert(!(calc_results->first[i - 1] << calc_results->first[i]));
++        for (size_t i = 0; i < calc_results->first.second.size(); ++i) {
++            first_sum += calc_results->first.second[i];
++            if (i) assert(!(calc_results->first.second[i - 1] << calc_results->first.second[i]));
+         }
+         FeeFrac second_sum;
+-        for (size_t i = 0; i < calc_results->second.size(); ++i) {
+-            second_sum += calc_results->second[i];
+-            if (i) assert(!(calc_results->second[i - 1] << calc_results->second[i]));
++        for (size_t i = 0; i < calc_results->second.second.size(); ++i) {
++            second_sum += calc_results->second.second[i];
++            if (i) assert(!(calc_results->second.second[i - 1] << calc_results->second.second[i]));
+         }
+ 
+         FeeFrac replaced;
+@@ -232,14 +232,14 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
+     auto diagram_check_result{ImprovesFeerateDiagram(*changeset)};
+     if (!calc_results.has_value()) {
+         assert(diagram_check_result.status == DiagramCheckStatus::UNCALCULABLE);
+-        assert(diagram_check_result.old_diagram.size() == 0);
+-        assert(diagram_check_result.new_diagram.size() == 0);
++        assert(diagram_check_result.diagrams.first.second.size() == 0);
++        assert(diagram_check_result.diagrams.second.second.size() == 0);
+     } else {
+         // Diagram check succeeded
+-        auto old_sum = std::accumulate(calc_results->first.begin(), calc_results->first.end(), FeeFrac{});
+-        auto new_sum = std::accumulate(calc_results->second.begin(), calc_results->second.end(), FeeFrac{});
+-        auto old_sum_from_res = std::accumulate(diagram_check_result.old_diagram.begin(), diagram_check_result.old_diagram.end(), FeeFrac{});
+-        auto new_sum_from_res = std::accumulate(diagram_check_result.new_diagram.begin(), diagram_check_result.new_diagram.end(), FeeFrac{});
++        auto old_sum = std::accumulate(calc_results->first.second.begin(), calc_results->first.second.end(), FeeFrac{});
++        auto new_sum = std::accumulate(calc_results->second.second.begin(), calc_results->second.second.end(), FeeFrac{});
++        auto old_sum_from_res = std::accumulate(diagram_check_result.diagrams.first.second.begin(), diagram_check_result.diagrams.first.second.end(), FeeFrac{});
++        auto new_sum_from_res = std::accumulate(diagram_check_result.diagrams.second.second.begin(), diagram_check_result.diagrams.second.second.end(), FeeFrac{});
+         if (diagram_check_result.status == DiagramCheckStatus::IMPROVED) {
+             // New diagram's final fee should always match or exceed old diagram's
+             assert(old_sum.fee <= new_sum.fee);
+@@ -248,8 +248,8 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
+         } else if (old_sum.fee > new_sum.fee) {
+             // Or it failed, and if old diagram had higher fees, it should be a failure
+             assert(diagram_check_result.status == DiagramCheckStatus::FAILURE);
+-            assert(diagram_check_result.old_diagram.size() == 0);
+-            assert(diagram_check_result.new_diagram.size() == 0);
++            assert(diagram_check_result.diagrams.first.second.size() == 0);
++            assert(diagram_check_result.diagrams.second.second.size() == 0);
+         }
+     }
+ }
+diff --git a/src/test/fuzz/txgraph.cpp b/src/test/fuzz/txgraph.cpp
+index 79ee0a16e44..8f103f76f6b 100644
+--- a/src/test/fuzz/txgraph.cpp
++++ b/src/test/fuzz/txgraph.cpp
+@@ -399,7 +399,7 @@ FUZZ_TARGET(txgraph)
+             std::vector<SimTxGraph::Pos> linearization;
+             linearization.reserve(cluster.size());
+             for (auto refptr : cluster) linearization.push_back(sim.Find(refptr));
+-            for (const FeeFrac& chunk_feerate : ChunkLinearization(sim.graph, linearization)) {
++            for (const FeeFrac& chunk_feerate : ChunkLinearization(sim.graph, linearization).second) {
+                 chunk_feerates.push_back(chunk_feerate);
+             }
+         }
+@@ -768,8 +768,8 @@ FUZZ_TARGET(txgraph)
+             } else if (sims.size() == 2 && !sims[0].IsOversized() && !sims[1].IsOversized() && command-- == 0) {
+                 // GetMainStagingDiagrams()
+                 auto [real_main_diagram, real_staged_diagram] = real->GetMainStagingDiagrams();
+-                auto real_sum_main = std::accumulate(real_main_diagram.begin(), real_main_diagram.end(), FeeFrac{});
+-                auto real_sum_staged = std::accumulate(real_staged_diagram.begin(), real_staged_diagram.end(), FeeFrac{});
++                auto real_sum_main = std::accumulate(real_main_diagram.begin(), real_main_diagram.end(), FeeFrac{}, [](const FeeFrac& sum, const auto& chunk) { return sum + chunk.second; });
++                auto real_sum_staged = std::accumulate(real_staged_diagram.begin(), real_staged_diagram.end(), FeeFrac{}, [](const FeeFrac& sum, const auto& chunk) { return sum + chunk.second; });
+                 auto real_gain = real_sum_staged - real_sum_main;
+                 auto sim_gain = sims[1].SumAll() - sims[0].SumAll();
+                 // Just check that the total fee gained/lost and size gained/lost according to the
+@@ -778,10 +778,10 @@ FUZZ_TARGET(txgraph)
+                 assert(sim_gain == real_gain);
+                 // Check that the feerates in each diagram are monotonically decreasing.
+                 for (size_t i = 1; i < real_main_diagram.size(); ++i) {
+-                    assert(FeeRateCompare(real_main_diagram[i], real_main_diagram[i - 1]) <= 0);
++                    assert(FeeRateCompare(real_main_diagram[i].second, real_main_diagram[i - 1].second) <= 0);
+                 }
+                 for (size_t i = 1; i < real_staged_diagram.size(); ++i) {
+-                    assert(FeeRateCompare(real_staged_diagram[i], real_staged_diagram[i - 1]) <= 0);
++                    assert(FeeRateCompare(real_staged_diagram[i].second, real_staged_diagram[i - 1].second) <= 0);
+                 }
+                 break;
+             } else if (block_builders.size() < 4 && !main_sim.IsOversized() && command-- == 0) {
+@@ -1065,9 +1065,9 @@ FUZZ_TARGET(txgraph)
+         // If the real graph claims to be optimal (the last DoWork() call returned true), verify
+         // that calling Linearize on it does not improve it further.
+         if (sims[0].real_is_optimal) {
+-            auto real_diagram = ChunkLinearization(sims[0].graph, vec1);
++            auto real_diagram = ChunkLinearization(sims[0].graph, vec1).second;
+             auto [sim_lin, _optimal, _cost] = Linearize(sims[0].graph, 300000, rng.rand64(), vec1);
+-            auto sim_diagram = ChunkLinearization(sims[0].graph, sim_lin);
++            auto sim_diagram = ChunkLinearization(sims[0].graph, sim_lin).second;
+             auto cmp = CompareChunks(real_diagram, sim_diagram);
+             assert(cmp == 0);
+         }
+@@ -1123,7 +1123,7 @@ FUZZ_TARGET(txgraph)
+         // Check that the implied ordering gives rise to a combined diagram that matches the
+         // diagram constructed from the individual cluster linearization chunkings.
+         auto main_real_diagram = get_diagram_fn(TxGraph::Level::MAIN);
+-        auto main_implied_diagram = ChunkLinearization(sims[0].graph, vec1);
++        auto main_implied_diagram = ChunkLinearization(sims[0].graph, vec1).second;
+         assert(CompareChunks(main_real_diagram, main_implied_diagram) == 0);
+ 
+         if (sims.size() >= 2 && !sims[1].IsOversized()) {
+@@ -1132,33 +1132,33 @@ FUZZ_TARGET(txgraph)
+             auto [main_cmp_diagram, stage_cmp_diagram] = real->GetMainStagingDiagrams();
+             // Check that the feerates in each diagram are monotonically decreasing.
+             for (size_t i = 1; i < main_cmp_diagram.size(); ++i) {
+-                assert(FeeRateCompare(main_cmp_diagram[i], main_cmp_diagram[i - 1]) <= 0);
++                assert(FeeRateCompare(main_cmp_diagram[i].second, main_cmp_diagram[i - 1].second) <= 0);
+             }
+             for (size_t i = 1; i < stage_cmp_diagram.size(); ++i) {
+-                assert(FeeRateCompare(stage_cmp_diagram[i], stage_cmp_diagram[i - 1]) <= 0);
++                assert(FeeRateCompare(stage_cmp_diagram[i].second, stage_cmp_diagram[i - 1].second) <= 0);
+             }
+             // Treat the diagrams as sets of chunk feerates, and sort them in the same way so that
+             // std::set_difference can be used on them below. The exact ordering does not matter
+             // here, but it has to be consistent with the one used in main_real_diagram and
+             // stage_real_diagram).
+-            std::sort(main_cmp_diagram.begin(), main_cmp_diagram.end(), std::greater{});
+-            std::sort(stage_cmp_diagram.begin(), stage_cmp_diagram.end(), std::greater{});
++            std::sort(main_cmp_diagram.begin(), main_cmp_diagram.end(), [](auto& a, auto& b) { return a.second > b.second; });
++            std::sort(stage_cmp_diagram.begin(), stage_cmp_diagram.end(), [](auto& a, auto& b) { return a.second > b.second; });
+             // Find the chunks that appear in main_diagram but are missing from main_cmp_diagram.
+             // This is allowed, because GetMainStagingDiagrams omits clusters in main unaffected
+             // by staging.
+-            std::vector<FeeFrac> missing_main_cmp;
++            std::vector<TxGraph::FeeRateChunk> missing_main_cmp;
+             std::set_difference(main_real_diagram.begin(), main_real_diagram.end(),
+                                 main_cmp_diagram.begin(), main_cmp_diagram.end(),
+                                 std::inserter(missing_main_cmp, missing_main_cmp.end()),
+-                                std::greater{});
++                                [](auto& a, auto& b) { return a.second > b.second; });
+             assert(main_cmp_diagram.size() + missing_main_cmp.size() == main_real_diagram.size());
+             // Do the same for chunks in stage_diagram missing from stage_cmp_diagram.
+             auto stage_real_diagram = get_diagram_fn(TxGraph::Level::TOP);
+-            std::vector<FeeFrac> missing_stage_cmp;
++            std::vector<TxGraph::FeeRateChunk> missing_stage_cmp;
+             std::set_difference(stage_real_diagram.begin(), stage_real_diagram.end(),
+                                 stage_cmp_diagram.begin(), stage_cmp_diagram.end(),
+                                 std::inserter(missing_stage_cmp, missing_stage_cmp.end()),
+-                                std::greater{});
++                                [](auto& a, auto& b) { return a.second > b.second; });
+             assert(stage_cmp_diagram.size() + missing_stage_cmp.size() == stage_real_diagram.size());
+             // The missing chunks must be equal across main & staging (otherwise they couldn't have
+             // been omitted).
+@@ -1169,7 +1169,7 @@ FUZZ_TARGET(txgraph)
+             // copied from main. Note that due to the reordering of removals w.r.t. dependency
+             // additions, it is possible that the real implementation found more unaffected things.
+             FeeFrac missing_real;
+-            for (const auto& feerate : missing_main_cmp) missing_real += feerate;
++            for (const auto& chunk : missing_main_cmp) missing_real += chunk.second;
+             FeeFrac missing_expected = sims[1].graph.FeeRate(sims[1].graph.Positions() - sims[1].modified);
+             // Note that missing_real.fee < missing_expected.fee is possible to due the presence of
+             // negative-fee transactions.
+diff --git a/src/test/rbf_tests.cpp b/src/test/rbf_tests.cpp
+index 2782904d1b3..3de3e59b6fe 100644
+--- a/src/test/rbf_tests.cpp
++++ b/src/test/rbf_tests.cpp
+@@ -296,8 +296,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
+     const auto res2{ImprovesFeerateDiagram(*changeset)};
+     BOOST_CHECK(res2.status == DiagramCheckStatus::IMPROVED);
+     BOOST_CHECK(diagrams2.has_value());
+-    BOOST_CHECK(res2.old_diagram == diagrams2.value().first);
+-    BOOST_CHECK(res2.new_diagram == diagrams2.value().second);
++    BOOST_CHECK(res2.diagrams == diagrams2);
+     BOOST_CHECK(res2.error_message == "");
+ 
+     changeset.reset();
+@@ -311,8 +310,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
+     const auto res3{ImprovesFeerateDiagram(*changeset)};
+     BOOST_CHECK(res3.status == DiagramCheckStatus::FAILURE);
+     BOOST_CHECK(res3.error_message == "insufficient feerate: does not improve feerate diagram");
+-    BOOST_CHECK(res3.old_diagram == std::vector<FeeFrac>{});
+-    BOOST_CHECK(res3.new_diagram == std::vector<FeeFrac>{});
++    BOOST_CHECK(res3.diagrams == {});
+ 
+     changeset.reset();
+ 
+@@ -331,9 +329,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
+     const auto res4{ImprovesFeerateDiagram(*changeset)};
+     BOOST_CHECK(res4.status == DiagramCheckStatus::IMPROVED);
+     BOOST_CHECK(diagrams4.has_value());
+-    BOOST_CHECK(res4.old_diagram == diagrams4.value().first);
+-    BOOST_CHECK(res4.new_diagram == diagrams4.value().second);
+-    BOOST_CHECK(res4.error_message == "");
++    BOOST_CHECK(res4.diagrams == diagrams4);
+ 
+     changeset.reset();
+ 
+@@ -352,8 +348,7 @@ BOOST_FIXTURE_TEST_CASE(improves_feerate, TestChain100Setup)
+     const auto res5{ImprovesFeerateDiagram(*changeset)};
+     BOOST_CHECK(res5.status == DiagramCheckStatus::IMPROVED);
+     BOOST_CHECK(diagrams5.has_value());
+-    BOOST_CHECK(res5.old_diagram == diagrams5.value().first);
+-    BOOST_CHECK(res5.new_diagram == diagrams5.value().second);
++    BOOST_CHECK(res5.diagrams == diagrams5);
+     BOOST_CHECK(res5.error_message == "");
+ }
+ 
+@@ -385,9 +380,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
+         const auto replace_one{changeset->CalculateChunksForRBF()};
+         BOOST_CHECK(replace_one.has_value());
+         std::vector<FeeFrac> expected_old_chunks{{low_fee, low_size}};
+-        BOOST_CHECK(replace_one->first == expected_old_chunks);
++        BOOST_CHECK(replace_one->first.second == expected_old_chunks);
+         std::vector<FeeFrac> expected_new_chunks{{0, entry_replacement.GetAdjustedWeight()}};
+-        BOOST_CHECK(replace_one->second == expected_new_chunks);
++        BOOST_CHECK(replace_one->second.second == expected_new_chunks);
+     }
+ 
+     // Non-zero replacement fee/size
+@@ -398,9 +393,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
+         const auto replace_one_fee{changeset->CalculateChunksForRBF()};
+         BOOST_CHECK(replace_one_fee.has_value());
+         std::vector<FeeFrac> expected_old_diagram{{low_fee, low_size}};
+-        BOOST_CHECK(replace_one_fee->first == expected_old_diagram);
++        BOOST_CHECK(replace_one_fee->first.second == expected_old_diagram);
+         std::vector<FeeFrac> expected_new_diagram{{high_fee, entry_replacement.GetAdjustedWeight()}};
+-        BOOST_CHECK(replace_one_fee->second == expected_new_diagram);
++        BOOST_CHECK(replace_one_fee->second.second == expected_new_diagram);
+     }
+ 
+     // Add a second transaction to the cluster that will make a single chunk, to be evicted in the RBF
+@@ -417,9 +412,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
+         const auto replace_single_chunk{changeset->CalculateChunksForRBF()};
+         BOOST_CHECK(replace_single_chunk.has_value());
+         std::vector<FeeFrac> expected_old_chunks{{low_fee + high_fee, low_size + high_size}};
+-        BOOST_CHECK(replace_single_chunk->first == expected_old_chunks);
++        BOOST_CHECK(replace_single_chunk->first.second == expected_old_chunks);
+         std::vector<FeeFrac> expected_new_chunks{{high_fee, entry_replacement.GetAdjustedWeight()}};
+-        BOOST_CHECK(replace_single_chunk->second == expected_new_chunks);
++        BOOST_CHECK(replace_single_chunk->second.second == expected_new_chunks);
+     }
+ 
+     // Conflict with the 2nd tx, resulting in new diagram with three entries
+@@ -430,9 +425,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
+         const auto replace_cpfp_child{changeset->CalculateChunksForRBF()};
+         BOOST_CHECK(replace_cpfp_child.has_value());
+         std::vector<FeeFrac> expected_old_chunks{{low_fee + high_fee, low_size + high_size}};
+-        BOOST_CHECK(replace_cpfp_child->first == expected_old_chunks);
++        BOOST_CHECK(replace_cpfp_child->first.second == expected_old_chunks);
+         std::vector<FeeFrac> expected_new_chunks{{high_fee, entry_replacement.GetAdjustedWeight()}, {low_fee, low_size}};
+-        BOOST_CHECK(replace_cpfp_child->second == expected_new_chunks);
++        BOOST_CHECK(replace_cpfp_child->second.second == expected_new_chunks);
+     }
+ 
+     // Make a size 2 cluster that is itself two chunks; evict both txns
+@@ -454,9 +449,9 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
+         const auto replace_two_chunks_single_cluster{changeset->CalculateChunksForRBF()};
+         BOOST_CHECK(replace_two_chunks_single_cluster.has_value());
+         std::vector<FeeFrac> expected_old_chunks{{high_fee, high_size_2}, {low_fee, low_size_2}};
+-        BOOST_CHECK(replace_two_chunks_single_cluster->first == expected_old_chunks);
++        BOOST_CHECK(replace_two_chunks_single_cluster->first.second == expected_old_chunks);
+         std::vector<FeeFrac> expected_new_chunks{{high_fee, low_size_2}};
+-        BOOST_CHECK(replace_two_chunks_single_cluster->second == expected_new_chunks);
++        BOOST_CHECK(replace_two_chunks_single_cluster->second.second == expected_new_chunks);
+     }
+ 
+     // You can have more than two direct conflicts
+@@ -480,8 +475,8 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
+         changeset->StageAddition(replacement_tx, high_fee, 0, 1, 0, false, 4, LockPoints());
+         const auto replace_multiple_clusters{changeset->CalculateChunksForRBF()};
+         BOOST_CHECK(replace_multiple_clusters.has_value());
+-        BOOST_CHECK(replace_multiple_clusters->first.size() == 3);
+-        BOOST_CHECK(replace_multiple_clusters->second.size() == 1);
++        BOOST_CHECK(replace_multiple_clusters->first.second.size() == 3);
++        BOOST_CHECK(replace_multiple_clusters->second.second.size() == 1);
+     }
+ 
+     // Add a child transaction to conflict_1 and make it cluster size 2, two chunks due to same feerate
+@@ -499,8 +494,8 @@ BOOST_FIXTURE_TEST_CASE(calc_feerate_diagram_rbf, TestChain100Setup)
+         const auto replace_multiple_clusters_2{changeset->CalculateChunksForRBF()};
+ 
+         BOOST_CHECK(replace_multiple_clusters_2.has_value());
+-        BOOST_CHECK(replace_multiple_clusters_2->first.size() == 4);
+-        BOOST_CHECK(replace_multiple_clusters_2->second.size() == 1);
++        BOOST_CHECK(replace_multiple_clusters_2->first.second.size() == 4);
++        BOOST_CHECK(replace_multiple_clusters_2->second.second.size() == 1);
+     }
+ }
+ 
+diff --git a/src/txgraph.cpp b/src/txgraph.cpp
+index d623d2ad263..23f372727ad 100644
+--- a/src/txgraph.cpp
++++ b/src/txgraph.cpp
+@@ -207,8 +207,8 @@ public:
+     /** Improve the linearization of this Cluster. Returns how much work was performed and whether
+      *  the Cluster's QualityLevel improved as a result. */
+     virtual std::pair<uint64_t, bool> Relinearize(TxGraphImpl& graph, int level, uint64_t max_iters) noexcept = 0;
+-    /** For every chunk in the cluster, append its FeeFrac to ret. */
+-    virtual void AppendChunkFeerates(std::vector<FeeFrac>& ret) const noexcept = 0;
++    /** For every chunk in the cluster, append its diagram to ret. */
++    virtual void AppendChunkFeerates(TxGraphImpl& graph, TxGraph::FeeRateDiagram& ret) const noexcept = 0;
+     /** Add a TrimTxData entry (filling m_chunk_feerate, m_index, m_tx_size) for every
+      *  transaction in the Cluster to ret. Implicit dependencies between consecutive transactions
+      *  in the linearization are added to deps. Return the Cluster's total transaction size. */
+@@ -285,7 +285,7 @@ public:
+     void Merge(TxGraphImpl& graph, int level, Cluster& cluster) noexcept final;
+     void ApplyDependencies(TxGraphImpl& graph, int level, std::span<std::pair<GraphIndex, GraphIndex>> to_apply) noexcept final;
+     std::pair<uint64_t, bool> Relinearize(TxGraphImpl& graph, int level, uint64_t max_iters) noexcept final;
+-    void AppendChunkFeerates(std::vector<FeeFrac>& ret) const noexcept final;
++    void AppendChunkFeerates(TxGraphImpl& graph, TxGraph::FeeRateDiagram& ret) const noexcept final;
+     uint64_t AppendTrimData(std::vector<TrimTxData>& ret, std::vector<std::pair<GraphIndex, GraphIndex>>& deps) const noexcept final;
+     void GetAncestorRefs(const TxGraphImpl& graph, std::span<std::pair<Cluster*, DepGraphIndex>>& args, std::vector<TxGraph::Ref*>& output) noexcept final;
+     void GetDescendantRefs(const TxGraphImpl& graph, std::span<std::pair<Cluster*, DepGraphIndex>>& args, std::vector<TxGraph::Ref*>& output) noexcept final;
+@@ -341,7 +341,7 @@ public:
+     void Merge(TxGraphImpl& graph, int level, Cluster& cluster) noexcept final;
+     void ApplyDependencies(TxGraphImpl& graph, int level, std::span<std::pair<GraphIndex, GraphIndex>> to_apply) noexcept final;
+     std::pair<uint64_t, bool> Relinearize(TxGraphImpl& graph, int level, uint64_t max_iters) noexcept final;
+-    void AppendChunkFeerates(std::vector<FeeFrac>& ret) const noexcept final;
++    void AppendChunkFeerates(TxGraphImpl& graph, TxGraph::FeeRateDiagram& ret) const noexcept final;
+     uint64_t AppendTrimData(std::vector<TrimTxData>& ret, std::vector<std::pair<GraphIndex, GraphIndex>>& deps) const noexcept final;
+     void GetAncestorRefs(const TxGraphImpl& graph, std::span<std::pair<Cluster*, DepGraphIndex>>& args, std::vector<TxGraph::Ref*>& output) noexcept final;
+     void GetDescendantRefs(const TxGraphImpl& graph, std::span<std::pair<Cluster*, DepGraphIndex>>& args, std::vector<TxGraph::Ref*>& output) noexcept final;
+@@ -771,7 +771,7 @@ public:
+     bool IsOversized(Level level) noexcept final;
+     std::strong_ordering CompareMainOrder(const Ref& a, const Ref& b) noexcept final;
+     GraphIndex CountDistinctClusters(std::span<const Ref* const> refs, Level level) noexcept final;
+-    std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> GetMainStagingDiagrams() noexcept final;
++    std::pair<TxGraph::FeeRateDiagram, TxGraph::FeeRateDiagram> GetMainStagingDiagrams() noexcept final;
+     std::vector<Ref*> Trim() noexcept final;
+ 
+     std::unique_ptr<BlockBuilder> GetBlockBuilder() noexcept final;
+@@ -1295,17 +1295,24 @@ void SingletonClusterImpl::Compact() noexcept
+     // Nothing to compact; SingletonClusterImpl is constant size.
+ }
+ 
+-void GenericClusterImpl::AppendChunkFeerates(std::vector<FeeFrac>& ret) const noexcept
++void GenericClusterImpl::AppendChunkFeerates(TxGraphImpl& graph, TxGraph::FeeRateDiagram& ret) const noexcept
+ {
+-    auto chunk_feerates = ChunkLinearization(m_depgraph, m_linearization);
+-    ret.reserve(ret.size() + chunk_feerates.size());
+-    ret.insert(ret.end(), chunk_feerates.begin(), chunk_feerates.end());
++    auto chunks = ChunkLinearization(m_depgraph, m_linearization);
++    for (size_t i = 0; i < chunks.first.size(); ++i) {
++        std::vector<TxGraph::Ref*> refs;
++        for (auto idx : chunks.first[i]) {
++            refs.push_back(graph.m_entries[m_mapping[idx]].m_ref);
++        }
++        ret.emplace_back(std::move(refs), chunks.second[i]);
++    }
+ }
+ 
+-void SingletonClusterImpl::AppendChunkFeerates(std::vector<FeeFrac>& ret) const noexcept
++void SingletonClusterImpl::AppendChunkFeerates(TxGraphImpl& graph, TxGraph::FeeRateDiagram& ret) const noexcept
+ {
+     if (GetTxCount()) {
+-        ret.push_back(m_feerate);
++        const auto& entry = graph.m_entries[m_graph_index];
++        Assume(entry.m_ref != nullptr);
++        ret.emplace_back(std::vector<TxGraph::Ref*>{entry.m_ref}, m_feerate);
+     }
+ }
+ 
+@@ -2720,7 +2727,7 @@ TxGraph::GraphIndex TxGraphImpl::CountDistinctClusters(std::span<const Ref* cons
+     return ret;
+ }
+ 
+-std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> TxGraphImpl::GetMainStagingDiagrams() noexcept
++std::pair<TxGraph::FeeRateDiagram, TxGraph::FeeRateDiagram> TxGraphImpl::GetMainStagingDiagrams() noexcept
+ {
+     Assume(m_staging_clusterset.has_value());
+     MakeAllAcceptable(0);
+@@ -2730,20 +2737,20 @@ std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> TxGraphImpl::GetMainStagin
+     // For all Clusters in main which conflict with Clusters in staging (i.e., all that are removed
+     // by, or replaced in, staging), gather their chunk feerates.
+     auto main_clusters = GetConflicts();
+-    std::vector<FeeFrac> main_feerates, staging_feerates;
++    TxGraph::FeeRateDiagram main_diagram, staging_diagram;
+     for (Cluster* cluster : main_clusters) {
+-        cluster->AppendChunkFeerates(main_feerates);
++        cluster->AppendChunkFeerates(*this, main_diagram);
+     }
+     // Do the same for the Clusters in staging themselves.
+     for (int quality = 0; quality < int(QualityLevel::NONE); ++quality) {
+         for (const auto& cluster : m_staging_clusterset->m_clusters[quality]) {
+-            cluster->AppendChunkFeerates(staging_feerates);
++            cluster->AppendChunkFeerates(*this, staging_diagram);
+         }
+     }
+     // Sort both by decreasing feerate to obtain diagrams, and return them.
+-    std::sort(main_feerates.begin(), main_feerates.end(), [](auto& a, auto& b) { return a > b; });
+-    std::sort(staging_feerates.begin(), staging_feerates.end(), [](auto& a, auto& b) { return a > b; });
+-    return std::make_pair(std::move(main_feerates), std::move(staging_feerates));
++    std::sort(main_diagram.begin(), main_diagram.end(), [](auto& a, auto& b) { return a.second > b.second; });
++    std::sort(staging_diagram.begin(), staging_diagram.end(), [](auto& a, auto& b) { return a.second > b.second; });
++    return std::make_pair(std::move(main_diagram), std::move(staging_diagram));
+ }
+ 
+ void GenericClusterImpl::SanityCheck(const TxGraphImpl& graph, int level) const
+diff --git a/src/txgraph.h b/src/txgraph.h
+index 0e1f2c79d07..0cd22aa7075 100644
+--- a/src/txgraph.h
++++ b/src/txgraph.h
+@@ -65,6 +65,9 @@ public:
+         MAIN //!< Always refers to the main graph, whether staging is present or not.
+     };
+ 
++    using FeeRateChunk = std::pair<std::vector<Ref*>, FeeFrac>;
++    using FeeRateDiagram = std::vector<FeeRateChunk>;
++
+     /** Virtual destructor, so inheriting is safe. */
+     virtual ~TxGraph() = default;
+     /** Construct a new transaction with the specified feerate, and return a Ref to it.
+@@ -167,7 +170,7 @@ public:
+      *  respective feerate diagrams, including chunks from all clusters, but excluding clusters
+      *  that appear identically in both. Use FeeFrac rather than FeePerWeight so CompareChunks is
+      *  usable without type-conversion. */
+-    virtual std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> GetMainStagingDiagrams() noexcept = 0;
++    virtual std::pair<FeeRateDiagram, FeeRateDiagram> GetMainStagingDiagrams() noexcept = 0;
+     /** Remove transactions (including their own descendants) according to a fast but best-effort
+      *  strategy such that the TxGraph's cluster and size limits are respected. Applies to staging
+      *  if it exists, and to main otherwise. Returns the list of all removed transactions in
+diff --git a/src/txmempool.cpp b/src/txmempool.cpp
+index ef77af972e8..3518403da01 100644
+--- a/src/txmempool.cpp
++++ b/src/txmempool.cpp
+@@ -359,9 +359,25 @@ void CTxMemPool::removeForReorg(CChain& chain, std::function<bool(txiter)> check
+     }
+ 
+     auto all_to_remove = m_txgraph->GetDescendantsUnion(to_remove, TxGraph::Level::MAIN);
+-
++    setEntries all_iters;
+     for (auto ref : all_to_remove) {
+-        auto it = mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref));
++        all_iters.insert(mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref)));
++    }
++
++    {
++        auto change_set = GetChangeSet();
++        for (txiter it : all_iters) {
++            change_set->StageRemoval(it);
++        }
++        auto feerate_diagrams = change_set->CalculateChunksForRBF();
++        Assume(feerate_diagrams.has_value());
++        if (m_opts.signals) {
++            m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
++        }
++    }
++
++
++    for (txiter it : all_iters) {
+         removeUnchecked(it, MemPoolRemovalReason::REORG);
+     }
+     for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++) {
+@@ -392,6 +408,35 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
+     // Remove confirmed txs and conflicts when a new block is connected, updating the fee logic
+     AssertLockHeld(cs);
+     Assume(!m_have_changeset);
++    {
++        auto change_set = GetChangeSet();
++        setEntries conflicts;
++        for (auto& tx : vtx) {
++            txiter it = mapTx.find(tx->GetHash());
++            if (it != mapTx.end()) change_set->StageRemoval(it);
++            for (const CTxIn &txin : tx.vin) {
++                auto it = mapNextTx.find(txin.prevout);
++                if (it != mapNextTx.end()) {
++                    conflicts.insert(it);
++                }
++            }
++        }
++        std::vector<const TxGraph::Ref*> to_remove;
++        for (txiter it: conflicts) {
++            to_remove.emplace_back(&*it);
++        }
++
++        for (auto& ref : m_txgraph->GetDescendantsUnion(to_remove, TxGraph::Level::MAIN)) {
++            change_set->StageRemoval(mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref)));
++        }
++
++        auto feerate_diagrams = change_set->CalculateChunksForRBF();
++        Assume(feerate_diagrams.has_value());
++        if (m_opts.signals) {
++            m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
++        }
++    }
++
+     std::vector<RemovedMempoolTransactionInfo> txs_removed_for_block;
+     if (mapTx.size() || mapNextTx.size() || mapDeltas.size()) {
+         txs_removed_for_block.reserve(vtx.size());
+@@ -813,7 +858,7 @@ int CTxMemPool::Expire(std::chrono::seconds time)
+         auto feerate_diagrams = change_set->CalculateChunksForRBF();
+         Assume(feerate_diagrams.has_value());
+         if (m_opts.signals) {
+-            m_opts.signals->MempoolDiagramUpdate(std::make_pair(std::move(feerate_diagrams->first), std::move(feerate_diagrams->second)));
++            m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
+         }
+     }
+     RemoveStaged(stage, MemPoolRemovalReason::EXPIRY);
+@@ -989,15 +1034,39 @@ std::vector<CTxMemPool::txiter> CTxMemPool::GatherClusters(const std::vector<Txi
+     return ret;
+ }
+ 
+-util::Result<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> CTxMemPool::ChangeSet::CalculateChunksForRBF()
++std::vector<CTransactionRef> PopulateTransactionRef(const std::vector<TxGraph::Ref*>& tx_refs)
++{
++    std::vector<CTransactionRef> txs;
++    for (auto* ref : tx_refs) {
++        txs.emplace_back(static_cast<const CTxMemPoolEntry&>(*ref).GetSharedTx());
++    }
++    return txs;
++}
++
++util::Result<std::pair<ChunksWithId, ChunksWithId>> CTxMemPool::ChangeSet::CalculateChunksForRBF()
+ {
+     LOCK(m_pool->cs);
+ 
+     if (!CheckMemPoolPolicyLimits()) {
+         return util::Error{Untranslated("cluster size limit exceeded")};
+     }
+-
+-    return m_pool->m_txgraph->GetMainStagingDiagrams();
++    auto compute_chunks = [](const TxGraph::FeeRateDiagram& diagram) -> ChunksWithId {
++        std::vector<uint256> ids;
++        std::vector<FeeFrac> feerates;
++        ids.reserve(diagram.size());
++        feerates.reserve(diagram.size());
++        for (const auto& chunk : diagram) {
++            std::vector<CTransactionRef> txs;
++            for (auto* ref : chunk.first) {
++                txs.emplace_back(static_cast<const CTxMemPoolEntry&>(*ref).GetSharedTx());
++            }
++            ids.emplace_back(GetPackageHash(txs));
++            feerates.emplace_back(chunk.second);
++        }
++        return {std::move(ids), std::move(feerates)};
++    };
++    auto diagrams = m_pool->m_txgraph->GetMainStagingDiagrams();
++    return std::make_pair(compute_chunks(diagrams.first), compute_chunks(diagrams.second));
+ }
+ 
+ CTxMemPool::ChangeSet::TxHandle CTxMemPool::ChangeSet::StageAddition(const CTransactionRef& tx, const CAmount fee, int64_t time, unsigned int entry_height, uint64_t entry_sequence, bool spends_coinbase, int64_t sigops_cost, LockPoints lp)
+diff --git a/src/txmempool.h b/src/txmempool.h
+index ea9754ddbbc..08dff8aace3 100644
+--- a/src/txmempool.h
++++ b/src/txmempool.h
+@@ -64,6 +64,8 @@ static constexpr uint64_t POST_CHANGE_WORK = 5 * ACCEPTABLE_ITERS;
+  */
+ bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+ 
++using ChunksWithId = std::pair<std::vector<uint256>, std::vector<FeeFrac>>;
++
+ // extracts a transaction hash from CTxMemPoolEntry or CTransactionRef
+ struct mempoolentry_txid
+ {
+@@ -700,7 +702,7 @@ public:
+          *
+          * @return old and new diagram pair respectively, or an error string if the conflicts don't match a calculable topology
+          */
+-        util::Result<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> CalculateChunksForRBF();
++        util::Result<std::pair<ChunksWithId, ChunksWithId>> CalculateChunksForRBF();
+ 
+         size_t GetTxCount() const { return m_entry_vec.size(); }
+         const CTransaction& GetAddedTxn(size_t index) const { return m_entry_vec.at(index)->GetTx(); }
+diff --git a/src/validation.cpp b/src/validation.cpp
+index 8f0ad627622..5d615c81b85 100644
+--- a/src/validation.cpp
++++ b/src/validation.cpp
+@@ -771,7 +771,7 @@ private:
+         size_t m_conflicting_size{0};
+ 
+         // The old and new fee rate diagram of the cluster/s of this subpackage;
+-        std::optional<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> m_feerate_diagrams;
++        std::optional<std::pair<ChunksWithId, ChunksWithId>> m_feerate_diagrams;
+     };
+ 
+     struct SubPackageState m_subpackage;
+@@ -1048,7 +1048,7 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
+         Assume(diagram_check_result.status == DiagramCheckStatus::FAILURE);
+         return state.Invalid(TxValidationResult::TX_RECONSIDERABLE, "replacement-failed", diagram_check_result.error_message);
+     }
+-    m_subpackage.m_feerate_diagrams = std::make_pair(diagram_check_result.old_diagram, diagram_check_result.new_diagram);
++    m_subpackage.m_feerate_diagrams = diagram_check_result.diagrams;
+ 
+     return true;
+ }
+@@ -1145,7 +1145,8 @@ bool MemPoolAccept::PackageMempoolChecks(const std::vector<CTransactionRef>& txn
+         return package_state.Invalid(PackageValidationResult::PCKG_POLICY,
+                                      "package RBF failed: " + diagram_check_result.error_message, "");
+     }
+-    m_subpackage.m_feerate_diagrams = std::make_pair(diagram_check_result.old_diagram, diagram_check_result.new_diagram);
++    m_subpackage.m_feerate_diagrams = diagram_check_result.diagrams;
++
+ 
+     LogDebug(BCLog::TXPACKAGES, "package RBF checks passed: parent %s (wtxid=%s), child %s (wtxid=%s), package hash (%s)\n",
+         txns.front()->GetHash().ToString(), txns.front()->GetWitnessHash().ToString(),
+@@ -1417,7 +1418,7 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransactionInternal(const CTransa
+     if (!m_subpackage.m_feerate_diagrams) {
+         auto feerate_diagrams = m_subpackage.m_changeset->CalculateChunksForRBF();
+         Assume(feerate_diagrams.has_value());
+-        m_subpackage.m_feerate_diagrams = std::make_pair(feerate_diagrams.value().first, feerate_diagrams.value().second);
++        m_subpackage.m_feerate_diagrams = feerate_diagrams.value();
+     }
+ 
+     FinalizeSubpackage(args);
+@@ -1589,7 +1590,7 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactionsInternal(con
+     if (!m_subpackage.m_feerate_diagrams) {
+         auto feerate_diagrams = m_subpackage.m_changeset->CalculateChunksForRBF();
+         Assume(feerate_diagrams.has_value());
+-        m_subpackage.m_feerate_diagrams = std::make_pair(feerate_diagrams.value().first, feerate_diagrams.value().second);
++        m_subpackage.m_feerate_diagrams = feerate_diagrams.value();
+     }
+ 
+     if (!SubmitPackage(args, workspaces, package_state, results)) {
+diff --git a/src/validationinterface.cpp b/src/validationinterface.cpp
+index eea5d8502e3..9f663d522fd 100644
+--- a/src/validationinterface.cpp
++++ b/src/validationinterface.cpp
+@@ -202,14 +202,14 @@ void ValidationSignals::TransactionAddedToMempool(const NewMempoolTransactionInf
+                           tx.info.m_tx->GetWitnessHash().ToString());
+ }
+ 
+-void ValidationSignals::MempoolDiagramUpdate(std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> feerate_diagrams)
++void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>> feerate_diagrams)
+ {
+     auto event = [feerate_diagrams, this] {
+         m_internals->Iterate([&](CValidationInterface& callbacks) { callbacks.MempoolDiagramUpdate(feerate_diagrams); });
+     };
+     ENQUEUE_AND_LOG_EVENT(event, "%s: old diagram size=%d new diagram size=%d", __func__,
+-                          feerate_diagrams.first.size(),
+-                          feerate_diagrams.second.size());
++                          feerate_diagrams.first.second.size(),
++                          feerate_diagrams.second.second.size());
+ }
+ 
+ void ValidationSignals::TransactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason, uint64_t mempool_sequence) {
+diff --git a/src/validationinterface.h b/src/validationinterface.h
+index 8124d7916e1..09e400d2627 100644
+--- a/src/validationinterface.h
++++ b/src/validationinterface.h
+@@ -9,6 +9,7 @@
+ #include <kernel/cs_main.h>
+ #include <primitives/transaction.h>
+ #include <sync.h>
++#include <uint256.h>
+ 
+ #include <cstddef>
+ #include <cstdint>
+@@ -81,7 +82,7 @@ protected:
+      * It returns the old and the new feerate diagram
+      * Called on a background thread.
+      */
+-    virtual void MempoolDiagramUpdate(const std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>& feerate_diagrams) {}
++    virtual void MempoolDiagramUpdate(const std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>>& feerate_diagrams) {}
+ 
+     /**
+      * Notifies listeners of a transaction leaving mempool.
+@@ -230,7 +231,7 @@ public:
+     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
+     void ActiveTipChange(const CBlockIndex&, bool);
+     void TransactionAddedToMempool(const NewMempoolTransactionInfo&, uint64_t mempool_sequence);
+-    void MempoolDiagramUpdate(std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> feerate_diagrams);
++    void MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>> feerate_diagrams);
+     void TransactionRemovedFromMempool(const CTransactionRef&, MemPoolRemovalReason, uint64_t mempool_sequence);
+     void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>&, unsigned int nBlockHeight);
+     void BlockConnected(const kernel::ChainstateRole&, const std::shared_ptr<const CBlock>&, const CBlockIndex* pindex);

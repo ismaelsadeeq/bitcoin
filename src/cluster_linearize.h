@@ -406,21 +406,21 @@ struct SetInfo
 
 /** Compute the feerates of the chunks of linearization. */
 template<typename SetType>
-std::vector<FeeFrac> ChunkLinearization(const DepGraph<SetType>& depgraph, std::span<const DepGraphIndex> linearization) noexcept
+std::pair<std::vector<std::vector<DepGraphIndex>>, std::vector<FeeFrac>> ChunkLinearization(const DepGraph<SetType>& depgraph, std::span<const DepGraphIndex> linearization) noexcept
 {
     std::vector<FeeFrac> ret;
+    std::vector<std::vector<DepGraphIndex>> chunks;
     for (DepGraphIndex i : linearization) {
-        /** The new chunk to be added, initially a singleton. */
         auto new_chunk = depgraph.FeeRate(i);
-        // As long as the new chunk has a higher feerate than the last chunk so far, absorb it.
+        if (chunks.empty() || new_chunk << ret.back()) chunks.emplace_back(std::vector<DepGraphIndex>{i});
         while (!ret.empty() && new_chunk >> ret.back()) {
             new_chunk += ret.back();
             ret.pop_back();
+            chunks.back().emplace_back(i);
         }
-        // Actually move that new chunk into the chunking.
         ret.push_back(std::move(new_chunk));
     }
-    return ret;
+    return std::make_pair(std::move(chunks), std::move(ret));
 }
 
 /** Data structure encapsulating the chunking of a linearization, permitting removal of subsets. */

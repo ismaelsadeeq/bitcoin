@@ -64,6 +64,8 @@ static constexpr uint64_t POST_CHANGE_WORK = 5 * ACCEPTABLE_ITERS;
  */
 bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
+using ChunksWithId = std::pair<std::vector<uint256>, std::vector<FeeFrac>>;
+
 // extracts a transaction hash from CTxMemPoolEntry or CTransactionRef
 struct mempoolentry_txid
 {
@@ -700,7 +702,7 @@ public:
          *
          * @return old and new diagram pair respectively, or an error string if the conflicts don't match a calculable topology
          */
-        util::Result<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> CalculateChunksForRBF();
+        util::Result<std::pair<ChunksWithId, ChunksWithId>> CalculateChunksForRBF();
 
         size_t GetTxCount() const { return m_entry_vec.size(); }
         const CTransaction& GetAddedTxn(size_t index) const { return m_entry_vec.at(index)->GetTx(); }

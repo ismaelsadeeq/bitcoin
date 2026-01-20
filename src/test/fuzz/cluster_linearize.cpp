@@ -256,7 +256,7 @@ std::vector<DepGraphIndex> ExhaustiveLinearize(const DepGraph<SetType>& depgraph
         if (topo_length == perm_linearization.size()) {
             // If all of perm_linearization is topological, check if it is perhaps our best
             // linearization so far.
-            auto perm_chunking = ChunkLinearization(depgraph, perm_linearization);
+            auto perm_chunking = ChunkLinearization(depgraph, perm_linearization).second;
             auto cmp = CompareChunks(perm_chunking, chunking);
             // If the diagram is better, or if it is equal but with more chunks (because we
             // prefer minimal chunks), consider this better.
@@ -733,7 +733,7 @@ FUZZ_TARGET(clusterlin_chunking)
     auto linearization = ReadLinearization(depgraph, reader);
 
     // Invoke the chunking function.
-    auto chunking = ChunkLinearization(depgraph, linearization);
+    auto chunking = ChunkLinearization(depgraph, linearization).second;
 
     // Verify that chunk feerates are monotonically non-increasing.
     for (size_t i = 1; i < chunking.size(); ++i) {
@@ -1041,7 +1041,7 @@ FUZZ_TARGET(clusterlin_linearization_chunking)
         }
 
         // Compute the chunking for linearization_left.
-        auto chunking_left = ChunkLinearization(depgraph, linearization_left);
+        auto chunking_left = ChunkLinearization(depgraph, linearization_left).second;
 
         // Verify that it matches the feerates of the chunks of chunking.
         assert(chunking.NumChunksLeft() == chunking_left.size());
@@ -1140,7 +1140,7 @@ FUZZ_TARGET(clusterlin_simple_linearize)
     // Invoke SimpleLinearize().
     auto [linearization, optimal] = SimpleLinearize(depgraph, iter_count);
     SanityCheck(depgraph, linearization);
-    auto simple_chunking = ChunkLinearization(depgraph, linearization);
+    auto simple_chunking = ChunkLinearization(depgraph, linearization).second;
 
     // If the iteration count is sufficiently high, an optimal linearization must be found.
     // SimpleLinearize on k transactions can take up to 2^(k-1) iterations (one per non-empty
@@ -1154,8 +1154,8 @@ FUZZ_TARGET(clusterlin_simple_linearize)
     // n! linearizations), test that the result is as good as every valid linearization.
     if (optimal && depgraph.TxCount() <= 8) {
         auto exh_linearization = ExhaustiveLinearize(depgraph);
-        auto exh_chunking = ChunkLinearization(depgraph, exh_linearization);
-        auto cmp = CompareChunks(simple_chunking, exh_chunking);
+        auto exh_chunking = ChunkLinearization(depgraph, exh_linearization).second;
+        auto cmp = CompareChunks(simple_chunking, exh_chunking).second;
         assert(cmp == 0);
         assert(simple_chunking.size() == exh_chunking.size());
     }
@@ -1163,7 +1163,7 @@ FUZZ_TARGET(clusterlin_simple_linearize)
     if (optimal) {
         // Compare with a linearization read from the fuzz input.
         auto read = ReadLinearization(depgraph, reader);
-        auto read_chunking = ChunkLinearization(depgraph, read);
+        auto read_chunking = ChunkLinearization(depgraph, read).second;
         auto cmp = CompareChunks(simple_chunking, read_chunking);
         assert(cmp >= 0);
     }
@@ -1205,11 +1205,11 @@ FUZZ_TARGET(clusterlin_linearize)
     auto [linearization, optimal, cost] = Linearize(depgraph, iter_count, rng_seed, old_linearization);
     assert(cost <= iter_count);
     SanityCheck(depgraph, linearization);
-    auto chunking = ChunkLinearization(depgraph, linearization);
+    auto chunking = ChunkLinearization(depgraph, linearization).second;
 
     // Linearization must always be as good as the old one, if provided.
     if (!old_linearization.empty()) {
-        auto old_chunking = ChunkLinearization(depgraph, old_linearization);
+        auto old_chunking = ChunkLinearization(depgraph, old_linearization).second;
         auto cmp = CompareChunks(chunking, old_chunking);
         assert(cmp >= 0);
     }
@@ -1224,7 +1224,7 @@ FUZZ_TARGET(clusterlin_linearize)
         // It must be as good as SimpleLinearize.
         auto [simple_linearization, simple_optimal] = SimpleLinearize(depgraph, MAX_SIMPLE_ITERATIONS);
         SanityCheck(depgraph, simple_linearization);
-        auto simple_chunking = ChunkLinearization(depgraph, simple_linearization);
+        auto simple_chunking = ChunkLinearization(depgraph, simple_linearization).second;
         auto cmp = CompareChunks(chunking, simple_chunking);
         assert(cmp >= 0);
         // If SimpleLinearize finds the optimal result too, they must be equal (if not,
@@ -1236,7 +1236,7 @@ FUZZ_TARGET(clusterlin_linearize)
 
         // Compare with a linearization read from the fuzz input.
         auto read = ReadLinearization(depgraph, reader);
-        auto read_chunking = ChunkLinearization(depgraph, read);
+        auto read_chunking = ChunkLinearization(depgraph, read).second;
         auto cmp_read = CompareChunks(chunking, read_chunking);
         assert(cmp_read >= 0);
     }
@@ -1264,8 +1264,8 @@ FUZZ_TARGET(clusterlin_postlinearize)
     SanityCheck(depgraph, post_linearization);
 
     // Compare diagrams: post-linearization cannot worsen anywhere.
-    auto chunking = ChunkLinearization(depgraph, linearization);
-    auto post_chunking = ChunkLinearization(depgraph, post_linearization);
+    auto chunking = ChunkLinearization(depgraph, linearization).second;
+    auto post_chunking = ChunkLinearization(depgraph, post_linearization).second;
     auto cmp = CompareChunks(post_chunking, chunking);
     assert(cmp >= 0);
 
@@ -1273,7 +1273,7 @@ FUZZ_TARGET(clusterlin_postlinearize)
     auto post_post_linearization = post_linearization;
     PostLinearize(depgraph, post_post_linearization);
     SanityCheck(depgraph, post_post_linearization);
-    auto post_post_chunking = ChunkLinearization(depgraph, post_post_linearization);
+    auto post_post_chunking = ChunkLinearization(depgraph, post_post_linearization).second;
     cmp = CompareChunks(post_post_chunking, post_chunking);
     assert(cmp >= 0);
 
@@ -1312,8 +1312,8 @@ FUZZ_TARGET(clusterlin_postlinearize_tree)
     SanityCheck(depgraph_tree, post_linearization);
 
     // Compare diagrams.
-    auto chunking = ChunkLinearization(depgraph_tree, linearization);
-    auto post_chunking = ChunkLinearization(depgraph_tree, post_linearization);
+    auto chunking = ChunkLinearization(depgraph_tree, linearization).second;
+    auto post_chunking = ChunkLinearization(depgraph_tree, post_linearization).second;
     auto cmp = CompareChunks(post_chunking, chunking);
     assert(cmp >= 0);
 
@@ -1322,14 +1322,14 @@ FUZZ_TARGET(clusterlin_postlinearize_tree)
     auto post_post_linearization = post_linearization;
     PostLinearize(depgraph_tree, post_post_linearization);
     SanityCheck(depgraph_tree, post_post_linearization);
-    auto post_post_chunking = ChunkLinearization(depgraph_tree, post_post_linearization);
+    auto post_post_chunking = ChunkLinearization(depgraph_tree, post_post_linearization).second;
     auto cmp_post = CompareChunks(post_post_chunking, post_chunking);
     assert(cmp_post == 0);
 
     // Try to find an even better linearization directly. This must not change the diagram for the
     // same reason.
     auto [opt_linearization, _optimal, _cost] = Linearize(depgraph_tree, 100000, rng_seed, post_linearization);
-    auto opt_chunking = ChunkLinearization(depgraph_tree, opt_linearization);
+    auto opt_chunking = ChunkLinearization(depgraph_tree, opt_linearization).second;
     auto cmp_opt = CompareChunks(opt_chunking, post_chunking);
     assert(cmp_opt == 0);
 }
@@ -1370,9 +1370,9 @@ FUZZ_TARGET(clusterlin_postlinearize_moved_leaf)
     SanityCheck(depgraph, lin_moved);
 
     // Compare diagrams (applying the fee delta after computing the old one).
-    auto old_chunking = ChunkLinearization(depgraph, lin);
+    auto old_chunking = ChunkLinearization(depgraph, lin).second;
     depgraph.FeeRate(lin_leaf.back()).fee += fee_inc;
-    auto new_chunking = ChunkLinearization(depgraph, lin_moved);
+    auto new_chunking = ChunkLinearization(depgraph, lin_moved).second;
     auto cmp = CompareChunks(new_chunking, old_chunking);
     assert(cmp >= 0);
 }
@@ -1394,9 +1394,9 @@ FUZZ_TARGET(clusterlin_merge)
     auto lin_merged = MergeLinearizations(depgraph, lin1, lin2);
 
     // Compute chunkings and compare.
-    auto chunking1 = ChunkLinearization(depgraph, lin1);
-    auto chunking2 = ChunkLinearization(depgraph, lin2);
-    auto chunking_merged = ChunkLinearization(depgraph, lin_merged);
+    auto chunking1 = ChunkLinearization(depgraph, lin1).second;
+    auto chunking2 = ChunkLinearization(depgraph, lin2).second;
+    auto chunking_merged = ChunkLinearization(depgraph, lin_merged).second;
     auto cmp1 = CompareChunks(chunking_merged, chunking1);
     assert(cmp1 >= 0);
     auto cmp2 = CompareChunks(chunking_merged, chunking2);

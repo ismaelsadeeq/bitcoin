@@ -1,0 +1,39 @@
+[  1%] Generating bitcoin-build-info.h
+[  1%] Built target secp256k1_precomputed
+[  1%] Built target exhaustive_tests
+[  1%] Built target mputil
+[  1%] Built target crc32c
+[  2%] Built target univalue
+[  2%] Built target bitcoin_cli
+[  5%] Built target minisketch
+[  7%] Built target bitcoin_consensus
+[ 11%] Built target bitcoin_crypto
+[ 12%] Built target secp256k1
+[ 12%] Built target noverify_tests
+[ 12%] Built target tests
+[ 12%] Built target object
+[ 12%] Built target mpgen
+[ 13%] Built target multiprocess
+[ 23%] Built target unitester
+[ 29%] Built target leveldb
+[ 31%] Built target test_util
+[ 32%] Built target bitcoin_ipc_headers
+[ 33%] Built target mptest
+[ 33%] Built target mptests
+[ 37%] Built target bitcoin_ipc
+[ 38%] Built target bitcoin_ipc_test
+[ 38%] Built target generate_build_info
+[ 38%] Built target bitcoin_clientversion
+[ 43%] Built target bitcoin_util
+[ 52%] Built target bitcoin_common
+[ 57%] Built target bitcoin_wallet
+[ 57%] Built target bitcoin-tx
+[ 57%] Built target bitcoin-cli
+[ 57%] Built target bitcoin
+[ 57%] Built target bitcoin-util
+[ 58%] Built target bitcoin-wallet
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/policy/rbf.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/txgraph.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/txmempool.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/validation.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/bitcoin_node.dir/validationinterface.cpp.o

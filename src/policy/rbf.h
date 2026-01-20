@@ -47,8 +47,7 @@ enum class DiagramCheckStatus {
 
 struct DiagramCheckResult {
     DiagramCheckStatus status;
-    std::vector<FeeFrac> old_diagram{};
-    std::vector<FeeFrac> new_diagram{};
+    std::pair<ChunksWithId, ChunksWithId> diagrams{ChunksWithId{{}, {}}, ChunksWithId{{}, {}}};
     std::string error_message{""};
 };
 

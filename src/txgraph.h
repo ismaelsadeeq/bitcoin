@@ -65,6 +65,9 @@ public:
         MAIN //!< Always refers to the main graph, whether staging is present or not.
     };
 
+    using FeeRateChunk = std::pair<std::vector<Ref*>, FeeFrac>;
+    using FeeRateDiagram = std::vector<FeeRateChunk>;
+
     /** Virtual destructor, so inheriting is safe. */
     virtual ~TxGraph() = default;
     /** Construct a new transaction with the specified feerate, and return a Ref to it.
@@ -167,7 +170,7 @@ public:
      *  respective feerate diagrams, including chunks from all clusters, but excluding clusters
      *  that appear identically in both. Use FeeFrac rather than FeePerWeight so CompareChunks is
      *  usable without type-conversion. */
-    virtual std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> GetMainStagingDiagrams() noexcept = 0;
+    virtual std::pair<FeeRateDiagram, FeeRateDiagram> GetMainStagingDiagrams() noexcept = 0;
     /** Remove transactions (including their own descendants) according to a fast but best-effort
      *  strategy such that the TxGraph's cluster and size limits are respected. Applies to staging
      *  if it exists, and to main otherwise. Returns the list of all removed transactions in

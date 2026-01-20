@@ -359,9 +359,25 @@ void CTxMemPool::removeForReorg(CChain& chain, std::function<bool(txiter)> check
     }
 
     auto all_to_remove = m_txgraph->GetDescendantsUnion(to_remove, TxGraph::Level::MAIN);
-
+    setEntries all_iters;
     for (auto ref : all_to_remove) {
-        auto it = mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref));
+        all_iters.insert(mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref)));
+    }
+
+    {
+        auto change_set = GetChangeSet();
+        for (txiter it : all_iters) {
+            change_set->StageRemoval(it);
+        }
+        auto feerate_diagrams = change_set->CalculateChunksForRBF();
+        Assume(feerate_diagrams.has_value());
+        if (m_opts.signals) {
+            m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
+        }
+    }
+
+
+    for (txiter it : all_iters) {
         removeUnchecked(it, MemPoolRemovalReason::REORG);
     }
     for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++) {
@@ -392,6 +408,35 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     // Remove confirmed txs and conflicts when a new block is connected, updating the fee logic
     AssertLockHeld(cs);
     Assume(!m_have_changeset);
+    {
+        auto change_set = GetChangeSet();
+        setEntries conflicts;
+        for (auto& tx : vtx) {
+            txiter it = mapTx.find(tx->GetHash());
+            if (it != mapTx.end()) change_set->StageRemoval(it);
+            for (const CTxIn &txin : tx->vin) {
+                auto conflict_it = mapNextTx.find(txin.prevout);
+                if (conflict_it != mapNextTx.end()) {
+                    conflicts.insert(mapTx.iterator_to(*conflict_it->second));
+                }
+            }
+        }
+        std::vector<const TxGraph::Ref*> to_remove;
+        for (txiter it: conflicts) {
+            to_remove.emplace_back(&*it);
+        }
+
+        for (auto& ref : m_txgraph->GetDescendantsUnion(to_remove, TxGraph::Level::MAIN)) {
+            change_set->StageRemoval(mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*ref)));
+        }
+
+        auto feerate_diagrams = change_set->CalculateChunksForRBF();
+        Assume(feerate_diagrams.has_value());
+        if (m_opts.signals) {
+            m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
+        }
+    }
+
     std::vector<RemovedMempoolTransactionInfo> txs_removed_for_block;
     if (mapTx.size() || mapNextTx.size() || mapDeltas.size()) {
         txs_removed_for_block.reserve(vtx.size());
@@ -813,7 +858,7 @@ int CTxMemPool::Expire(std::chrono::seconds time)
         auto feerate_diagrams = change_set->CalculateChunksForRBF();
         Assume(feerate_diagrams.has_value());
         if (m_opts.signals) {
-            m_opts.signals->MempoolDiagramUpdate(std::make_pair(std::move(feerate_diagrams->first), std::move(feerate_diagrams->second)));
+            m_opts.signals->MempoolDiagramUpdate(feerate_diagrams.value());
         }
     }
     RemoveStaged(stage, MemPoolRemovalReason::EXPIRY);
@@ -989,15 +1034,39 @@ std::vector<CTxMemPool::txiter> CTxMemPool::GatherClusters(const std::vector<Txi
     return ret;
 }
 
-util::Result<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> CTxMemPool::ChangeSet::CalculateChunksForRBF()
+std::vector<CTransactionRef> PopulateTransactionRef(const std::vector<TxGraph::Ref*>& tx_refs)
+{
+    std::vector<CTransactionRef> txs;
+    for (auto* ref : tx_refs) {
+        txs.emplace_back(static_cast<const CTxMemPoolEntry&>(*ref).GetSharedTx());
+    }
+    return txs;
+}
+
+util::Result<std::pair<ChunksWithId, ChunksWithId>> CTxMemPool::ChangeSet::CalculateChunksForRBF()
 {
     LOCK(m_pool->cs);
 
     if (!CheckMemPoolPolicyLimits()) {
         return util::Error{Untranslated("cluster size limit exceeded")};
     }
-
-    return m_pool->m_txgraph->GetMainStagingDiagrams();
+    auto compute_chunks = [](const TxGraph::FeeRateDiagram& diagram) -> ChunksWithId {
+        std::vector<uint256> ids;
+        std::vector<FeeFrac> feerates;
+        ids.reserve(diagram.size());
+        feerates.reserve(diagram.size());
+        for (const auto& chunk : diagram) {
+            std::vector<CTransactionRef> txs;
+            for (auto* ref : chunk.first) {
+                txs.emplace_back(static_cast<const CTxMemPoolEntry&>(*ref).GetSharedTx());
+            }
+            ids.emplace_back(GetPackageHash(txs));
+            feerates.emplace_back(chunk.second);
+        }
+        return {std::move(ids), std::move(feerates)};
+    };
+    auto diagrams = m_pool->m_txgraph->GetMainStagingDiagrams();
+    return std::make_pair(compute_chunks(diagrams.first), compute_chunks(diagrams.second));
 }
 
 CTxMemPool::ChangeSet::TxHandle CTxMemPool::ChangeSet::StageAddition(const CTransactionRef& tx, const CAmount fee, int64_t time, unsigned int entry_height, uint64_t entry_sequence, bool spends_coinbase, int64_t sigops_cost, LockPoints lp)

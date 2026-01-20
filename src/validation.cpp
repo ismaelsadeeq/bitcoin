@@ -771,7 +771,7 @@ private:
         size_t m_conflicting_size{0};
 
         // The old and new fee rate diagram of the cluster/s of this subpackage;
-        std::optional<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> m_feerate_diagrams;
+        std::optional<std::pair<ChunksWithId, ChunksWithId>> m_feerate_diagrams;
     };
 
     struct SubPackageState m_subpackage;
@@ -1048,7 +1048,7 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
         Assume(diagram_check_result.status == DiagramCheckStatus::FAILURE);
         return state.Invalid(TxValidationResult::TX_RECONSIDERABLE, "replacement-failed", diagram_check_result.error_message);
     }
-    m_subpackage.m_feerate_diagrams = std::make_pair(diagram_check_result.old_diagram, diagram_check_result.new_diagram);
+    m_subpackage.m_feerate_diagrams = diagram_check_result.diagrams;
 
     return true;
 }
@@ -1145,7 +1145,8 @@ bool MemPoolAccept::PackageMempoolChecks(const std::vector<CTransactionRef>& txn
         return package_state.Invalid(PackageValidationResult::PCKG_POLICY,
                                      "package RBF failed: " + diagram_check_result.error_message, "");
     }
-    m_subpackage.m_feerate_diagrams = std::make_pair(diagram_check_result.old_diagram, diagram_check_result.new_diagram);
+    m_subpackage.m_feerate_diagrams = diagram_check_result.diagrams;
+
 
     LogDebug(BCLog::TXPACKAGES, "package RBF checks passed: parent %s (wtxid=%s), child %s (wtxid=%s), package hash (%s)\n",
         txns.front()->GetHash().ToString(), txns.front()->GetWitnessHash().ToString(),
@@ -1417,7 +1418,7 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransactionInternal(const CTransa
     if (!m_subpackage.m_feerate_diagrams) {
         auto feerate_diagrams = m_subpackage.m_changeset->CalculateChunksForRBF();
         Assume(feerate_diagrams.has_value());
-        m_subpackage.m_feerate_diagrams = std::make_pair(feerate_diagrams.value().first, feerate_diagrams.value().second);
+        m_subpackage.m_feerate_diagrams = feerate_diagrams.value();
     }
 
     FinalizeSubpackage(args);
@@ -1589,7 +1590,7 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactionsInternal(con
     if (!m_subpackage.m_feerate_diagrams) {
         auto feerate_diagrams = m_subpackage.m_changeset->CalculateChunksForRBF();
         Assume(feerate_diagrams.has_value());
-        m_subpackage.m_feerate_diagrams = std::make_pair(feerate_diagrams.value().first, feerate_diagrams.value().second);
+        m_subpackage.m_feerate_diagrams = feerate_diagrams.value();
     }
 
     if (!SubmitPackage(args, workspaces, package_state, results)) {

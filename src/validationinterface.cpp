@@ -202,14 +202,14 @@ void ValidationSignals::TransactionAddedToMempool(const NewMempoolTransactionInf
                           tx.info.m_tx->GetWitnessHash().ToString());
 }
 
-void ValidationSignals::MempoolDiagramUpdate(std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>> feerate_diagrams)
+void ValidationSignals::MempoolDiagramUpdate(std::pair<std::pair<std::vector<uint256>, std::vector<FeeFrac>>, std::pair<std::vector<uint256>, std::vector<FeeFrac>>> feerate_diagrams)
 {
     auto event = [feerate_diagrams, this] {
         m_internals->Iterate([&](CValidationInterface& callbacks) { callbacks.MempoolDiagramUpdate(feerate_diagrams); });
     };
     ENQUEUE_AND_LOG_EVENT(event, "%s: old diagram size=%d new diagram size=%d", __func__,
-                          feerate_diagrams.first.size(),
-                          feerate_diagrams.second.size());
+                          feerate_diagrams.first.second.size(),
+                          feerate_diagrams.second.second.size());
 }
 
 void ValidationSignals::TransactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason, uint64_t mempool_sequence) {

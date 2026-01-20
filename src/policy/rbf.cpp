@@ -136,14 +136,13 @@ DiagramCheckResult ImprovesFeerateDiagram(CTxMemPool::ChangeSet& changeset)
         return result;
     }
 
-    if (!std::is_gt(CompareChunks(chunk_results.value().second, chunk_results.value().first))) {
+    if (!std::is_gt(CompareChunks(chunk_results.value().second.second, chunk_results.value().first.second))) {
         result.status = DiagramCheckStatus::FAILURE;
         result.error_message = "insufficient feerate: does not improve feerate diagram";
         return result;
     }
 
     result.status = DiagramCheckStatus::IMPROVED;
-    result.old_diagram = chunk_results.value().first;
-    result.new_diagram = chunk_results.value().second;
+    result.diagrams = chunk_results.value();
     return result;
 }
