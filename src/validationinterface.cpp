@@ -231,6 +231,17 @@ void ValidationSignals::MempoolTransactionsRemovedForBlock(const std::vector<Rem
                           txs_removed_for_block.size());
 }
 
+void ValidationSignals::MempoolUpdated(const MemPoolChunksUpdate& mempool_chunks)
+{
+    auto event = [mempool_chunks, this] {
+        m_internals->Iterate([&](CValidationInterface& callbacks) { callbacks.MempoolUpdated(mempool_chunks); });
+    };
+    ENQUEUE_AND_LOG_EVENT(event, "%s: old chunks=%s new chunks=%s reason for removal=%s", __func__,
+                          mempool_chunks.old_chunks.size(),
+                          mempool_chunks.new_chunks.size(),
+                          RemovalReasonToString(mempool_chunks.reason));
+}
+
 void ValidationSignals::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex* pindex)
 {
     auto event = [pblock, pindex, this] {
