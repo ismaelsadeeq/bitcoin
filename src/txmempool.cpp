@@ -122,9 +122,8 @@ void CTxMemPool::UpdateTransactionsFromBlock(const std::vector<Txid>& vHashesToU
             }
         }
     }
-
-    auto txs_to_remove = m_txgraph->Trim(); // Enforce cluster size limits.
     auto changeSet = GetChangeSet();
+    auto txs_to_remove = m_txgraph->Trim(); // Enforce cluster size limits.
     for (auto txptr : txs_to_remove) {
         const CTxMemPoolEntry& entry = *(static_cast<const CTxMemPoolEntry*>(txptr));
         changeSet->StageRemoval(mapTx.iterator_to(entry));
