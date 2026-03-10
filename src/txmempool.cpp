@@ -99,39 +99,62 @@ std::vector<CTxMemPoolEntry::CTxMemPoolEntryRef> CTxMemPool::GetParents(const CT
     return ret;
 }
 
+void CTxMemPool::AddDependenciesFromBlock(const std::vector<Txid>& vHashesToUpdate)
+{
+    AssertLockHeld(cs);
+    // Iterate in reverse so that when processing a transaction, all its
+    // in-mempool descendants have already been processed. This ensures
+    // AddDependency is called in topological order (parent before child).
+    for (const Txid& hash : vHashesToUpdate | std::views::reverse) {
+        txiter it = mapTx.find(hash);
+        if (it == mapTx.end()) continue;
+        auto iter = mapNextTx.lower_bound(COutPoint(hash, 0));
+        for (; iter != mapNextTx.end() && iter->first->hash == hash; ++iter) {
+            assert(iter->second != mapTx.end());
+            m_txgraph->AddDependency(/*parent=*/*it, /*child=*/*iter->second);
+        }
+    }
+}
+
 void CTxMemPool::UpdateTransactionsFromBlock(const std::vector<Txid>& vHashesToUpdate)
 {
     AssertLockHeld(cs);
     Assume(!m_have_changeset);
-    // Iterate in reverse, so that whenever we are looking at a transaction
-    // we are sure that all in-mempool descendants have already been processed.
-    for (const Txid& hash : vHashesToUpdate | std::views::reverse) {
-        // calculate children from mapNextTx
-        txiter it = mapTx.find(hash);
-        if (it == mapTx.end()) {
-            continue;
-        }
-        auto iter = mapNextTx.lower_bound(COutPoint(hash, 0));
-        {
-            for (; iter != mapNextTx.end() && iter->first->hash == hash; ++iter) {
-                txiter childIter = iter->second;
-                assert(childIter != mapTx.end());
-                // Add dependencies that are discovered between transactions in the
-                // block and transactions that were in the mempool to txgraph.
-                m_txgraph->AddDependency(/*parent=*/*it, /*child=*/*childIter);
-            }
-        }
-    }
+    // Add parent->child dependencies discovered between re-added transactions
+    // and existing mempool transactions on a staging graph, then check whether
+    // any clusters now exceed the size limit.
     auto changeSet = GetChangeSet();
-    auto txs_to_remove = m_txgraph->Trim(); // Enforce cluster size limits.
-    for (auto txptr : txs_to_remove) {
-        const CTxMemPoolEntry& entry = *(static_cast<const CTxMemPoolEntry*>(txptr));
-        changeSet->StageRemoval(mapTx.iterator_to(entry));
+    AddDependenciesFromBlock(vHashesToUpdate);
+    auto txs_to_remove = m_txgraph->Trim();
+    setEntries iters;
+    if (!txs_to_remove.empty()) {
+        // Clusters exceed the size limit after adding new dependencies.
+        // Abort the current staging graph (which contains the oversized clusters)
+        // and start fresh — an oversized graph cannot produce a valid fee rate diagram.
+        // Then evict the transactions discovered by Trim() and re-add dependencies.
+        // With the oversized txs gone, GetMainStagingDiagrams produces a correct
+        // before/after diff: old = pre-dependency clusters (main),
+        // new = post-dependency clusters without evicted txs (staging).
+        changeSet.reset();
+        changeSet = GetChangeSet();
+        for (auto txptr : txs_to_remove) {
+            m_txgraph->RemoveTransaction(*txptr);
+            iters.insert(mapTx.iterator_to(static_cast<const CTxMemPoolEntry&>(*txptr)));
+        }
+        // It is safe to add dependencies here without first evicting iters from
+        // mapTx/mapNextTx — AddDependency is a no-op when either parent or child
+        // is absent from the graph, so evicted txs are simply skipped.
+        AddDependenciesFromBlock(vHashesToUpdate);
     }
     changeSet->GetAndSaveMainStagingDiagram();
     auto diagrams = changeSet->GetFeeRateDiagramChunks();
-    if (m_opts.signals) m_opts.signals->MempoolUpdated(MemPoolChunksUpdate{diagrams.first, diagrams.second, MemPoolRemovalReason::SIZELIMIT});
-    RemoveStaged(changeSet->GetRemovals(), MemPoolRemovalReason::SIZELIMIT);
+    m_txgraph->CommitStaging();
+    if (m_opts.signals) m_opts.signals->MempoolUpdated(
+        MemPoolChunksUpdate{diagrams.first, diagrams.second, MemPoolRemovalReason::SIZELIMIT});
+    RemoveStaged(iters, MemPoolRemovalReason::SIZELIMIT);
+    if (!m_txgraph->DoWork(/*max_cost=*/POST_CHANGE_COST)) {
+        LogDebug(BCLog::MEMPOOL, "Mempool in non-optimal ordering after reorg.");
+    }
 }
 
 bool CTxMemPool::HasDescendants(const Txid& txid) const
