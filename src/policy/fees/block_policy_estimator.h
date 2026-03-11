@@ -36,11 +36,13 @@ static constexpr std::chrono::hours MAX_FILE_AGE{60};
 static constexpr bool DEFAULT_ACCEPT_STALE_FEE_ESTIMATES{false};
 
 class AutoFile;
-class TxConfirmStats;
-struct RemovedMempoolTransactionInfo;
-struct NewMempoolTransactionInfo;
+class ChunkConfirmStats;
+class CBlock;
+class CBlockIndex;
+struct MemPoolChunk;
+struct MemPoolChunksUpdate;
 
-/* Identifier for each of the 3 different TxConfirmStats which will track
+/* Identifier for each of the 3 different ChunkConfirmStats which will track
  * history over different time horizons. */
 enum class FeeEstimateHorizon {
     SHORT_HALFLIFE,
@@ -99,17 +101,17 @@ struct FeeCalculation
 
 /** \class CBlockPolicyEstimator
  * The BlockPolicyEstimator is used for estimating the feerate needed
- * for a transaction to be included in a block within a certain number of
+ * for a package to be included in a block within a certain number of
  * blocks.
  *
- * At a high level the algorithm works by grouping transactions into buckets
+ * At a high level the algorithm works by grouping chunks into buckets
  * based on having similar feerates and then tracking how long it
- * takes transactions in the various buckets to be mined.  It operates under
- * the assumption that in general transactions of higher feerate will be
- * included in blocks before transactions of lower feerate.   So for
- * example if you wanted to know what feerate you should put on a transaction to
+ * takes chunks in the various buckets to be mined.  It operates under
+ * the assumption that in general chunks of higher feerate will be
+ * included in blocks before chunks of lower feerate.   So for
+ * example if you wanted to know what feerate you should put on a package to
  * be included in a block within the next 5 blocks, you would start by looking
- * at the bucket with the highest feerate transactions and verifying that a
+ * at the bucket with the highest feerate chunks and verifying that a
  * sufficiently high percentage of them were confirmed within 5 blocks and
  * then you would look at the next highest feerate bucket, and so on, stopping at
  * the last bucket to pass the test.   The average feerate of transactions in this
@@ -118,16 +120,16 @@ struct FeeCalculation
  * within your desired 5 blocks.
  *
  * Here is a brief description of the implementation:
- * When a transaction enters the mempool, we track the height of the block chain
+ * When a chunk enters the mempool, we track the height of the block chain
  * at entry.  All further calculations are conducted only on this set of "seen"
- * transactions. Whenever a block comes in, we count the number of transactions
+ * chunks. Whenever a block comes in, we count the number of chunks
  * in each bucket and the total amount of feerate paid in each bucket. Then we
- * calculate how many blocks Y it took each transaction to be mined.  We convert
+ * calculate how many blocks Y it took each chunk to be mined.  We convert
  * from a number of blocks to a number of periods Y' each encompassing "scale"
  * blocks.  This is tracked in 3 different data sets each up to a maximum
  * number of periods. Within each data set we have an array of counters in each
  * feerate bucket and we increment all the counters from Y' up to max periods
- * representing that a tx was successfully confirmed in less than or equal to
+ * representing that a chunk was successfully confirmed in less than or equal to
  * that many periods. We want to save a history of this information, so at any
  * time we have a counter of the total number of transactions that happened in a
  * given feerate bucket and the total number that were confirmed in each of the
@@ -141,9 +143,9 @@ struct FeeCalculation
  * we've seen in that feerate bucket when calculating an estimate for any number
  * of confirmations below the number of blocks they've been outstanding.
  *
- *  We want to be able to estimate feerates that are needed on tx's to be included in
+ *  We want to be able to estimate feerates that are needed on chunk's to be included in
  * a certain number of blocks.  Every time a block is added to the best chain, this class records
- * stats on the transactions included in that block
+ * stats on the chunks included in that block
  */
 class CBlockPolicyEstimator : public CValidationInterface
 {
@@ -174,10 +176,10 @@ private:
     /** Require greater than 95% of X feerate transactions to be confirmed within 2 * Y blocks*/
     static constexpr double DOUBLE_SUCCESS_PCT = .95;
 
-    /** Require an avg of 0.1 tx in the combined feerate bucket per block to have stat significance */
-    static constexpr double SUFFICIENT_FEETXS = 0.1;
-    /** Require an avg of 0.5 tx when using short decay since there are fewer blocks considered*/
-    static constexpr double SUFFICIENT_TXS_SHORT = 0.5;
+    /** Require an avg of 0.1 chunk in the combined feerate bucket per block to have stat significance */
+    static constexpr double SUFFICIENT_FEE_CHUNKS = 0.1;
+    /** Require an avg of 0.5 chunk when using short decay since there are fewer blocks considered*/
+    static constexpr double SUFFICIENT_CHUNKS_SHORT = 0.5;
 
     /** Minimum and Maximum values for tracking feerates
      * The MIN_BUCKET_FEERATE should just be set to the lowest reasonable feerate.
@@ -192,7 +194,7 @@ private:
     static constexpr double MAX_BUCKET_FEERATE = 1e7;
 
     /** Spacing of FeeRate buckets
-     * We have to lump transactions into buckets based on feerate, but we want to be able
+     * We have to lump chunks into buckets based on feerate, but we want to be able
      * to give accurate estimates over a large range of potential feerates
      * Therefore it makes sense to exponentially space the buckets
      */
@@ -204,17 +206,16 @@ public:
     CBlockPolicyEstimator(const fs::path& estimation_filepath, bool read_stale_estimates);
     virtual ~CBlockPolicyEstimator();
 
-    /** Process all the transactions that have been included in a block */
-    void processBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block,
-                      unsigned int nBlockHeight)
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    /** Process a chunks that have been included in a block */
+    void processBlockChunks(const std::vector<MemPoolChunk>& chunks_removed_for_block)
+        EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 
-    /** Process a transaction accepted to the mempool*/
-    void processTransaction(const NewMempoolTransactionInfo& tx)
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    /** Process a chunk accepted to the mempool*/
+    void processNewMemPoolChunks(const std::vector<MemPoolChunk>& chunks)
+        EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 
-    /** Remove a transaction from the mempool tracking stats for non BLOCK removal reasons*/
-    bool removeTx(Txid hash)
+    /** Remove a chunk from the tracking stats*/
+    bool removeChunk(const uint256& chunk)
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
     /** DEPRECATED. Return a feerate estimate */
@@ -245,7 +246,7 @@ public:
     bool Read(AutoFile& filein)
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
-    /** Empty mempool transactions on shutdown to record failure to confirm for txs still in mempool */
+    /** Empty mempool chunks on shutdown to record failure to confirm for chunks still in mempool */
     void FlushUnconfirmed()
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
@@ -264,13 +265,11 @@ public:
     /** Calculates the age of the file, since last modified */
     std::chrono::hours GetFeeEstimatorFileAge();
 
-protected:
     /** Overridden from CValidationInterface. */
-    void TransactionAddedToMempool(const NewMempoolTransactionInfo& tx, uint64_t /*unused*/) override
+    void MempoolUpdated(const MemPoolChunksUpdate& mempool_chunks) override
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
-    void TransactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason /*unused*/, uint64_t /*unused*/) override
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
-    void MempoolTransactionsRemovedForBlock(const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block, unsigned int nBlockHeight) override
+    /** Overridden from CValidationInterface. */
+    void BlockConnected(const kernel::ChainstateRole& role, const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
 private:
@@ -281,29 +280,23 @@ private:
     unsigned int historicalFirst GUARDED_BY(m_cs_fee_estimator){0};
     unsigned int historicalBest GUARDED_BY(m_cs_fee_estimator){0};
 
-    struct TxStatsInfo
+    struct ChunkStatsInfo
     {
         unsigned int blockHeight{0};
         unsigned int bucketIndex{0};
-        TxStatsInfo() = default;
+        ChunkStatsInfo() = default;
     };
 
-    // map of txids to information about that transaction
-    std::map<Txid, TxStatsInfo> mapMemPoolTxs GUARDED_BY(m_cs_fee_estimator);
+    // map of chunk id to information about that chunk
+    std::map<uint256, ChunkStatsInfo> mapMemPoolChunks GUARDED_BY(m_cs_fee_estimator);
 
-    /** Classes to track historical data on transaction confirmations */
-    std::unique_ptr<TxConfirmStats> feeStats PT_GUARDED_BY(m_cs_fee_estimator);
-    std::unique_ptr<TxConfirmStats> shortStats PT_GUARDED_BY(m_cs_fee_estimator);
-    std::unique_ptr<TxConfirmStats> longStats PT_GUARDED_BY(m_cs_fee_estimator);
-
-    unsigned int trackedTxs GUARDED_BY(m_cs_fee_estimator){0};
-    unsigned int untrackedTxs GUARDED_BY(m_cs_fee_estimator){0};
+    /** Classes to track historical data on chunk confirmations */
+    std::unique_ptr<ChunkConfirmStats> feeStats PT_GUARDED_BY(m_cs_fee_estimator);
+    std::unique_ptr<ChunkConfirmStats> shortStats PT_GUARDED_BY(m_cs_fee_estimator);
+    std::unique_ptr<ChunkConfirmStats> longStats PT_GUARDED_BY(m_cs_fee_estimator);
 
     std::vector<double> buckets GUARDED_BY(m_cs_fee_estimator); // The upper-bound of the range for the bucket (inclusive)
     std::map<double, unsigned int> bucketMap GUARDED_BY(m_cs_fee_estimator); // Map of bucket upper-bound to index into all vectors by bucket
-
-    /** Process a transaction confirmed in a block*/
-    bool processBlockTx(unsigned int nBlockHeight, const RemovedMempoolTransactionInfo& tx) EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 
     /** Helper for estimateSmartFee */
     double estimateCombinedFee(unsigned int confTarget, double successThreshold, bool checkShorterHorizon, EstimationResult *result) const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
@@ -316,8 +309,17 @@ private:
     /** Calculation of highest target that reasonable estimate can be provided for */
     unsigned int MaxUsableEstimate() const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 
-    /** A non-thread-safe helper for the removeTx function */
-    bool _removeTx(const Txid& hash, bool inBlock)
+    /** A non-thread-safe helper for the removeChunk function */
+    bool _removeChunk(const uint256& chunk_hash, bool inBlock)
+        EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
+
+    /** Process a chunk confirmed in a block, using the explicit block height
+     * rather than nBestSeenHeight to avoid a race with BlockConnected. */
+    bool processBlockChunk(const MemPoolChunk& chunk, unsigned int nBlockHeight)
+        EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
+
+    /** Process all chunks confirmed in a block */
+    void processBlockChunks(const std::vector<MemPoolChunk>& block_chunks, unsigned int nBlockHeight)
         EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 };
 

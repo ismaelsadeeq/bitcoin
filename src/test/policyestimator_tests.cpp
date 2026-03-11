@@ -2,6 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <chain.h>
+#include <kernel/types.h>
+#include <primitives/block.h>
 #include <policy/fees/block_policy_estimator.h>
 #include <policy/fees/block_policy_estimator_args.h>
 #include <policy/policy.h>
@@ -50,41 +53,41 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     tx.vout[0].nValue=0LL;
     CFeeRate baseRate(basefee, GetVirtualTransactionSize(CTransaction(tx)));
 
+    // Helper to simulate BlockConnected firing before mempool is updated,
+    // matching the real validation interface ordering.
+    const auto fire_block_connected{[&](int height) {
+        CBlockIndex index;
+        index.nHeight = height;
+        m_node.validation_signals->BlockConnected(
+            kernel::ChainstateRole{}, std::make_shared<CBlock>(), &index);
+    }};
+
     // Create a fake block
     std::vector<CTransactionRef> block;
     int blocknum = 0;
 
     // Loop through 200 blocks
-    // At a decay .9952 and 4 fee transactions per block
-    // This makes the tx count about 2.5 per bucket, well above the 0.1 threshold
+    // At a decay .9952 and 4 fee chunks per block
+    // This makes the chunk count about 2.5 per bucket, well above the 0.1 threshold.
+    // Each transaction is its own chunk since they have no dependencies.
+    // MempoolUpdated signals are fired automatically by TryAddToMempool via the
+    // changeset Apply path — the fee estimator learns about new chunks that way.
     while (blocknum < 200) {
         for (int j = 0; j < 10; j++) { // For each fee
-            for (int k = 0; k < 4; k++) { // add 4 fee txs
+            for (int k = 0; k < 4; k++) { // add 4 fee chunks
                 tx.vin[0].prevout.n = 10000*blocknum+100*j+k; // make transaction unique
                 {
                     LOCK2(cs_main, mpool.cs);
                     TryAddToMempool(mpool, entry.Fee(feeV[j]).Time(Now<NodeSeconds>()).Height(blocknum).FromTx(tx));
-                    // Since TransactionAddedToMempool callbacks are generated in ATMP,
-                    // not TryAddToMempool, we cheat and create one manually here
-                    const int64_t virtual_size = GetVirtualTransactionSize(*MakeTransactionRef(tx));
-                    const NewMempoolTransactionInfo tx_info{NewMempoolTransactionInfo(MakeTransactionRef(tx),
-                                                                                      feeV[j],
-                                                                                      virtual_size,
-                                                                                      entry.nHeight,
-                                                                                      /*mempool_limit_bypassed=*/false,
-                                                                                      /*submitted_in_package=*/false,
-                                                                                      /*chainstate_is_current=*/true,
-                                                                                      /*has_no_mempool_parents=*/true)};
-                    m_node.validation_signals->TransactionAddedToMempool(tx_info, mpool.GetAndIncrementSequence());
                 }
                 txHashes[j].push_back(tx.GetHash());
             }
         }
-        //Create blocks where higher fee txs are included more often
+        // Create blocks where higher fee chunks are included more often
         for (int h = 0; h <= blocknum%10; h++) {
-            // 10/10 blocks add highest fee transactions
+            // 10/10 blocks add highest fee chunks
             // 9/10 blocks add 2nd highest and so on until ...
-            // 1/10 blocks add lowest fee transactions
+            // 1/10 blocks add lowest fee chunks
             while (txHashes[9-h].size()) {
                 CTransactionRef ptx = mpool.get(txHashes[9-h].back());
                 if (ptx)
@@ -93,13 +96,18 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
             }
         }
 
+        // Fire BlockConnected before removeForBlock, matching real validation
+        // ordering where BlockConnected is emitted before mempool changes.
+        fire_block_connected(blocknum + 1);
+
+        m_node.validation_signals->SyncWithValidationInterfaceQueue();
         {
             LOCK(mpool.cs);
             mpool.removeForBlock(block, ++blocknum);
         }
 
         block.clear();
-        // Check after just a few txs that combining buckets works as expected
+        // Check after just a few chunks that combining buckets works as expected
         if (blocknum == 3) {
             // Wait for fee estimator to catch up
             m_node.validation_signals->SyncWithValidationInterfaceQueue();
@@ -119,7 +127,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     // Highest feerate is 10*baseRate and gets in all blocks,
     // second highest feerate is 9*baseRate and gets in 9/10 blocks = 90%,
     // third highest feerate is 8*base rate, and gets in 8/10 blocks = 80%,
-    // so estimateFee(1) would return 10*baseRate but is hardcoded to return failure
+    // so estimateFee(1) would return 10*baseRate but is hardcoded to return failure.
     // Second highest feerate has 100% chance of being included by 2 blocks,
     // so estimateFee(2) should return 9*baseRate etc...
     for (int i = 1; i < 10;i++) {
@@ -128,7 +136,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
             BOOST_CHECK(origFeeEst[i-1] <= origFeeEst[i-2]);
         }
         int mult = 11-i;
-        if (i % 2 == 0) { //At scale 2, test logic is only correct for even targets
+        if (i % 2 == 0) { // At scale 2, test logic is only correct for even targets
             BOOST_CHECK(origFeeEst[i-1] < mult*baseRate.GetFeePerK() + deltaFee);
             BOOST_CHECK(origFeeEst[i-1] > mult*baseRate.GetFeePerK() - deltaFee);
         }
@@ -138,9 +146,11 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         origFeeEst.push_back(feeEst.estimateFee(i).GetFeePerK());
     }
 
-    // Mine 50 more blocks with no transactions happening, estimates shouldn't change
-    // We haven't decayed the moving average enough so we still have enough data points in every bucket
+    // Mine 50 more blocks with no chunks happening, estimates shouldn't change.
+    // We haven't decayed the moving average enough so we still have enough data points in every bucket.
     while (blocknum < 250) {
+        fire_block_connected(blocknum + 1);
+        m_node.validation_signals->SyncWithValidationInterfaceQueue();
         LOCK(mpool.cs);
         mpool.removeForBlock(block, ++blocknum);
     }
@@ -154,32 +164,21 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         BOOST_CHECK(feeEst.estimateFee(i).GetFeePerK() > origFeeEst[i-1] - deltaFee);
     }
 
-
-    // Mine 15 more blocks with lots of transactions happening and not getting mined
-    // Estimates should go up
+    // Mine 15 more blocks with lots of chunks happening and not getting mined.
+    // Estimates should go up.
     while (blocknum < 265) {
         for (int j = 0; j < 10; j++) { // For each fee multiple
-            for (int k = 0; k < 4; k++) { // add 4 fee txs
+            for (int k = 0; k < 4; k++) { // add 4 fee chunks
                 tx.vin[0].prevout.n = 10000*blocknum+100*j+k;
                 {
                     LOCK2(cs_main, mpool.cs);
                     TryAddToMempool(mpool, entry.Fee(feeV[j]).Time(Now<NodeSeconds>()).Height(blocknum).FromTx(tx));
-                    // Since TransactionAddedToMempool callbacks are generated in ATMP,
-                    // not TryAddToMempool, we cheat and create one manually here
-                    const int64_t virtual_size = GetVirtualTransactionSize(*MakeTransactionRef(tx));
-                    const NewMempoolTransactionInfo tx_info{NewMempoolTransactionInfo(MakeTransactionRef(tx),
-                                                                                      feeV[j],
-                                                                                      virtual_size,
-                                                                                      entry.nHeight,
-                                                                                      /*mempool_limit_bypassed=*/false,
-                                                                                      /*submitted_in_package=*/false,
-                                                                                      /*chainstate_is_current=*/true,
-                                                                                      /*has_no_mempool_parents=*/true)};
-                    m_node.validation_signals->TransactionAddedToMempool(tx_info, mpool.GetAndIncrementSequence());
                 }
                 txHashes[j].push_back(tx.GetHash());
             }
         }
+        fire_block_connected(blocknum + 1);
+        m_node.validation_signals->SyncWithValidationInterfaceQueue();
         {
             LOCK(mpool.cs);
             mpool.removeForBlock(block, ++blocknum);
@@ -193,8 +192,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         BOOST_CHECK(feeEst.estimateFee(i) == CFeeRate(0) || feeEst.estimateFee(i).GetFeePerK() > origFeeEst[i-1] - deltaFee);
     }
 
-    // Mine all those transactions
-    // Estimates should still not be below original
+    // Mine all those chunks.
+    // Estimates should still not be below original.
     for (int j = 0; j < 10; j++) {
         while(txHashes[j].size()) {
             CTransactionRef ptx = mpool.get(txHashes[j].back());
@@ -204,11 +203,14 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         }
     }
 
+    fire_block_connected(266);
+    m_node.validation_signals->SyncWithValidationInterfaceQueue();
     {
         LOCK(mpool.cs);
         mpool.removeForBlock(block, 266);
     }
     block.clear();
+    blocknum = 266;
 
     // Wait for fee estimator to catch up
     m_node.validation_signals->SyncWithValidationInterfaceQueue();
@@ -218,35 +220,24 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         BOOST_CHECK(feeEst.estimateFee(i) == CFeeRate(0) || feeEst.estimateFee(i).GetFeePerK() > origFeeEst[i-1] - deltaFee);
     }
 
-    // Mine 400 more blocks where everything is mined every block
-    // Estimates should be below original estimates
+    // Mine 400 more blocks where everything is mined every block.
+    // Estimates should be below original estimates.
     while (blocknum < 665) {
         for (int j = 0; j < 10; j++) { // For each fee multiple
-            for (int k = 0; k < 4; k++) { // add 4 fee txs
+            for (int k = 0; k < 4; k++) { // add 4 fee chunks
                 tx.vin[0].prevout.n = 10000*blocknum+100*j+k;
                 {
                     LOCK2(cs_main, mpool.cs);
                     TryAddToMempool(mpool, entry.Fee(feeV[j]).Time(Now<NodeSeconds>()).Height(blocknum).FromTx(tx));
-                    // Since TransactionAddedToMempool callbacks are generated in ATMP,
-                    // not TryAddToMempool, we cheat and create one manually here
-                    const int64_t virtual_size = GetVirtualTransactionSize(*MakeTransactionRef(tx));
-                    const NewMempoolTransactionInfo tx_info{NewMempoolTransactionInfo(MakeTransactionRef(tx),
-                                                                                      feeV[j],
-                                                                                      virtual_size,
-                                                                                      entry.nHeight,
-                                                                                      /*mempool_limit_bypassed=*/false,
-                                                                                      /*submitted_in_package=*/false,
-                                                                                      /*chainstate_is_current=*/true,
-                                                                                      /*has_no_mempool_parents=*/true)};
-                    m_node.validation_signals->TransactionAddedToMempool(tx_info, mpool.GetAndIncrementSequence());
                 }
                 CTransactionRef ptx = mpool.get(tx.GetHash());
                 if (ptx)
                     block.push_back(ptx);
-
             }
         }
 
+        fire_block_connected(blocknum + 1);
+        m_node.validation_signals->SyncWithValidationInterfaceQueue();
         {
             LOCK(mpool.cs);
             mpool.removeForBlock(block, ++blocknum);
