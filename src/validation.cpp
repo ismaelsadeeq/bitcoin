@@ -4508,6 +4508,30 @@ static BlockValidationState RunBlockChecks(
     return state;
 }
 
+BlockValidationState TestBlockValidityWithSpentTxOuts(
+    Chainstate& chainstate,
+    const uint256& prev_hash,
+    const CBlock& block,
+    std::vector<TxOutput> block_spent_txouts,
+    bool check_pow,
+    bool check_merkle_root) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    AssertLockHeld(chainstate.m_chainman.GetMutex());
+    BlockValidationState state;
+    const CBlockIndex* pindex_prev{chainstate.m_chainman.m_blockman.LookupBlockIndex(prev_hash)};
+    if (!pindex_prev) {
+        state.Invalid({}, "prev-blk-not-found");
+        return state;
+    }
+    CCoinsView view_empty;
+    CCoinsViewCache view_cache{&view_empty};
+    for (auto& spent_coin : block_spent_txouts) {
+        view_cache.AddCoin(spent_coin.first, std::move(spent_coin.second), /*possible_overwrite=*/false);
+    }
+    view_cache.SetBestBlock(prev_hash);
+    return RunBlockChecks(chainstate, block, pindex_prev, view_cache, check_pow, check_merkle_root);
+}
+
 BlockValidationState TestBlockValidity(
     Chainstate& chainstate,
     const CBlock& block,
