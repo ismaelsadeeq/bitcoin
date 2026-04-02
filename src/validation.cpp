@@ -4460,6 +4460,59 @@ MempoolAcceptResult ChainstateManager::ProcessTransaction(const CTransactionRef&
 }
 
 
+static BlockValidationState RunBlockChecks(
+    Chainstate& chainstate,
+    const CBlock& block,
+    const CBlockIndex* pindex_prev,
+    CCoinsViewCache& view,
+    bool check_pow,
+    bool check_merkle_root) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    AssertLockHeld(chainstate.m_chainman.GetMutex());
+    BlockValidationState state;
+    const ChainstateManager& chainman = chainstate.m_chainman;
+    CBlockIndex index_dummy{static_cast<const CBlockHeader&>(block)};
+    // phashBlock must point to a stable uint256 for the duration of ConnectBlock.
+    const uint256 block_hash = block.GetHash();
+    index_dummy.phashBlock = &block_hash;
+    index_dummy.pprev      = const_cast<CBlockIndex*>(pindex_prev);
+    index_dummy.nHeight    = pindex_prev->nHeight + 1;
+
+    /**
+     * At this point ProcessNewBlock would call AcceptBlock(), but we
+     * don't want to store the block or its header. Run individual checks
+     * instead:
+     * - skip AcceptBlockHeader() because:
+     *   - we don't want to update the block index
+     *   - we do not care about duplicates
+     *   - we already ran CheckBlockHeader() via CheckBlock()
+     *   - we already checked for prev-blk-not-found
+     *   - we know the tip is valid, so no need to check bad-prevblk
+     * - we already ran CheckBlock()
+     * - do run ContextualCheckBlockHeader()
+     * - do run ContextualCheckBlock()
+     */
+    if (!CheckBlock(block, state, chainman.GetConsensus(), check_pow, check_merkle_root)) {
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    if (!ContextualCheckBlockHeader(block, state, chainman, pindex_prev)) {
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    if (!ContextualCheckBlock(block, state, chainman, pindex_prev)) {
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    // Set fJustCheck to true in order to update, and not clear, validation caches.
+    if (!chainstate.ConnectBlock(block, state, &index_dummy, view, /*fJustCheck=*/true)) {
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    if (!state.IsValid()) NONFATAL_UNREACHABLE();
+    return state;
+}
+
 BlockValidationState TestBlockValidity(
     Chainstate& chainstate,
     const CBlock& block,
@@ -4479,58 +4532,9 @@ BlockValidationState TestBlockValidity(
         return state;
     }
 
-    // For signets CheckBlock() verifies the challenge iff fCheckPow is set.
-    if (!CheckBlock(block, state, chainstate.m_chainman.GetConsensus(), /*fCheckPow=*/check_pow, /*fCheckMerkleRoot=*/check_merkle_root)) {
-        // This should never happen, but belt-and-suspenders don't approve the
-        // block if it does.
-        if (state.IsValid()) NONFATAL_UNREACHABLE();
-        return state;
-    }
-
-    /**
-     * At this point ProcessNewBlock would call AcceptBlock(), but we
-     * don't want to store the block or its header. Run individual checks
-     * instead:
-     * - skip AcceptBlockHeader() because:
-     *   - we don't want to update the block index
-     *   - we do not care about duplicates
-     *   - we already ran CheckBlockHeader() via CheckBlock()
-     *   - we already checked for prev-blk-not-found
-     *   - we know the tip is valid, so no need to check bad-prevblk
-     * - we already ran CheckBlock()
-     * - do run ContextualCheckBlockHeader()
-     * - do run ContextualCheckBlock()
-     */
-
-    if (!ContextualCheckBlockHeader(block, state, chainstate.m_chainman, tip)) {
-        if (state.IsValid()) NONFATAL_UNREACHABLE();
-        return state;
-    }
-
-    if (!ContextualCheckBlock(block, state, chainstate.m_chainman, tip)) {
-        if (state.IsValid()) NONFATAL_UNREACHABLE();
-        return state;
-    }
-
-    // We don't want ConnectBlock to update the actual chainstate, so create
-    // a cache on top of it, along with a dummy block index.
-    CBlockIndex index_dummy{block};
-    uint256 block_hash(block.GetHash());
-    index_dummy.pprev = tip;
-    index_dummy.nHeight = tip->nHeight + 1;
-    index_dummy.phashBlock = &block_hash;
     CCoinsViewCache view_dummy(&chainstate.CoinsTip());
 
-    // Set fJustCheck to true in order to update, and not clear, validation caches.
-    if(!chainstate.ConnectBlock(block, state, &index_dummy, view_dummy, /*fJustCheck=*/true)) {
-        if (state.IsValid()) NONFATAL_UNREACHABLE();
-        return state;
-    }
-
-    // Ensure no check returned successfully while also setting an invalid state.
-    if (!state.IsValid()) NONFATAL_UNREACHABLE();
-
-    return state;
+    return RunBlockChecks(chainstate, block, tip, view_dummy, check_pow, check_merkle_root);
 }
 
 /* This function is called from the RPC code for pruneblockchain */
