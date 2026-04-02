@@ -391,6 +391,33 @@ public:
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
 
+using TxOutput = std::pair<COutPoint, Coin>;
+
+/**
+ * Validate a block against an externally-provided UTXO set, without
+ * mutating the node's actual chainstate.
+ *
+ * Requirements:
+ *   - valid pindex_prev
+ *   - vector of utxo's that the `block` spend from. The caller should not insert
+ *     intra-block spends (outputs of tx[N] spent by tx[M > N]
+ *     in the same block), else bip30 violation will be hit.
+ *   - Caller must hold cs_main through out this process.
+ *
+ * This function:
+ *   - Does not write undo data, update chainstate, or advance the tip.
+ *   - The coins view cache created is local and discarded on return.
+ *   - Script flags are derived from pindex_prev chain, so they are only
+ *     correct if pindex_prev is a genuine chain tip entry.
+ */
+BlockValidationState TestBlockValidityWithSpentTxOuts(
+    Chainstate& chainstate,
+    const CBlockIndex& pindex_prev,
+    const CBlock& block,
+    std::vector<TxOutput> block_spent_txouts,
+    bool check_pow,
+    bool check_merkle_root) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
 /**
  * Verify a block, including transactions.
  *
