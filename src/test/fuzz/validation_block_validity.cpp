@@ -6,17 +6,17 @@
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
+#include <test/util/block_validity.h>
 #include <test/util/mining.h>
 #include <test/util/setup_common.h>
 #include <test/util/time.h>
 #include <validation.h>
 
-
-static TestChain100Setup* g_setup;
+static ValidationBlockValidityTestingSetup* g_setup;
 
 void initialize_validation_block_validity()
 {
-    static auto setup = MakeNoLogFileContext<TestChain100Setup>();
+    static auto setup = MakeNoLogFileContext<ValidationBlockValidityTestingSetup>();
     g_setup = setup.get();
 }
 
@@ -210,6 +210,51 @@ void MutateTransactionsContextual(CBlock& block, FuzzedDataProvider& fuzzed_data
     }
 }
 
+void MutateBlock(CBlock& block, FuzzedDataProvider& fuzzed_data_provider)
+{
+    MutateHeader(block, fuzzed_data_provider);
+    MutateTransactionsContextual(block, fuzzed_data_provider);
+    MutateTransactionsStateless(block, fuzzed_data_provider);
+}
+
+void AddSpend(CBlock& block, std::vector<TxOutput>& spent, FuzzedDataProvider& fuzzed_data_provider)
+{
+    const CAmount value = 50 * COIN;
+    const CScript script = CScript() << OP_TRUE;
+    COutPoint prevout{Txid::FromUint256(ConsumeUInt256(fuzzed_data_provider)), 0};
+    CMutableTransaction tx;
+    tx.vin.resize(1);
+    tx.vin[0].prevout = prevout;
+    tx.vout.resize(1);
+    tx.vout[0].nValue = value - 1000;
+    tx.vout[0].scriptPubKey = script;
+    auto tx_ref = MakeTransactionRef(std::move(tx));
+    block.vtx.push_back(tx_ref);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    if (fuzzed_data_provider.ConsumeBool()) {
+        spent.emplace_back(prevout, Coin(CTxOut(value, script), 1, false));
+    }
+    if (fuzzed_data_provider.ConsumeBool()) {
+        spent.emplace_back(COutPoint{tx_ref->GetHash(), 0}, Coin(CTxOut(value, script), 1, false));
+    }
+}
+
+void AddRandomUTXOs(std::vector<TxOutput>& spent, FuzzedDataProvider& fuzzed_data_provider)
+{
+    const CScript script = CScript() << OP_TRUE;
+    const size_t count = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, 10);
+    std::set<COutPoint> seen;
+    CAmount total{0};
+    for (size_t i = 0; i < count; ++i) {
+        COutPoint out{Txid::FromUint256(ConsumeUInt256(fuzzed_data_provider)), 0};
+        if (!seen.insert(out).second) continue;
+        const CAmount remaining{MAX_MONEY - total};
+        if (remaining == 0) break;
+        const CAmount value = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(0, remaining);
+        total += value;
+        spent.emplace_back(out, Coin(CTxOut(value, script), 1, false));
+    }
+}
 } // namespace
 
 FUZZ_TARGET(validation_block_validity, .init = initialize_validation_block_validity)
@@ -219,15 +264,13 @@ FUZZ_TARGET(validation_block_validity, .init = initialize_validation_block_valid
     SteadyClockContext steady_ctx{};
     SetMockTime(WITH_LOCK(g_setup->m_node.chainman->GetMutex(),
                           return g_setup->m_node.chainman->ActiveTip()->Time()));
-    Chainstate& chainstate = g_setup->m_node.chainman->ActiveChainstate();
+    Chainstate& chainstate = g_setup->m_chainstate;
     CBlock block;
     {
         LOCK(cs_main);
         block = MakeBlock(g_setup->m_node, fuzzed_data_provider);
     }
-    MutateHeader(block, fuzzed_data_provider);
-    MutateTransactionsContextual(block, fuzzed_data_provider);
-    MutateTransactionsStateless(block, fuzzed_data_provider);
+    MutateBlock(block, fuzzed_data_provider);
     if (fuzzed_data_provider.ConsumeBool()) {
         block.hashMerkleRoot = ConsumeUInt256(fuzzed_data_provider);
     } else {
@@ -235,11 +278,53 @@ FUZZ_TARGET(validation_block_validity, .init = initialize_validation_block_valid
     }
     const bool check_pow = fuzzed_data_provider.ConsumeBool();
     const bool check_merkle = fuzzed_data_provider.ConsumeBool();
-    LOCK(cs_main);
-    const int height_before = chainstate.m_chain.Height();
-    const BlockValidationState state = TestBlockValidity(chainstate, block, check_pow, check_merkle);
+    std::vector<TxOutput> spent = g_setup->CollectSpentOutputs(block);
+    int height_before;
+    BlockValidationState state1;
+    {
+        LOCK(cs_main);
+        height_before = chainstate.m_chain.Height();
+        state1 = TestBlockValidity(chainstate, block, check_pow, check_merkle);
+    }
+    // Exactly one of IsValid/IsInvalid/IsError must be set.
+    assert(state1.IsValid() + state1.IsInvalid() + state1.IsError() == 1);
+    // Consistency check with TestValidityWithSpentOutputs.
+    const BlockValidationState state2 = g_setup->TestValidityWithSpentOutputs(block, std::move(spent), check_pow, check_merkle);
+    // Both APIs must agree on validity.
+    assert(state1.IsValid() == state2.IsValid());
+    assert(state1.IsInvalid() == state2.IsInvalid());
+    if (state1.IsInvalid()) {
+        assert(state1.GetResult() == state2.GetResult());
+        assert(state1.GetRejectReason() == state2.GetRejectReason());
+        assert(state1.GetDebugMessage() == state2.GetDebugMessage());
+    }
     // TestBlockValidity must not alter chain state.
     assert(chainstate.m_chain.Height() == height_before);
-    // Exactly one of IsValid/IsInvalid/IsError must be set.
+}
+
+FUZZ_TARGET(test_block_validity_with_spent, .init = initialize_validation_block_validity)
+{
+    SeedRandomStateForTest(SeedRand::ZEROS);
+    FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
+    SteadyClockContext steady_ctx{};
+    SetMockTime(WITH_LOCK(g_setup->m_node.chainman->GetMutex(),
+                          return g_setup->m_node.chainman->ActiveTip()->Time()));
+    Chainstate& chainstate = g_setup->m_chainstate;
+    CBlock block;
+    {
+        LOCK(cs_main);
+        block = MakeBlock(g_setup->m_node, fuzzed_data_provider);
+    }
+    std::vector<TxOutput> spent;
+    AddRandomUTXOs(spent, fuzzed_data_provider);
+    if (fuzzed_data_provider.ConsumeBool()) AddSpend(block, spent, fuzzed_data_provider);
+    MutateBlock(block, fuzzed_data_provider);
+    const bool check_pow = fuzzed_data_provider.ConsumeBool();
+    const bool check_merkle = fuzzed_data_provider.ConsumeBool();
+    LOCK(cs_main);
+    const CBlockIndex* tip = chainstate.m_chain.Tip();
+    const BlockValidationState state = TestBlockValidityWithSpentTxOuts(
+        chainstate, tip->GetBlockHash(), block, std::move(spent), check_pow, check_merkle);
+    assert(chainstate.m_chain.Tip() == tip);
     assert(state.IsValid() + state.IsInvalid() + state.IsError() == 1);
 }

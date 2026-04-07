@@ -20,6 +20,7 @@ using node::BlockAssembler;
  *
  */
 struct ValidationBlockValidityTestingSetup : public TestChain100Setup {
+    using TestChain100Setup::TestChain100Setup;
     Chainstate& m_chainstate{m_node.chainman->ActiveChainstate()};
     const Consensus::Params& m_params{m_node.chainman->GetParams().GetConsensus()};
 
