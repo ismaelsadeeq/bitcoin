@@ -6,6 +6,8 @@
 
 #include <test/util/mining.h>
 
+#include <set>
+
 namespace {
 
 //! Default number of trials for AddCoin to find a unique random outpoint
@@ -25,6 +27,13 @@ BlockValidationState ValidationBlockValidityTestingSetup::TestValidity(const CBl
     return TestBlockValidity(m_chainstate, block, check_pow, check_merkle);
 }
 
+BlockValidationState ValidationBlockValidityTestingSetup::TestValidityWithSpentOutputs(const CBlock& block, std::vector<TxOutput> block_spent_txouts, bool check_pow, bool check_merkle)
+{
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    return TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, std::move(block_spent_txouts), check_pow, check_merkle);
+}
+
 std::optional<COutPoint> ValidationBlockValidityTestingSetup::AddCoin(const CScript& script_pub_key, CAmount amount)
 {
     for (int trial_idx = 0; trial_idx < MAX_ADDCOIN_TRIALS; ++trial_idx) {
@@ -36,4 +45,21 @@ std::optional<COutPoint> ValidationBlockValidityTestingSetup::AddCoin(const CScr
         }
     }
     return std::nullopt;
+}
+
+std::vector<TxOutput> ValidationBlockValidityTestingSetup::CollectSpentOutputs(const CBlock& block)
+{
+    std::vector<TxOutput> spent;
+    std::set<COutPoint> seen;
+    LOCK(cs_main);
+    for (size_t i = 1; i < block.vtx.size(); ++i) {
+        for (const auto& vin : block.vtx[i]->vin) {
+            if (!seen.insert(vin.prevout).second) continue;
+            auto coin = m_chainstate.CoinsTip().GetCoin(vin.prevout);
+            if (coin) {
+                spent.emplace_back(vin.prevout, std::move(*coin));
+            }
+        }
+    }
+    return spent;
 }

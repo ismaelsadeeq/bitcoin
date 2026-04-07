@@ -67,6 +67,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_accumulated_fee_outofrange)
     const auto reason = "bad-txns-accumulated-fee-outofrange";
     const auto debug = "accumulated fee in the block out of range";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_missingorspent)
@@ -83,6 +84,8 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_missingorspent)
     const auto reason = "bad-txns-inputs-missingorspent";
     const auto debug = strprintf("CheckTxInputs: inputs missing/spent in transaction %s", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    // Coin is not in the UTXO set, so CollectSpentOutputs returns empty — same missing-input failure.
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputvalues_outofrange)
@@ -101,6 +104,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputvalues_outofrange)
     const auto reason = "bad-txns-inputvalues-outofrange";
     const auto debug = strprintf(" in transaction %s", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_in_belowout)
@@ -121,6 +125,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_in_belowout)
                                  FormatMoney(mtx.vout[0].nValue),
                                  block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_sum_overflow)
@@ -142,6 +147,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_sum_overflow)
     const auto reason = "bad-txns-inputvalues-outofrange";
     const auto debug = strprintf(" in transaction %s", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_block_script_verify_flag_failed)
@@ -161,6 +167,7 @@ BOOST_AUTO_TEST_CASE(tbv_block_script_verify_flag_failed)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip147_null_dummy)
@@ -185,6 +192,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip147_null_dummy)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Dummy CHECKMULTISIG argument must be zero)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip66_non_der_sig)
@@ -210,6 +218,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip66_non_der_sig)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Non-canonical DER signature)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip65_cltv_violation)
@@ -232,6 +241,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip65_cltv_violation)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Locktime requirement not satisfied)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_taproot_invalid_sig)
@@ -265,6 +275,7 @@ BOOST_AUTO_TEST_CASE(tbv_taproot_invalid_sig)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Invalid Schnorr signature)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip112_csv_violation)
@@ -286,6 +297,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip112_csv_violation)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Locktime requirement not satisfied)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip16_p2sh_invalid_redeem_script)
@@ -307,6 +319,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip16_p2sh_invalid_redeem_script)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_segwit_v0_invalid_witness_script)
@@ -331,6 +344,7 @@ BOOST_AUTO_TEST_CASE(tbv_segwit_v0_invalid_witness_script)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_tapscript_invalid_script_path)
@@ -364,6 +378,7 @@ BOOST_AUTO_TEST_CASE(tbv_tapscript_invalid_script_path)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip143_wrong_amount_in_sighash)
@@ -395,6 +410,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip143_wrong_amount_in_sighash)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    CheckScriptViolation(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_empty_scriptsig)
@@ -413,6 +429,7 @@ BOOST_AUTO_TEST_CASE(tbv_empty_scriptsig)
     block.vtx.emplace_back(MakeTransactionRef(std::move(mtx)));
     block.hashMerkleRoot = BlockMerkleRoot(block);
     CheckBlockValid(TestValidity(block));
+    CheckBlockValid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_scriptsig_non_push)
@@ -430,6 +447,7 @@ BOOST_AUTO_TEST_CASE(tbv_scriptsig_non_push)
     block.vtx.emplace_back(MakeTransactionRef(std::move(mtx)));
     block.hashMerkleRoot = BlockMerkleRoot(block);
     CheckBlockValid(TestValidity(block));
+    CheckBlockValid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_double_spend_same_block)
@@ -451,6 +469,8 @@ BOOST_AUTO_TEST_CASE(tbv_double_spend_same_block)
     const auto reason = "bad-txns-inputs-missingorspent";
     const auto debug = strprintf("CheckTxInputs: inputs missing/spent in transaction %s", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    // CollectSpentOutputs deduplicates by outpoint — the coin appears once, so tx[2] sees it as spent.
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_zero_value_output)
@@ -469,6 +489,163 @@ BOOST_AUTO_TEST_CASE(tbv_zero_value_output)
     block.vtx.emplace_back(MakeTransactionRef(std::move(mtx)));
     block.hashMerkleRoot = BlockMerkleRoot(block);
     CheckBlockValid(TestValidity(block));
+    CheckBlockValid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)));
+}
+
+// TestBlockValidityWithSpentTxOuts direct API tests
+
+BOOST_AUTO_TEST_CASE(tbvwu_valid_coinbase_only)
+{
+    // A coinbase-only block with no external UTXOs passes with an empty spent list.
+    CBlock block = MakeBlock();
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    CheckBlockValid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, {}, /*check_pow=*/false, /*check_merkle_root=*/true));
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_valid_synthetic_spend)
+{
+    // A block spending a synthetic UTXO (not in the chainstate) is valid when
+    // the caller provides the coin explicitly in spent_txouts.
+    CBlock block = MakeBlock();
+    const CAmount val{50 * COIN};
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint synthetic{Txid::FromUint256(uint256::ONE), 0};
+    AddDummySpend(block, synthetic, val - 1000, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    std::vector<TxOutput> spent_txouts;
+    spent_txouts.emplace_back(synthetic, Coin(CTxOut(val, op_true), 1, false));
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    CheckBlockValid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, std::move(spent_txouts), /*check_pow=*/false, /*check_merkle_root=*/true));
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_missing_undo_coin)
+{
+    // A block spending a UTXO that is absent from both the chainstate and
+    // spent_txouts is invalid — the coin is effectively missing.
+    CBlock block = MakeBlock();
+    AddDummySpend(block, COutPoint{Txid::FromUint256(uint256::ONE), 0}, 1 * COIN);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    const auto debug = strprintf("CheckTxInputs: inputs missing/spent in transaction %s", block.vtx.back()->GetHash().ToString());
+    CheckBlockInvalid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, {}, /*check_pow=*/false, /*check_merkle_root=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-inputs-missingorspent", debug);
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_wrong_amount_in_undo)
+{
+    // Providing a coin with a lower value than the transaction's output causes
+    // a value-in-below-value-out failure.
+    CBlock block = MakeBlock();
+    const COutPoint utxo{Txid::FromUint256(uint256::ONE), 0};
+    const CScript op_true{CScript() << OP_TRUE};
+    AddDummySpend(block, utxo, 50 * COIN, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    std::vector<TxOutput> spent_txouts;
+    spent_txouts.emplace_back(utxo, Coin(CTxOut(1, op_true), 1, false)); // 1 sat in, 50 BTC out
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    const auto debug = strprintf("value in (%s) < value out (%s) in transaction %s",
+                                 FormatMoney(1), FormatMoney(50 * COIN), block.vtx.back()->GetHash().ToString());
+    CheckBlockInvalid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, std::move(spent_txouts), /*check_pow=*/false, /*check_merkle_root=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-in-belowout", debug);
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_immature_coinbase)
+{
+    // A block spending a coinbase output that has not yet matured is invalid.
+    // Tip is at height 100; new block at 101. Coinbase at height 50: depth = 51 < COINBASE_MATURITY.
+    CBlock block = MakeBlock();
+    const CAmount val{50 * COIN};
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint utxo{Txid::FromUint256(uint256::ONE), 0};
+    AddDummySpend(block, utxo, val - 1000, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    std::vector<TxOutput> spent_txouts;
+    spent_txouts.emplace_back(utxo, Coin(CTxOut(val, op_true), /*nHeightIn=*/50, /*fCoinBaseIn=*/true));
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    const auto debug = strprintf("tried to spend coinbase at depth %d in transaction %s",
+                                 51, block.vtx.back()->GetHash().ToString());
+    CheckBlockInvalid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, std::move(spent_txouts), /*check_pow=*/false, /*check_merkle_root=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-premature-spend-of-coinbase", debug);
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_mature_coinbase)
+{
+    // A block spending a fully matured coinbase output is valid.
+    // Coinbase at height 1; new block at 101: depth = 100 = COINBASE_MATURITY.
+    CBlock block = MakeBlock();
+    const CAmount val{50 * COIN};
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint utxo{Txid::FromUint256(uint256::ONE), 0};
+    AddDummySpend(block, utxo, val - 1000, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    std::vector<TxOutput> spent_txouts;
+    spent_txouts.emplace_back(utxo, Coin(CTxOut(val, op_true), /*nHeightIn=*/1, /*fCoinBaseIn=*/true));
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    CheckBlockValid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, std::move(spent_txouts), /*check_pow=*/false, /*check_merkle_root=*/true));
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_intra_block_spend)
+{
+    // ConnectBlock processes transactions in order and adds outputs to the view
+    // as it goes, so tx_b can spend tx_a's output without it being in spent_txouts.
+    // However, if tx_a's output IS in spent_txouts, BIP30 fires because ConnectBlock
+    // sees the output already existing when it tries to add it.
+    CBlock block = MakeBlock();
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint pre_existing{Txid::FromUint256(uint256::ONE), 0};
+    const CAmount pre_val{50 * COIN};
+    std::vector<TxOutput> spent_txouts;
+    spent_txouts.emplace_back(pre_existing, Coin(CTxOut(pre_val, op_true), 1, false));
+    CMutableTransaction tx_a;
+    tx_a.vin.resize(1);
+    tx_a.vin[0].prevout = pre_existing;
+    tx_a.vout.resize(1);
+    tx_a.vout[0].nValue = pre_val - 1000;
+    tx_a.vout[0].scriptPubKey = op_true;
+    auto tx_a_ref = MakeTransactionRef(std::move(tx_a));
+    CMutableTransaction tx_b;
+    tx_b.vin.resize(1);
+    tx_b.vin[0].prevout = COutPoint(tx_a_ref->GetHash(), 0);
+    tx_b.vout.resize(1);
+    tx_b.vout[0].nValue = tx_a_ref->vout[0].nValue - 1000;
+    tx_b.vout[0].scriptPubKey = op_true;
+    block.vtx.push_back(tx_a_ref);
+    block.vtx.push_back(MakeTransactionRef(std::move(tx_b)));
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    // Intra-block spend: tx_b's input is satisfied by tx_a's output added during ConnectBlock.
+    CheckBlockValid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, spent_txouts, /*check_pow=*/false, /*check_merkle_root=*/true));
+
+    // Adding tx_a's output to spent_txouts causes BIP30: ConnectBlock finds the output
+    // already in the view when it tries to create it.
+    spent_txouts.emplace_back(COutPoint(tx_a_ref->GetHash(), 0),
+                              Coin(CTxOut(tx_a_ref->vout[0].nValue, op_true), m_chainstate.m_chain.Tip()->nHeight, false));
+    CheckBlockInvalid(TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, std::move(spent_txouts), /*check_pow=*/false, /*check_merkle_root=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-BIP30", "tried to overwrite transaction");
+}
+
+BOOST_AUTO_TEST_CASE(consistency_bad_coinbase_height)
+{
+    // Both TestBlockValidity and TestBlockValidityWithSpentTxOuts reject a block
+    // with a wrong coinbase height with the same reject reason.
+    CBlock block = MakeBlock();
+    CMutableTransaction coinbase(*block.vtx[0]);
+    coinbase.vin[0].scriptSig = CScript() << 999999;
+    block.vtx[0] = MakeTransactionRef(std::move(coinbase));
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    LOCK(cs_main);
+    const uint256 tip_hash{m_chainstate.m_chain.Tip()->GetBlockHash()};
+    auto state1 = TestBlockValidity(m_chainstate, block, /*check_pow=*/false, /*check_merkle_root=*/true);
+    auto state2 = TestBlockValidityWithSpentTxOuts(m_chainstate, tip_hash, block, {}, /*check_pow=*/false, /*check_merkle_root=*/true);
+    CheckBlockInvalid(state1, BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-height", "block height mismatch in coinbase");
+    CheckBlockInvalid(state2, BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-height", "block height mismatch in coinbase");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

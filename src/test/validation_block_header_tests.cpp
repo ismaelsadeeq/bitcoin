@@ -38,16 +38,19 @@ BOOST_AUTO_TEST_CASE(tbv_valid_block)
     CBlock block = MakeBlock();
     const int current_height = WITH_LOCK(cs_main, return m_chainstate.m_chain.Height());
     CheckBlockValid(TestValidity(block));
+    CheckBlockValid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)));
     BOOST_CHECK_MESSAGE(WITH_LOCK(cs_main, return m_chainstate.m_chain.Height()) == current_height, "Chain tip advanced unexpectedly");
 }
 
 BOOST_AUTO_TEST_CASE(tbv_wrong_prev)
 {
-    // Blocks must build on the current tip. Setting hashPrevBlock to an arbitrary value orphans the block.
+    // TestValidity rejects blocks whose hashPrevBlock doesn't match the active tip.
+    // TestValidityWithSpentOutputs passes the active tip's hash as prev_hash, so a
+    // block that doesn't build on that hash is also rejected.
     CBlock block = MakeBlock();
     block.hashPrevBlock = uint256::ONE;
-    const auto reason = "inconclusive-not-best-prevblk";
-    CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_RESULT_UNSET, reason, "");
+    CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_RESULT_UNSET, "inconclusive-not-best-prevblk", "");
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_RESULT_UNSET, "inconclusive-not-best-prevblk", "");
 }
 
 BOOST_AUTO_TEST_CASE(tbv_high_hash)
@@ -65,6 +68,7 @@ BOOST_AUTO_TEST_CASE(tbv_high_hash)
     const auto reason = "high-hash";
     const auto debug = "proof of work failed";
     CheckBlockInvalid(TestValidity(block, true), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block), /*check_pow=*/true), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_diffbits)
@@ -77,6 +81,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_diffbits)
     const auto reason = "bad-diffbits";
     const auto debug = "incorrect proof of work";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_time_too_old)
@@ -87,6 +92,7 @@ BOOST_AUTO_TEST_CASE(tbv_time_too_old)
     const auto reason = "time-too-old";
     const auto debug = "block's timestamp is too early";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_time_too_new)
@@ -97,6 +103,7 @@ BOOST_AUTO_TEST_CASE(tbv_time_too_new)
     const auto reason = "time-too-new";
     const auto debug = "block timestamp too far in the future";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_TIME_FUTURE, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_TIME_FUTURE, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_version)
@@ -107,6 +114,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_version)
     const auto reason = strprintf("bad-version(0x%08x)", block.nVersion);
     const auto debug = strprintf("rejected nVersion=0x%08x block", block.nVersion);
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
+    CheckBlockInvalid(TestValidityWithSpentOutputs(block, CollectSpentOutputs(block)), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
