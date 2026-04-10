@@ -5,6 +5,7 @@
 #include <consensus/merkle.h>
 #include <script/sign.h>
 #include <test/util/block_validity.h>
+#include <undo.h>
 #include <util/moneystr.h>
 
 #include <boost/test/unit_test.hpp>
@@ -67,6 +68,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_accumulated_fee_outofrange)
     const auto reason = "bad-txns-accumulated-fee-outofrange";
     const auto debug = "accumulated fee in the block out of range";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_missingorspent)
@@ -101,6 +105,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputvalues_outofrange)
     const auto reason = "bad-txns-inputvalues-outofrange";
     const auto debug = strprintf(" in transaction %s", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_in_belowout)
@@ -121,6 +128,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_in_belowout)
                                  FormatMoney(mtx.vout[0].nValue),
                                  block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_sum_overflow)
@@ -142,6 +152,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_sum_overflow)
     const auto reason = "bad-txns-inputvalues-outofrange";
     const auto debug = strprintf(" in transaction %s", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_block_script_verify_flag_failed)
@@ -161,6 +174,9 @@ BOOST_AUTO_TEST_CASE(tbv_block_script_verify_flag_failed)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip147_null_dummy)
@@ -185,6 +201,9 @@ BOOST_AUTO_TEST_CASE(tbv_bip147_null_dummy)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Dummy CHECKMULTISIG argument must be zero)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip66_non_der_sig)
@@ -210,6 +229,9 @@ BOOST_AUTO_TEST_CASE(tbv_bip66_non_der_sig)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Non-canonical DER signature)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip65_cltv_violation)
@@ -232,6 +254,9 @@ BOOST_AUTO_TEST_CASE(tbv_bip65_cltv_violation)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Locktime requirement not satisfied)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_taproot_invalid_sig)
@@ -265,6 +290,9 @@ BOOST_AUTO_TEST_CASE(tbv_taproot_invalid_sig)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Invalid Schnorr signature)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip112_csv_violation)
@@ -286,6 +314,9 @@ BOOST_AUTO_TEST_CASE(tbv_bip112_csv_violation)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Locktime requirement not satisfied)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip16_p2sh_invalid_redeem_script)
@@ -307,6 +338,9 @@ BOOST_AUTO_TEST_CASE(tbv_bip16_p2sh_invalid_redeem_script)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_segwit_v0_invalid_witness_script)
@@ -331,6 +365,9 @@ BOOST_AUTO_TEST_CASE(tbv_segwit_v0_invalid_witness_script)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_tapscript_invalid_script_path)
@@ -364,6 +401,9 @@ BOOST_AUTO_TEST_CASE(tbv_tapscript_invalid_script_path)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip143_wrong_amount_in_sighash)
@@ -395,6 +435,9 @@ BOOST_AUTO_TEST_CASE(tbv_bip143_wrong_amount_in_sighash)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "block-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)";
     CheckScriptViolation(TestValidity(block), block, *outpoint, reason);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckScriptViolation(TestValidityWithUndo(block, *blockundo), block, *outpoint, reason);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_empty_scriptsig)
@@ -413,6 +456,9 @@ BOOST_AUTO_TEST_CASE(tbv_empty_scriptsig)
     block.vtx.emplace_back(MakeTransactionRef(std::move(mtx)));
     block.hashMerkleRoot = BlockMerkleRoot(block);
     CheckBlockValid(TestValidity(block));
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockValid(TestValidityWithUndo(block, *blockundo));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_scriptsig_non_push)
@@ -430,6 +476,9 @@ BOOST_AUTO_TEST_CASE(tbv_scriptsig_non_push)
     block.vtx.emplace_back(MakeTransactionRef(std::move(mtx)));
     block.hashMerkleRoot = BlockMerkleRoot(block);
     CheckBlockValid(TestValidity(block));
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockValid(TestValidityWithUndo(block, *blockundo));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_double_spend_same_block)
@@ -469,6 +518,228 @@ BOOST_AUTO_TEST_CASE(tbv_zero_value_output)
     block.vtx.emplace_back(MakeTransactionRef(std::move(mtx)));
     block.hashMerkleRoot = BlockMerkleRoot(block);
     CheckBlockValid(TestValidity(block));
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockValid(TestValidityWithUndo(block, *blockundo));
+}
+
+// TestBlockValidityWithUndo direct API tests — these tests exercise
+// TestBlockValidityWithUndo by constructing blockundo manually, unlike
+// the A/B tests above which derive blockundo via PopulateBlockUndo.
+
+BOOST_AUTO_TEST_CASE(tbvwu_valid_coinbase_only)
+{
+    // A coinbase-only block requires an empty blockundo
+    // (one entry per non-coinbase tx; zero here).
+    CBlock block = MakeBlock();
+    CBlockUndo blockundo;
+    LOCK(cs_main);
+    CheckBlockValid(TestBlockValidityWithUndo(
+        m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true));
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_valid_synthetic_spend)
+{
+    CBlock block = MakeBlock();
+    const CAmount val{50 * COIN};
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint synthetic{Txid::FromUint256(uint256::ONE), 0};
+    AddDummySpend(block, synthetic, val - 1000, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    CBlockUndo blockundo;
+    CTxUndo txundo;
+    txundo.vprevout.push_back(Coin(CTxOut(val, op_true), /*height=*/1, /*coinbase=*/false));
+    blockundo.vtxundo.push_back(std::move(txundo));
+    LOCK(cs_main);
+    CheckBlockValid(TestBlockValidityWithUndo(
+        m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true));
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_wrong_amount_in_undo)
+{
+    // Providing a coin with a lower value than the transaction output causes
+    // value-in-below-value-out.
+    CBlock block = MakeBlock();
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint synthetic{Txid::FromUint256(uint256::ONE), 0};
+    const CAmount out_val{50 * COIN};
+    AddDummySpend(block, synthetic, out_val, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    CBlockUndo blockundo;
+    CTxUndo txundo;
+    txundo.vprevout.push_back(Coin(CTxOut(1, op_true), /*height=*/1, /*coinbase=*/false)); // 1 sat in, 50 BTC out
+    blockundo.vtxundo.push_back(std::move(txundo));
+    const auto debug = strprintf("value in (%s) < value out (%s) in transaction %s",
+                                 FormatMoney(1), FormatMoney(out_val), block.vtx.back()->GetHash().ToString());
+    LOCK(cs_main);
+    CheckBlockInvalid(TestBlockValidityWithUndo(
+                          m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-in-belowout", debug);
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_immature_coinbase_in_undo)
+{
+    // A coinbase coin that has not reached COINBASE_MATURITY is rejected.
+    // Tip is at height 100; new block at 101. Coinbase at height 50: depth = 51 < 100.
+    CBlock block = MakeBlock();
+    const CAmount val{50 * COIN};
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint synthetic{Txid::FromUint256(uint256::ONE), 0};
+    AddDummySpend(block, synthetic, val - 1000, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    CBlockUndo blockundo;
+    CTxUndo txundo;
+    txundo.vprevout.push_back(Coin(CTxOut(val, op_true), /*height=*/50, /*coinbase=*/true));
+    blockundo.vtxundo.push_back(std::move(txundo));
+    const auto debug = strprintf("tried to spend coinbase at depth %d in transaction %s",
+                                 51, block.vtx.back()->GetHash().ToString());
+    LOCK(cs_main);
+    CheckBlockInvalid(TestBlockValidityWithUndo(
+                          m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-premature-spend-of-coinbase", debug);
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_mature_coinbase_in_undo)
+{
+    // A coinbase coin at exactly COINBASE_MATURITY depth is valid.
+    // Tip is at height 100; new block at 101. Coinbase at height 1: depth = 100 = COINBASE_MATURITY.
+    CBlock block = MakeBlock();
+    const CAmount val{50 * COIN};
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint synthetic{Txid::FromUint256(uint256::ONE), 0};
+    AddDummySpend(block, synthetic, val - 1000, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    CBlockUndo blockundo;
+    CTxUndo txundo;
+    txundo.vprevout.push_back(Coin(CTxOut(val, op_true), /*height=*/1, /*coinbase=*/true));
+    blockundo.vtxundo.push_back(std::move(txundo));
+    LOCK(cs_main);
+    CheckBlockValid(TestBlockValidityWithUndo(
+        m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true));
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_intra_block_spend)
+{
+    // tx_a (vtx[1]) spends a pre-existing UTXO; tx_b (vtx[2]) spends tx_a's output.
+    CBlock block = MakeBlock();
+    const CScript op_true{CScript() << OP_TRUE};
+    const auto pre_existing = AddCoin(op_true, 50 * COIN);
+    if (!pre_existing) return;
+
+    CMutableTransaction tx_a;
+    tx_a.vin.resize(1);
+    tx_a.vin[0].prevout = *pre_existing;
+    tx_a.vout.resize(1);
+    tx_a.vout[0].nValue = 49 * COIN;
+    tx_a.vout[0].scriptPubKey = op_true;
+    auto tx_a_ref = MakeTransactionRef(std::move(tx_a));
+
+    CMutableTransaction tx_b;
+    tx_b.vin.resize(1);
+    tx_b.vin[0].prevout = COutPoint{tx_a_ref->GetHash(), 0};
+    tx_b.vout.resize(1);
+    tx_b.vout[0].nValue = 48 * COIN;
+    tx_b.vout[0].scriptPubKey = op_true;
+    block.vtx.push_back(tx_a_ref);
+    block.vtx.push_back(MakeTransactionRef(std::move(tx_b)));
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    // Verify blockundo is fully populated: one entry per non-coinbase tx,
+    // each with one coin per input — including tx_b's child spend.
+    BOOST_REQUIRE_EQUAL(blockundo->vtxundo.size(), 2);
+    BOOST_REQUIRE_EQUAL(blockundo->vtxundo[0].vprevout.size(), 1); // tx_a's input (pre-existing UTXO)
+    BOOST_REQUIRE_EQUAL(blockundo->vtxundo[1].vprevout.size(), 1); // tx_b's input (tx_a's output, a child spend)
+    LOCK(cs_main);
+    CheckBlockValid(TestValidityWithUndo(block, *blockundo));
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_consistency_bad_coinbase_height)
+{
+    // TestBlockValidity and TestBlockValidityWithUndo must agree on coinbase height
+    // violations (caught by ContextualCheckBlock, which both functions call).
+    CBlock block = MakeBlock();
+    CMutableTransaction coinbase(*block.vtx[0]);
+    coinbase.vin[0].scriptSig = CScript() << 999999;
+    block.vtx[0] = MakeTransactionRef(std::move(coinbase));
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    CBlockUndo blockundo; // coinbase-only block; no non-coinbase entries
+    LOCK(cs_main);
+    const BlockValidationState state1 = TestBlockValidity(
+        m_chainstate, block, /*check_pow=*/false, /*check_merkle_root=*/true);
+    const BlockValidationState state2 = TestBlockValidityWithUndo(
+        m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true);
+    CheckBlockInvalid(state1, BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-height", "block height mismatch in coinbase");
+    CheckBlockInvalid(state2, BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-height", "block height mismatch in coinbase");
+}
+
+BOOST_AUTO_TEST_CASE(tbv_with_undo_prev_blk_not_found)
+{
+    // TestBlockValidityWithUndo returns "prev-blk-not-found" when prev_hash
+    // is not in the block index, unlike TestBlockValidity which always uses
+    // the current tip as prev.
+    CBlock block = MakeBlock();
+    CBlockUndo blockundo;
+    const uint256 unknown_prev{42};
+    LOCK(cs_main);
+    const BlockValidationState state = TestBlockValidityWithUndo(
+        m_chainstate, block, blockundo, unknown_prev, /*check_pow=*/false, /*check_merkle=*/true);
+    CheckBlockInvalid(state, BlockValidationResult::BLOCK_MISSING_PREV, "prev-blk-not-found", "");
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_overflow_coin_value_in_undo)
+{
+    // A coin with nValue above MAX_MONEY is rejected with bad-txns-inputvalues-outofrange.
+    CBlock block = MakeBlock();
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint synthetic{Txid::FromUint256(uint256::ONE), 0};
+    AddDummySpend(block, synthetic, /*out_value=*/1 * COIN, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    CBlockUndo blockundo;
+    CTxUndo txundo;
+    txundo.vprevout.push_back(Coin(CTxOut(MAX_MONEY + 1, op_true), /*height=*/1, /*coinbase=*/false));
+    blockundo.vtxundo.push_back(std::move(txundo));
+    const auto debug = strprintf(" in transaction %s", block.vtx.back()->GetHash().ToString());
+    LOCK(cs_main);
+    CheckBlockInvalid(TestBlockValidityWithUndo(
+                          m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-inputvalues-outofrange", debug);
+}
+
+BOOST_AUTO_TEST_CASE(tbvwu_swapped_vtxundo)
+{
+    // Swapping the vtxundo entries (so each tx is validated against the wrong
+    // coin) causes value-in-below-value-out for the first non-coinbase tx.
+    CBlock block = MakeBlock();
+    const CScript op_true{CScript() << OP_TRUE};
+    const COutPoint synthetic_a{Txid::FromUint256(uint256::ONE), 0};
+    const COutPoint synthetic_b{Txid::FromUint256(uint256(2)), 0};
+    const CAmount val_a{50 * COIN};
+    const CAmount val_b{20 * COIN};
+    // tx_a spends synthetic_a (50 BTC) and outputs 45 BTC.
+    AddDummySpend(block, synthetic_a, /*out_value=*/45 * COIN, op_true);
+    // tx_b spends synthetic_b (20 BTC) and outputs 19 BTC.
+    AddDummySpend(block, synthetic_b, /*out_value=*/19 * COIN, op_true);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+
+    // Build vtxundo with entries swapped: tx_a gets coin_b (20 BTC), tx_b gets coin_a (50 BTC).
+    CBlockUndo blockundo;
+    CTxUndo txundo_b;
+    txundo_b.vprevout.push_back(Coin(CTxOut(val_b, op_true), /*height=*/1, /*coinbase=*/false));
+    blockundo.vtxundo.push_back(std::move(txundo_b)); // vtxundo[0] for tx_a — wrong coin
+    CTxUndo txundo_a;
+    txundo_a.vprevout.push_back(Coin(CTxOut(val_a, op_true), /*height=*/1, /*coinbase=*/false));
+    blockundo.vtxundo.push_back(std::move(txundo_a)); // vtxundo[1] for tx_b — wrong coin
+
+    // tx_a is processed first: 20 BTC in, 45 BTC out → bad-txns-in-belowout.
+    const CTransactionRef& tx_a = block.vtx[1];
+    const auto debug = strprintf("value in (%s) < value out (%s) in transaction %s",
+                                 FormatMoney(val_b), FormatMoney(45 * COIN), tx_a->GetHash().ToString());
+    LOCK(cs_main);
+    CheckBlockInvalid(TestBlockValidityWithUndo(
+                          m_chainstate, block, blockundo, block.hashPrevBlock, /*check_pow=*/false, /*check_merkle=*/true),
+                      BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-in-belowout", debug);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

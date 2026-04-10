@@ -42,6 +42,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_merkle_root)
     const auto reason = "bad-txnmrklroot";
     const auto debug = "hashMerkleRoot mismatch";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_duplicate_txs_CVE_2012_2459)
@@ -53,6 +56,15 @@ BOOST_AUTO_TEST_CASE(tbv_duplicate_txs_CVE_2012_2459)
     const auto reason = "bad-txns-duplicate";
     const auto debug = "duplicate transaction";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
+    // SpendBlock calls CheckBlock with fCheckMerkleRoot=false, so the
+    // Merkle-based duplicate detection is skipped; it instead rejects as
+    // "bad-cb-multiple" since the duplicated entry happens to be the coinbase.
+    BOOST_CHECK(!PopulateBlockUndo(block));
+    // TestValidityWithUndo uses check_merkle=true by default, so it still
+    // catches the duplicate via the Merkle check. Provide a dummy blockundo —
+    // CheckBlock fails before ConnectBlock is ever reached.
+    CBlockUndo blockundo;
+    CheckBlockInvalid(TestValidityWithUndo(block, blockundo), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_no_transactions)
@@ -64,6 +76,7 @@ BOOST_AUTO_TEST_CASE(tbv_no_transactions)
     const auto reason = "bad-blk-length";
     const auto debug = "size limits failed";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_cb_missing)
@@ -83,6 +96,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_missing)
     const auto reason = "bad-cb-missing";
     const auto debug = "first tx is not coinbase";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_cb_multiple)
@@ -100,6 +114,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_multiple)
     const auto reason = "bad-cb-multiple";
     const auto debug = "more than one coinbase";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_cb_length)
@@ -112,6 +127,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_length)
     block.hashMerkleRoot = BlockMerkleRoot(block);
     const auto reason = "bad-cb-length";
     CheckTxViolation(TestValidity(block), block, reason);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_vin_empty)
@@ -127,6 +143,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vin_empty)
     const auto reason = "bad-txns-vin-empty";
     const auto debug = strprintf("Transaction check failed (tx hash %s) ", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_empty)
@@ -147,6 +164,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_empty)
     const auto reason = "bad-txns-vout-empty";
     const auto debug = strprintf("Transaction check failed (tx hash %s) ", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_negative)
@@ -167,6 +185,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_negative)
     const auto reason = "bad-txns-vout-negative";
     const auto debug = strprintf("Transaction check failed (tx hash %s) ", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_toolarge)
@@ -187,6 +206,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_toolarge)
     const auto reason = "bad-txns-vout-toolarge";
     const auto debug = strprintf("Transaction check failed (tx hash %s) ", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_txouttotal_toolarge)
@@ -206,6 +226,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_txouttotal_toolarge)
     const auto reason = "bad-txns-txouttotal-toolarge";
     const auto debug = strprintf("Transaction check failed (tx hash %s) ", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_duplicate)
@@ -222,6 +243,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_duplicate)
     const auto reason = "bad-txns-inputs-duplicate";
     const auto debug = strprintf("Transaction check failed (tx hash %s) ", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_prevout_null)
@@ -243,6 +265,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_prevout_null)
     const auto reason = "bad-txns-prevout-null";
     const auto debug = strprintf("Transaction check failed (tx hash %s) ", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_witness_nonce_size)
@@ -258,6 +281,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_witness_nonce_size)
     const auto reason = "bad-witness-nonce-size";
     const auto debug = "CheckWitnessMalleation : invalid witness reserved value size";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_witness_merkle_match)
@@ -274,6 +300,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_witness_merkle_match)
     const auto reason = "bad-witness-merkle-match";
     const auto debug = "CheckWitnessMalleation : witness merkle commitment mismatch";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_unexpected_witness)
@@ -299,6 +328,9 @@ BOOST_AUTO_TEST_CASE(tbv_unexpected_witness)
     const auto reason = "unexpected-witness";
     const auto debug = "CheckWitnessMalleation : unexpected witness data found";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

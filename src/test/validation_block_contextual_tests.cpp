@@ -44,6 +44,9 @@ BOOST_AUTO_TEST_CASE(tbv_immature_coinbase)
     const auto reason = "bad-txns-premature-spend-of-coinbase";
     const auto debug = strprintf("tried to spend coinbase at depth 1 in transaction %s", block.vtx.back()->GetHash().ToString());
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_cb_amount)
@@ -57,6 +60,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_amount)
     const auto reason = "bad-cb-amount";
     const auto debug = strprintf("coinbase pays too much (actual=%d vs limit=%d)", block.vtx[0]->GetValueOut(), 50 * COIN);
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_cb_height)
@@ -70,6 +76,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_height)
     const auto reason = "bad-cb-height";
     const auto debug = "block height mismatch in coinbase";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_txns_nonfinal)
@@ -91,6 +100,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_nonfinal)
     const auto reason = "bad-txns-nonfinal";
     const auto debug = "non-final transaction";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bip113_locktime_uses_mtp)
@@ -115,6 +127,9 @@ BOOST_AUTO_TEST_CASE(tbv_bip113_locktime_uses_mtp)
     const auto reason = "bad-txns-nonfinal";
     const auto debug = "non-final transaction";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_blk_weight)
@@ -139,6 +154,9 @@ BOOST_AUTO_TEST_CASE(tbv_bad_blk_weight)
     const auto reason = "bad-blk-weight";
     const auto debug = "ContextualCheckBlock : weight limit failed";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    auto blockundo = PopulateBlockUndo(block);
+    BOOST_REQUIRE(blockundo);
+    CheckBlockInvalid(TestValidityWithUndo(block, *blockundo), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
 BOOST_AUTO_TEST_CASE(tbv_bad_blk_sigops)
@@ -168,6 +186,8 @@ BOOST_AUTO_TEST_CASE(tbv_bad_blk_sigops)
     const auto reason = "bad-blk-sigops";
     const auto debug = "out-of-bounds SigOpCount";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
+    // bad-blk-sigops is caught by CheckBlock inside SpendBlock; PopulateBlockUndo fails.
+    BOOST_CHECK(!PopulateBlockUndo(block));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
