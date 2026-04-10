@@ -5,6 +5,7 @@
 #include <test/util/block_validity.h>
 
 #include <test/util/mining.h>
+#include <undo.h>
 
 namespace {
 
@@ -23,6 +24,30 @@ BlockValidationState ValidationBlockValidityTestingSetup::TestValidity(const CBl
 {
     LOCK(cs_main);
     return TestBlockValidity(m_chainstate, block, check_pow, check_merkle);
+}
+
+std::optional<CBlockUndo> ValidationBlockValidityTestingSetup::PopulateBlockUndo(const CBlock& block)
+{
+    LOCK(cs_main);
+    const CBlockIndex* tip{Assert(m_chainstate.m_chain.Tip())};
+    CBlockIndex index_dummy{block};
+    uint256 block_hash{block.GetHash()};
+    index_dummy.pprev = const_cast<CBlockIndex*>(tip);
+    index_dummy.nHeight = tip->nHeight + 1;
+    index_dummy.phashBlock = &block_hash;
+    CCoinsViewCache view_dummy{&m_chainstate.CoinsTip()};
+    CBlockUndo blockundo;
+    BlockValidationState state;
+    if (!m_chainstate.SpendBlock(block, &index_dummy, view_dummy, state, blockundo, /*fJustCheck=*/true)) {
+        return std::nullopt;
+    }
+    return blockundo;
+}
+
+BlockValidationState ValidationBlockValidityTestingSetup::TestValidityWithUndo(const CBlock& block, const CBlockUndo& blockundo, bool check_pow, bool check_merkle)
+{
+    LOCK(cs_main);
+    return TestBlockValidityWithUndo(m_chainstate, block, blockundo, block.hashPrevBlock, check_pow, check_merkle);
 }
 
 std::optional<COutPoint> ValidationBlockValidityTestingSetup::AddCoin(const CScript& script_pub_key, CAmount amount)

@@ -4612,6 +4612,77 @@ BlockValidationState TestBlockValidity(
     return state;
 }
 
+BlockValidationState TestBlockValidityWithUndo(
+    Chainstate& chainstate,
+    const CBlock& block,
+    const CBlockUndo& blockundo,
+    const uint256& prev_hash,
+    bool check_pow,
+    bool check_merkle_root)
+{
+    // Lock must be held throughout this function for two reasons:
+    // 1. We don't want the tip to change during several of the validation steps
+    // 2. To prevent a CheckBlock() race condition for fChecked, see ProcessNewBlock()
+    AssertLockHeld(chainstate.m_chainman.GetMutex());
+    BlockValidationState state;
+    const CBlockIndex* pindex_prev{chainstate.m_chainman.m_blockman.LookupBlockIndex(prev_hash)};
+    if (!pindex_prev) {
+        state.Invalid(BlockValidationResult::BLOCK_MISSING_PREV, "prev-blk-not-found");
+        return state;
+    }
+    // For signets CheckBlock() verifies the challenge iff fCheckPow is set.
+    if (!CheckBlock(block, state, chainstate.m_chainman.GetConsensus(), /*fCheckPow=*/check_pow, /*fCheckMerkleRoot=*/check_merkle_root)) {
+        // This should never happen, but belt-and-suspenders don't approve the
+        // block if it does.
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    /**
+     * At this point ProcessNewBlock would call AcceptBlock(), but we
+     * don't want to store the block or its header. Run individual checks
+     * instead:
+     * - skip AcceptBlockHeader() because:
+     *   - we don't want to update the block index
+     *   - we do not care about duplicates
+     *   - we already ran CheckBlockHeader() via CheckBlock()
+     *   - we already checked for prev-blk-not-found
+     *   - we know the tip is valid, so no need to check bad-prevblk
+     * - we already ran CheckBlock()
+     * - do run ContextualCheckBlockHeader()
+     * - do run ContextualCheckBlock()
+     * - skip SpendBlock() because the caller provides blockundo directly:
+     *   SpendBlock() does two things: it checks that inputs exist in the
+     *   UTXO set and builds the CBlockUndo (the previous outputs spent by
+     *   each transaction). Here the caller has already supplied that undo
+     *   data, so we have no need to consult the UTXO set. This is exactly
+     *   what makes this function useful — it can validate a block whose
+     *   inputs are no longer in the current UTXO set (e.g., a historical
+     *   block being re-verified from an undo file).
+     */
+    if (!ContextualCheckBlockHeader(block, state, chainstate.m_blockman, chainstate.m_chainman, pindex_prev)) {
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    if (!ContextualCheckBlock(block, state, chainstate.m_chainman, pindex_prev)) {
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    // We don't want ConnectBlock to update the actual chainstate, so create a dummy block index.
+    CBlockIndex index_dummy{block};
+    uint256 block_hash{block.GetHash()};
+    index_dummy.pprev = const_cast<CBlockIndex*>(pindex_prev);
+    index_dummy.nHeight = pindex_prev->nHeight + 1;
+    index_dummy.phashBlock = &block_hash;
+    // Set fJustCheck to true in order to update, and not clear, validation caches.
+    if (!chainstate.ConnectBlock(block, blockundo, state, &index_dummy, /*fJustCheck=*/true)) {
+        if (state.IsValid()) NONFATAL_UNREACHABLE();
+        return state;
+    }
+    // Ensure no check returned successfully while also setting an invalid state.
+    if (!state.IsValid()) NONFATAL_UNREACHABLE();
+    return state;
+}
+
 /* This function is called from the RPC code for pruneblockchain */
 void PruneBlockFilesManual(Chainstate& active_chainstate, int nManualPruneHeight)
 {

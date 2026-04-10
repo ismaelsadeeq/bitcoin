@@ -414,6 +414,38 @@ BlockValidationState TestBlockValidity(
     bool check_pow,
     bool check_merkle_root) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
+/**
+ * Verify a block with its undo data, including transactions, without validating
+ * block spends from the UTXO set because the undo data is provided.
+ *
+ * @param[in]   chainstate  The chainstate to validate against.
+ * @param[in]   block       The block we want to process. Must connect to a known header.
+ * @param[in]   blockundo   The block undo data for each coin we want to process.
+ * @param[in]   prev_hash   Hash of the block that `block` builds on. Must
+ *                          have been processed via AcceptBlockHeader so
+ *                          that a CBlockIndex entry with a full pprev chain
+ *                          exists in the block index.
+ * @param[in]   check_pow   perform proof-of-work check, nBits in the header
+ *                          is always checked
+ * @param[in]   check_merkle_root check the merkle root
+ *
+ * @return Valid or Invalid state.
+ *         Returns Invalid with "prev-blk-not-found" if prev_hash is not in the block
+ *         index. This doesn't currently return an Error state,
+ *         and shouldn't unless there is something wrong with the existing
+ *         chainstate. (This is different from functions like AcceptBlock which
+ *         can fail trying to save new data.)
+ *
+ * For signets the challenge verification is skipped when check_pow is false.
+ */
+BlockValidationState TestBlockValidityWithUndo(
+    Chainstate& chainstate,
+    const CBlock& block,
+    const CBlockUndo& blockundo,
+    const uint256& prev_hash,
+    bool check_pow,
+    bool check_merkle_root) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
 /** Check that the proof of work on each blockheader matches the value in nBits */
 bool HasValidProofOfWork(std::span<const CBlockHeader> headers, const Consensus::Params& consensusParams);
 
