@@ -1260,6 +1260,37 @@ public:
     {
         return btck_block_spent_outputs_read(get(), entry.get());
     }
+
+    /**
+     * @brief Test the validity of a block given its block undo data.
+     *
+     * The block header for @p prev_hash must have been processed (via
+     * ProcessBlockHeader or ProcessBlock) before calling this function.
+     *
+     * @param prev_hash           Hash of the block immediately preceding
+     *                            @p block.
+     * @param block               Block to validate.
+     * @param block_spent_outputs The block undo data containing the outputs
+     *                            spent by each non-coinbase transaction in
+     *                            @p block.
+     * @param check_pow           Whether to verify proof of work.
+     * @param check_merkle_root   Whether to verify the merkle root.
+     * @param state               Receives the validation result.
+     */
+    void TestBlockValidityWithUndo(
+        const BlockHash& prev_hash,
+        const Block& block,
+        const BlockSpentOutputs& block_spent_outputs,
+        bool check_pow,
+        bool check_merkle_root,
+        BlockValidationState& state)
+    {
+        btck_chainstate_manager_test_block_validity_with_undo(
+            get(), prev_hash.get(), block.get(), block_spent_outputs.get(),
+            check_pow ? 1 : 0,
+            check_merkle_root ? 1 : 0,
+            state.get());
+    }
 };
 
 } // namespace btck

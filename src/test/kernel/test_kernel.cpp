@@ -1180,3 +1180,48 @@ BOOST_AUTO_TEST_CASE(btck_chainman_regtest_tests)
     fs::remove_all(test_directory.m_directory / "blocks" / "rev00000.dat");
     BOOST_CHECK_THROW(chainman->ReadBlockSpentOutputs(tip), std::runtime_error);
 }
+
+BOOST_AUTO_TEST_CASE(btck_test_block_validity_with_undo_tests)
+{
+    auto test_directory{TestDirectory{"test_validity_with_undo_kernel"}};
+    auto notifications{std::make_shared<TestKernelNotifications>()};
+    auto context{create_context(notifications, ChainType::REGTEST)};
+    auto chainman{create_chainman(
+        test_directory, /*reindex=*/false, /*wipe_chainstate=*/false,
+        /*block_tree_db_in_memory=*/false, /*chainstate_db_in_memory=*/false, context)};
+
+    for (const auto& data : REGTEST_BLOCK_DATA) {
+        Block block{hex_string_to_byte_vec(data)};
+        bool new_block{false};
+        BOOST_REQUIRE(chainman->ProcessBlock(block, &new_block));
+        BOOST_REQUIRE(new_block);
+    }
+
+    auto chain{chainman->GetChain()};
+    auto tip{chain.Entries().back()};
+    auto prev_opt{tip.GetPrevious()};
+    BOOST_REQUIRE(prev_opt.has_value());
+    BlockHash prev_hash{prev_opt->GetHash()};
+    auto tip_block_opt{chainman->ReadBlock(tip)};
+    BOOST_REQUIRE(tip_block_opt.has_value());
+    Block tip_block{std::move(*tip_block_opt)};
+    BlockSpentOutputs block_spent_outputs{chainman->ReadBlockSpentOutputs(tip)};
+    // Block 205 has exactly one non-coinbase transaction, so one undo entry.
+    BOOST_REQUIRE_EQUAL(block_spent_outputs.Count(), 1);
+
+    // With the correct undo data block 205 is valid.
+    BlockValidationState state{};
+    chainman->TestBlockValidityWithUndo(
+        prev_hash, tip_block, block_spent_outputs, /*check_pow=*/false, /*check_merkle_root=*/true, state);
+    BOOST_CHECK(state.GetValidationMode() == ValidationMode::VALID);
+    BOOST_CHECK(state.GetBlockValidationResult() == BlockValidationResult::UNSET);
+
+    // With an unknown prev_hash the block index lookup fails and the state is invalid.
+    std::array<std::byte, 32> unknown_bytes{};
+    BlockHash unknown_hash{unknown_bytes};
+    BlockValidationState state_unknown{};
+    chainman->TestBlockValidityWithUndo(
+        unknown_hash, tip_block, block_spent_outputs, /*check_pow=*/false, /*check_merkle_root=*/true, state_unknown);
+    BOOST_CHECK(state_unknown.GetValidationMode() == ValidationMode::INVALID);
+    BOOST_CHECK(state_unknown.GetBlockValidationResult() == BlockValidationResult::MISSING_PREV);
+}

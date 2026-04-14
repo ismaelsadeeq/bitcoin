@@ -1324,6 +1324,26 @@ int btck_chainstate_manager_process_block_header(
     }
 }
 
+void btck_chainstate_manager_test_block_validity_with_undo(
+    btck_ChainstateManager* chainstate_manager,
+    const btck_BlockHash* prev_hash,
+    const btck_Block* block,
+    const btck_BlockSpentOutputs* block_spent_outputs,
+    int check_pow,
+    int check_merkle_root,
+    btck_BlockValidationState* block_validation_state)
+{
+    auto& chainman = btck_ChainstateManager::get(chainstate_manager).m_chainman;
+    LOCK(chainman->GetMutex());
+    btck_BlockValidationState::get(block_validation_state) = TestBlockValidityWithUndo(
+        chainman->ActiveChainstate(),
+        *btck_Block::get(block),
+        *btck_BlockSpentOutputs::get(block_spent_outputs),
+        btck_BlockHash::get(prev_hash),
+        check_pow != 0,
+        check_merkle_root != 0);
+}
+
 const btck_Chain* btck_chainstate_manager_get_active_chain(const btck_ChainstateManager* chainman)
 {
     return btck_Chain::ref(&WITH_LOCK(btck_ChainstateManager::get(chainman).m_chainman->GetMutex(), return btck_ChainstateManager::get(chainman).m_chainman->ActiveChain()));

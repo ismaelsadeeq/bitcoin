@@ -1175,6 +1175,43 @@ BITCOINKERNEL_API int BITCOINKERNEL_WARN_UNUSED_RESULT btck_chainstate_manager_p
     int* new_block) BITCOINKERNEL_ARG_NONNULL(1, 2, 3);
 
 /**
+ * @brief Test the validity of a block given its block undo data.
+ *
+ * This function assumes that the block header identified by @p prev_hash has
+ * already been processed by the chainstate manager (via
+ * btck_chainstate_manager_process_block_header or
+ * btck_chainstate_manager_process_block) so that a block tree entry exists.
+ * The script verification flags used during validation are derived from the
+ * chain indexed at @p prev_hash, so that entry must represent a genuine chain
+ * tip for the result to be meaningful.
+ *
+ * @param[in]  chainstate_manager     Non-null.
+ * @param[in]  prev_hash              Non-null. Hash of the block immediately
+ *                                    preceding @p block. A block tree entry
+ *                                    for this hash must already exist in the
+ *                                    chainstate manager.
+ * @param[in]  block                  Non-null. Block to validate.
+ * @param[in]  block_spent_outputs    Non-null. The block undo data containing
+ *                                    the outputs spent by each non-coinbase
+ *                                    transaction in @p block, in the same
+ *                                    order as the block's non-coinbase
+ *                                    transactions.
+ * @param[in]  check_pow              If non-zero, verify the block header's
+ *                                    proof of work.
+ * @param[in]  check_merkle_root      If non-zero, verify the block's merkle
+ *                                    root.
+ * @param[out] block_validation_state Non-null. Receives the validation result.
+ */
+BITCOINKERNEL_API void btck_chainstate_manager_test_block_validity_with_undo(
+    btck_ChainstateManager* chainstate_manager,
+    const btck_BlockHash* prev_hash,
+    const btck_Block* block,
+    const btck_BlockSpentOutputs* block_spent_outputs,
+    int check_pow,
+    int check_merkle_root,
+    btck_BlockValidationState* block_validation_state) BITCOINKERNEL_ARG_NONNULL(1, 2, 3, 4, 7);
+
+/**
  * @brief Returns the best known currently active chain. Its lifetime is
  * dependent on the chainstate manager. It can be thought of as a view on a
  * vector of block tree entries that form the best chain. The returned chain
