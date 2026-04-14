@@ -1266,6 +1266,50 @@ public:
         return btck_chainstate_manager_process_block_header(get(), header.get(), state.get()) == 0;
     }
 
+    /**
+     * @brief Test the validity of a block given its spent transaction outputs.
+     *
+     * The block header for @p prev_hash must have been processed (via
+     * ProcessBlockHeader or ProcessBlock) before calling this function.
+     *
+     * @param prev_hash          Hash of the block immediately preceding @p block.
+     * @param block              Block to validate.
+     * @param spent_outputs      Pairs of (out point, coin) for each input spent
+     *                           by the block's non-coinbase transactions. The
+     *                           pointed-to objects must remain alive for the
+     *                           duration of this call.
+     * @param check_pow          Whether to verify proof of work.
+     * @param check_merkle_root  Whether to verify the merkle root.
+     * @param state              Receives the validation result.
+     * @return                   True on success, false if any element of
+     *                           @p spent_outputs contains a null pointer.
+     */
+    bool TestBlockValidityWithSpentOutputs(
+        const BlockHash& prev_hash,
+        const Block& block,
+        const std::vector<std::pair<const btck_TransactionOutPoint*, const btck_Coin*>>& spent_outputs,
+        bool check_pow,
+        bool check_merkle_root,
+        BlockValidationState& state)
+    {
+        std::vector<const btck_TransactionOutPoint*> out_points;
+        std::vector<const btck_Coin*> coins;
+        out_points.reserve(spent_outputs.size());
+        coins.reserve(spent_outputs.size());
+        for (const auto& [out_point, coin] : spent_outputs) {
+            out_points.push_back(out_point);
+            coins.push_back(coin);
+        }
+        return btck_chainstate_manager_test_block_validity_with_spent_outputs(
+                   get(), prev_hash.get(), block.get(),
+                   out_points.data(),
+                   coins.data(),
+                   out_points.size(),
+                   check_pow ? 1 : 0,
+                   check_merkle_root ? 1 : 0,
+                   state.get()) == 0;
+    }
+
     ChainView GetChain() const
     {
         return ChainView{btck_chainstate_manager_get_active_chain(get())};

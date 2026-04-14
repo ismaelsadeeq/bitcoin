@@ -1240,3 +1240,81 @@ BOOST_AUTO_TEST_CASE(btck_chainman_regtest_tests)
     fs::remove(test_directory.m_directory / "blocks" / "rev00000.dat");
     BOOST_CHECK_THROW(chainman->ReadBlockSpentOutputs(tip), std::runtime_error);
 }
+
+BOOST_AUTO_TEST_CASE(btck_test_block_validity_with_spent_outputs_tests)
+{
+    auto test_directory{TestDirectory{"test_validity_with_spent_outputs_kernel"}};
+    auto notifications{std::make_shared<TestKernelNotifications>()};
+    auto context{create_context(notifications, ChainType::REGTEST)};
+    auto chainman{create_chainman(
+        test_directory, /*reindex=*/false, /*wipe_chainstate=*/false,
+        /*block_tree_db_in_memory=*/false, /*chainstate_db_in_memory=*/false, context)};
+
+    // Process all 206 regtest blocks (the last one, block 205, has a non-coinbase tx).
+    for (const auto& data : REGTEST_BLOCK_DATA) {
+        Block block{hex_string_to_byte_vec(data)};
+        bool new_block{false};
+        BOOST_REQUIRE(chainman->ProcessBlock(block, &new_block));
+        BOOST_REQUIRE(new_block);
+    }
+
+    auto chain{chainman->GetChain()};
+    auto tip{chain.Entries().back()}; // block 205
+    auto prev_opt{tip.GetPrevious()};
+    BOOST_REQUIRE(prev_opt.has_value()); // block 205 must have a predecessor
+    BlockHash prev_hash{prev_opt->GetHash()};
+
+    auto tip_block_opt{chainman->ReadBlock(tip)};
+    BOOST_REQUIRE(tip_block_opt.has_value());
+    Block tip_block{std::move(*tip_block_opt)};
+    BlockSpentOutputs block_spent_outputs{chainman->ReadBlockSpentOutputs(tip)};
+    // Block 205 has exactly one non-coinbase transaction, so one undo entry.
+    BOOST_REQUIRE_EQUAL(block_spent_outputs.Count(), 1);
+
+    // block.vtx[0] = coinbase (no undo entry)
+    // block.vtx[1] = spending tx -> undo entry index 0
+    // The i-th input of vtx[1] corresponds to the i-th coin in vtxundo[0].
+    TransactionView non_cb_tx{tip_block.GetTransaction(1)};
+    TransactionSpentOutputsView tx_spent_outputs{block_spent_outputs.GetTxSpentOutputs(0)};
+    BOOST_REQUIRE_GT(tx_spent_outputs.Count(), 0);
+
+    // Lifetime: the raw pointers returned by .OutPoint().get() and .GetCoin().get()
+    // point into tip_block's shared_ptr<CTransaction> and block_spent_outputs'
+    // shared_ptr<CBlockUndo> respectively. Both objects outlive the test function,
+    // so the pointers remain valid for every call below.
+    std::vector<std::pair<const btck_TransactionOutPoint*, const btck_Coin*>> spent_outputs;
+    for (size_t i{0}; i < tx_spent_outputs.Count(); i++) {
+        spent_outputs.emplace_back(non_cb_tx.GetInput(i).OutPoint().get(),
+                                   tx_spent_outputs.GetCoin(i).get());
+    }
+
+    // With the correct spent outputs block 205 is valid.
+    BlockValidationState state{};
+    BOOST_CHECK(chainman->TestBlockValidityWithSpentOutputs(
+        prev_hash, tip_block, spent_outputs, /*check_pow=*/false, /*check_merkle_root=*/true, state));
+    BOOST_CHECK(state.GetValidationMode() == ValidationMode::VALID);
+    BOOST_CHECK(state.GetBlockValidationResult() == BlockValidationResult::UNSET);
+
+    // Without spent outputs the non-coinbase inputs are unknown to the validation
+    // view, so the block is consensus-invalid.
+    BlockValidationState state_empty{};
+    BOOST_CHECK(chainman->TestBlockValidityWithSpentOutputs(
+        prev_hash, tip_block, {}, /*check_pow=*/false, /*check_merkle_root=*/true, state_empty));
+    BOOST_CHECK(state_empty.GetValidationMode() == ValidationMode::INVALID);
+    BOOST_CHECK(state_empty.GetBlockValidationResult() == BlockValidationResult::CONSENSUS);
+
+    // With an unknown prev_hash the block index lookup fails and the state is invalid.
+    std::array<std::byte, 32> unknown_bytes{};
+    BlockHash unknown_hash{unknown_bytes};
+    BlockValidationState state_unknown{};
+    BOOST_CHECK(chainman->TestBlockValidityWithSpentOutputs(
+        unknown_hash, tip_block, spent_outputs, /*check_pow=*/false, /*check_merkle_root=*/true, state_unknown));
+    BOOST_CHECK(state_unknown.GetValidationMode() == ValidationMode::INVALID);
+    BOOST_CHECK(state_unknown.GetBlockValidationResult() == BlockValidationResult::UNSET);
+
+    // A null element inside the pairs must be rejected; the wrapper returns false.
+    BlockValidationState state_null{};
+    std::vector<std::pair<const btck_TransactionOutPoint*, const btck_Coin*>> null_pairs{{nullptr, nullptr}};
+    BOOST_CHECK(!chainman->TestBlockValidityWithSpentOutputs(
+        prev_hash, tip_block, null_pairs, /*check_pow=*/false, /*check_merkle_root=*/true, state_null));
+}

@@ -1347,6 +1347,42 @@ int btck_chainstate_manager_process_block_header(
     }
 }
 
+int btck_chainstate_manager_test_block_validity_with_spent_outputs(
+    btck_ChainstateManager* chainstate_manager,
+    const btck_BlockHash* prev_hash,
+    const btck_Block* block,
+    const btck_TransactionOutPoint** spent_out_points,
+    const btck_Coin** spent_coins,
+    size_t spent_outputs_len,
+    int check_pow,
+    int check_merkle_root,
+    btck_BlockValidationState* block_validation_state)
+{
+    if (spent_outputs_len > 0 && (spent_out_points == nullptr || spent_coins == nullptr)) {
+        return -1;
+    }
+    auto& chainman = btck_ChainstateManager::get(chainstate_manager).m_chainman;
+    std::vector<TxOutput> spent_txouts;
+    spent_txouts.reserve(spent_outputs_len);
+    for (size_t i = 0; i < spent_outputs_len; i++) {
+        if (spent_out_points[i] == nullptr || spent_coins[i] == nullptr) {
+            return -1;
+        }
+        spent_txouts.emplace_back(
+            btck_TransactionOutPoint::get(spent_out_points[i]),
+            btck_Coin::get(spent_coins[i]));
+    }
+    LOCK(chainman->GetMutex());
+    btck_BlockValidationState::get(block_validation_state) = TestBlockValidityWithSpentTxOuts(
+        chainman->ActiveChainstate(),
+        btck_BlockHash::get(prev_hash),
+        *btck_Block::get(block),
+        std::move(spent_txouts),
+        check_pow != 0,
+        check_merkle_root != 0);
+    return 0;
+}
+
 const btck_Chain* btck_chainstate_manager_get_active_chain(const btck_ChainstateManager* chainman)
 {
     return btck_Chain::ref(&WITH_LOCK(btck_ChainstateManager::get(chainman).m_chainman->GetMutex(), return btck_ChainstateManager::get(chainman).m_chainman->ActiveChain()));

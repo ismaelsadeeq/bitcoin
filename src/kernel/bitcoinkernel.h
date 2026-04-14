@@ -1191,6 +1191,52 @@ BITCOINKERNEL_API int BITCOINKERNEL_WARN_UNUSED_RESULT btck_chainstate_manager_p
     int* new_block) BITCOINKERNEL_ARG_NONNULL(1, 2, 3);
 
 /**
+ * @brief Test the validity of a block given the spent transaction outputs
+ * required to execute its transactions.
+ *
+ * This function assumes that the block header has already been processed by the
+ * chainstate manager and that a block tree entry for @p prev_hash exists. The
+ * script verification flags used during validation are derived from the chain
+ * indexed at @p prev_hash, so that entry must represent a genuine chain tip for
+ * the result to be meaningful.
+ *
+ * @param[in]  chainstate_manager     Non-null.
+ * @param[in]  prev_hash              Non-null. Hash of the block immediately
+ *                                    preceding the block to validate.
+ * @param[in]  block                  Non-null. Block to validate.
+ * @param[in]  spent_out_points       Array of @p spent_outputs_len non-null
+ *                                    outpoints identifying the coins spent by
+ *                                    the block's non-coinbase transactions. May
+ *                                    be null only when @p spent_outputs_len
+ *                                    is 0.
+ * @param[in]  spent_coins            Array of @p spent_outputs_len non-null
+ *                                    coins corresponding element-wise to
+ *                                    @p spent_out_points. May be null only
+ *                                    when @p spent_outputs_len is 0.
+ * @param[in]  spent_outputs_len      Number of entries in @p spent_out_points
+ *                                    and @p spent_coins.
+ * @param[in]  check_pow              If non-zero, verify the block header's
+ *                                    proof of work.
+ * @param[in]  check_merkle_root      If non-zero, verify the block's merkle
+ *                                    root.
+ * @param[out] block_validation_state Non-null. Receives the validation result.
+ * @return                            0 on success. -1 if @p spent_out_points
+ *                                    or @p spent_coins is null while
+ *                                    @p spent_outputs_len is non-zero, or if
+ *                                    any element of either array is null.
+ */
+BITCOINKERNEL_API int BITCOINKERNEL_WARN_UNUSED_RESULT btck_chainstate_manager_test_block_validity_with_spent_outputs(
+    btck_ChainstateManager* chainstate_manager,
+    const btck_BlockHash* prev_hash,
+    const btck_Block* block,
+    const btck_TransactionOutPoint** spent_out_points,
+    const btck_Coin** spent_coins,
+    size_t spent_outputs_len,
+    int check_pow,
+    int check_merkle_root,
+    btck_BlockValidationState* block_validation_state) BITCOINKERNEL_ARG_NONNULL(1, 2, 3, 9);
+
+/**
  * @brief Returns the best known currently active chain. Its lifetime is
  * dependent on the chainstate manager. It can be thought of as a view on a
  * vector of block tree entries that form the best chain. The returned chain
