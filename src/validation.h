@@ -455,7 +455,14 @@ enum DisconnectResult
     DISCONNECT_FAILED   // Something else went wrong.
 };
 
-struct ConnectedBlock;
+struct ConnectedBlock {
+    const CBlockIndex* pindex;
+    std::shared_ptr<const CBlock> pblock;
+};
+
+// Internal validation functions exposed for testing purposes.
+bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, node::BlockManager& blockman, const ChainstateManager& chainman, const CBlockIndex* pindexPrev) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+bool ContextualCheckBlock(const CBlock& block, BlockValidationState& state, const ChainstateManager& chainman, const CBlockIndex* pindexPrev);
 
 /** @see Chainstate::FlushStateToDisk */
 inline constexpr std::array FlushStateModeNames{"NONE", "IF_NEEDED", "PERIODIC", "FORCE_FLUSH", "FORCE_SYNC"};
