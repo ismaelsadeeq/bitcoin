@@ -8,6 +8,7 @@ add_library(test_fuzz STATIC EXCLUDE_FROM_ALL
   mempool.cpp
   net.cpp
   threadinterrupt.cpp
+  chain_fuzz.cpp
   ../fuzz.cpp
   ../util.cpp
 )
