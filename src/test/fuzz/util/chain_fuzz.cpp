@@ -112,6 +112,81 @@ void ChainValidationFuzzSetup::AddExtraTxsInMempool()
     }
 }
 
+TestChainstate& ChainValidationFuzzSetup::GetTestChainstate()
+{
+    return static_cast<TestChainstate&>(m_node.chainman->ActiveChainstate());
+}
+
+void ChainValidationFuzzSetup::ClearMemPool()
+{
+    CTxMemPool* mempool = m_node.chainman->ActiveChainstate().GetMempool();
+    Assert(mempool);
+    LOCK(mempool->cs);
+    mempool->TrimToSize(0);
+}
+
+void ChainValidationFuzzSetup::RecreateAndReplayChain()
+{
+    ClearMemPool();
+    m_node.chainman.reset();
+    m_make_chainman();
+    LoadVerifyActivateChainstate();
+    for (const auto& b : m_list_blocks) {
+        if (b == m_list_blocks.front()) continue;
+        ProcessBlock(m_node, b);
+    }
+    m_block_index_modified = false;
+}
+
+CBlockIndex* ChainValidationFuzzSetup::WriteBlock(const CBlock& block)
+{
+    ChainstateManager& chainman = *m_node.chainman;
+    CBlockIndex* block_index = chainman.m_blockman.LookupBlockIndex(block.GetHash());
+    if (block_index == nullptr) {
+        CBlockIndex* best_block = chainman.m_best_header;
+        block_index = chainman.m_blockman.AddToBlockIndex(block, best_block);
+        m_block_index_modified = true;
+        if (best_block != block_index) return nullptr;
+        FlatFilePos pos = chainman.m_blockman.WriteBlock(block, block_index->nHeight);
+        Assert(!pos.IsNull());
+        chainman.ReceivedBlockTransactions(block, block_index, pos);
+        chainman.ActiveChainstate().ForceFlushStateToDisk();
+    }
+    Assert(block_index != nullptr);
+    BlockValidationState state;
+    const auto& consensus = m_node.chainman->GetConsensus();
+    if (!ContextualCheckBlockHeader(block, state, chainman.m_blockman, chainman, block_index->pprev) ||
+        !CheckBlock(block, state, consensus) ||
+        !ContextualCheckBlock(block, state, chainman, block_index->pprev)) {
+        return nullptr;
+    }
+    return block_index;
+}
+
+CBlockIndex* ChainValidationFuzzSetup::WriteAndActivateBlock(const CBlock& block)
+{
+    ChainstateManager& chainman = *m_node.chainman;
+    CBlockIndex* block_index = chainman.m_blockman.LookupBlockIndex(block.GetHash());
+    if (block_index == nullptr) {
+        BlockValidationState state;
+        bool is_new_block = false;
+        if (!chainman.AcceptBlock(std::make_shared<CBlock>(block), state, &block_index, true, nullptr, &is_new_block, true)) {
+            return nullptr;
+        }
+        m_block_index_modified = true;
+    } else {
+        BlockValidationState state;
+        const auto& consensus = m_node.chainman->GetConsensus();
+        if (!ContextualCheckBlockHeader(block, state, chainman.m_blockman, chainman, block_index->pprev) ||
+            !CheckBlock(block, state, consensus) ||
+            !ContextualCheckBlock(block, state, chainman, block_index->pprev)) {
+            return nullptr;
+        }
+    }
+    Assert(block_index != nullptr);
+    return block_index;
+}
+
 CTxIn ChainValidationFuzzSetup::MakeSpendingInput(const CTransaction& tx, unsigned vout_index) const
 {
     Assert(vout_index < tx.vout.size());

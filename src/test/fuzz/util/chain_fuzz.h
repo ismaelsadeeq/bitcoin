@@ -19,6 +19,15 @@
 class CBlockIndex;
 
 /**
+ * Chainstate subclass that lifts protected methods to public for testing.
+ * Obtained via ChainValidationFuzzSetup::GetTestChainstate().
+ */
+struct TestChainstate : public Chainstate {
+    using Chainstate::ActivateBestChainStep;
+    using Chainstate::MaybeUpdateMempoolForReorg;
+};
+
+/**
  * TestingSetup extension for chain validation fuzzing harnesses.
  *
  * Provides a pre-mined REGTEST chain with mature UTXOs and helpers for
@@ -94,8 +103,47 @@ public:
     /** Two-element witness stack for spending m_taproot_op_true:
      * [0] serialised OP_TRUE script, [1] control block. */
     std::vector<std::vector<uint8_t>> m_taproot_op_true_witness;
+    /**
+     * Set whenever WriteBlock or WriteAndActivateBlock adds a block to the
+     * blockman. Because block_tree_db is in-memory (TestOpts default), the
+     * only way to remove those extra block-index entries is to destroy and
+     * recreate the chainman. Disconnecting the active-chain tip is not enough
+     * since orphan entries remain in the index. RecreateAndReplayChain clears
+     * this flag once the chainman is fresh again.
+     */
+    bool m_block_index_modified{false};
     ChainValidationFuzzSetup(ChainType chain_type, TestOpts opts);
     ~ChainValidationFuzzSetup() = default;
+    /** Evict all transactions from the mempool. */
+    void ClearMemPool();
+    /**
+     * Return the active chainstate as a TestChainstate reference, giving
+     * access to protected methods (ActivateBestChainStep,
+     * MaybeUpdateMempoolForReorg) without additional wrapper functions.
+     */
+    TestChainstate& GetTestChainstate();
+    /**
+     * Destroy the chainman (wiping its in-memory block index), recreate it
+     * from scratch, and replay every block in m_list_blocks so the chain and
+     * UTXO set are restored to the post-initialization state.
+     *
+     * This is necessary — rather than simply disconnecting blocks — because
+     * WriteBlock/WriteAndActivateBlock add entries to the in-memory block
+     * index that cannot otherwise be removed. The in-memory block_tree_db is
+     * lost when the chainman is destroyed, giving us a clean slate.
+     */
+    void RecreateAndReplayChain();
+    // Helpers
+    /** Write @p block to the block index and disk without activating it.
+     * Returns nullptr if AddToBlockIndex does not advance m_best_header or
+     * if the block fails ContextualCheckBlockHeader, CheckBlock, or
+     * ContextualCheckBlock. Sets m_block_index_modified on success. */
+    CBlockIndex* WriteBlock(const CBlock& block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    /** Submit @p block via AcceptBlock (writing it to disk and the block index).
+     * If the block is already in the index, validates it contextually and
+     * returns nullptr if validation fails. Returns nullptr if AcceptBlock fails.
+     * Sets m_block_index_modified on success. */
+    CBlockIndex* WriteAndActivateBlock(const CBlock& block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
     /**
      * Return a CTxIn that spends output @p vout_index of @p tx.
      * scriptSig / scriptWitness are filled for P2WSH_OP_TRUE,
