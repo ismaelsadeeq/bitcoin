@@ -217,6 +217,18 @@ public:
      * Requires cs_main.
      */
     CBlock ConsumeBlock(FuzzedDataProvider& fuzzed_data_provider, const CBlock& prev_block, unsigned target_height, std::vector<CTxIn>& additional_utxo, bool force_valid_block = false) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    /**
+     * Add up to 10 random deduplicated UTXOs to @p spent.
+     * Values are drawn from [0, MAX_MONEY] and capped in aggregate.
+     */
+    void AddRandomUTXOs(std::vector<TxOutput>& spent, FuzzedDataProvider& fuzzed_data_provider) const;
+    /**
+     * Append a transaction with a fuzz-driven random prevout to @p block
+     * and recompute hashMerkleRoot. Probabilistically adds the input UTXO
+     * and/or the new output to @p spent, exercising present, missing, and
+     * intra-block-spend cases.
+     */
+    void AddSpend(CBlock& block, std::vector<TxOutput>& spent, FuzzedDataProvider& fuzzed_data_provider) const;
 };
 
 /**

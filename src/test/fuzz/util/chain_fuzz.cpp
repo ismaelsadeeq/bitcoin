@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <set>
 
 const CScript P2SH_OP_TRUE = CScript() << OP_HASH160 << ToByteVector(ScriptHash(CScript() << OP_TRUE)) << OP_EQUAL;
 const CScript P2SH_OP_TRUE_UNLOCK = CScript() << MakeUCharSpan(CScript() << OP_TRUE);
@@ -351,4 +352,48 @@ void MutateBlockHeader(FuzzedDataProvider& fuzzed_data_provider, CBlockHeader& h
     if (fuzzed_data_provider.ConsumeBool()) header.hashPrevBlock = ConsumeUInt256(fuzzed_data_provider);
     if (fuzzed_data_provider.ConsumeBool()) header.nTime = fuzzed_data_provider.ConsumeIntegral<uint32_t>();
     if (fuzzed_data_provider.ConsumeBool()) header.nBits = fuzzed_data_provider.ConsumeIntegral<uint32_t>();
+}
+
+void ChainValidationFuzzSetup::AddRandomUTXOs(std::vector<TxOutput>& spent, FuzzedDataProvider& fuzzed_data_provider) const
+{
+    const CScript script = CScript() << OP_TRUE;
+    const size_t count = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, 10);
+    std::set<COutPoint> seen;
+    CAmount total{0};
+    for (size_t i = 0; i < count; ++i) {
+        COutPoint out{Txid::FromUint256(ConsumeUInt256(fuzzed_data_provider)), 0};
+        if (!seen.insert(out).second) continue;
+        const CAmount remaining{MAX_MONEY - total};
+        if (remaining == 0) break;
+        const CAmount value = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(0, remaining);
+        total += value;
+        spent.emplace_back(out, Coin(CTxOut(value, script), 1, false));
+    }
+}
+
+void ChainValidationFuzzSetup::AddSpend(CBlock& block, std::vector<TxOutput>& spent, FuzzedDataProvider& fuzzed_data_provider) const
+{
+    const CAmount value = 50 * COIN;
+    const CScript script = CScript() << OP_TRUE;
+    COutPoint prevout{Txid::FromUint256(ConsumeUInt256(fuzzed_data_provider)), 0};
+    CMutableTransaction tx;
+    tx.vin.resize(1);
+    tx.vin[0].prevout = prevout;
+    tx.vout.resize(1);
+    tx.vout[0].nValue = value - 1000;
+    tx.vout[0].scriptPubKey = script;
+    auto tx_ref = MakeTransactionRef(std::move(tx));
+    block.vtx.push_back(tx_ref);
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    // Build a set of already-present outpoints so we never insert a duplicate
+    // into spent: TestBlockValidityWithSpentTxOuts calls AddCoin with
+    // possible_overwrite=false and would throw on a repeated COutPoint.
+    std::set<COutPoint> present;
+    for (const auto& [out, coin] : spent) present.insert(out);
+    if (fuzzed_data_provider.ConsumeBool() && present.insert(prevout).second) {
+        spent.emplace_back(prevout, Coin(CTxOut(value, script), 1, false));
+    }
+    if (fuzzed_data_provider.ConsumeBool() && present.insert(COutPoint{tx_ref->GetHash(), 0}).second) {
+        spent.emplace_back(COutPoint{tx_ref->GetHash(), 0}, Coin(CTxOut(value, script), 1, false));
+    }
 }

@@ -9,9 +9,12 @@
 #include <test/util/setup_common.h>
 #include <validationinterface.h>
 
+#include <set>
+
 namespace {
 
 ChainValidationFuzzSetup* g_setup;
+
 
 static void initialize_setup()
 {
@@ -65,10 +68,78 @@ FUZZ_TARGET(test_block_validity, .init = initialize_setup)
     }
     const bool check_pow = fuzzed_data_provider.ConsumeBool();
     const bool check_merkle = fuzzed_data_provider.ConsumeBool();
-    const int height_before = active_chainstate.m_chain.Height();
-    const BlockValidationState state = TestBlockValidity(active_chainstate, block, check_pow, check_merkle);
+    // Collect all UTXOs the block spends from the current UTXO set for A/B comparison.
+    // Intra-block spends are naturally absent from CoinsTip(); both APIs handle them identically.
+    std::vector<TxOutput> spent;
+    BlockValidationState state1;
+    int height_before;
+    {
+        LOCK(::cs_main);
+        height_before = active_chainstate.m_chain.Height();
+        state1 = TestBlockValidity(active_chainstate, block, check_pow, check_merkle);
+        // Deduplicate by outpoint: a block can repeat the same input across
+        // transactions; inserting it twice would make AddCoin throw.
+        std::set<COutPoint> seen;
+        const CCoinsViewCache& coins = active_chainstate.CoinsTip();
+        for (const auto& tx : block.vtx) {
+            if (tx->IsCoinBase()) continue;
+            for (const auto& input : tx->vin) {
+                if (!seen.insert(input.prevout).second) continue;
+                const Coin& coin = coins.AccessCoin(input.prevout);
+                if (!coin.IsSpent()) spent.emplace_back(input.prevout, coin);
+            }
+        }
+    }
     // TestBlockValidity must not alter chain state.
     assert(active_chainstate.m_chain.Height() == height_before);
+    // Exactly one of IsValid/IsInvalid/IsError must be set.
+    assert(state1.IsValid() + state1.IsInvalid() + state1.IsError() == 1);
+    // A/B: TestBlockValidityWithSpentTxOuts must agree with TestBlockValidity
+    // when supplied the real UTXO set.
+    BlockValidationState state2;
+    {
+        LOCK(::cs_main);
+        state2 = TestBlockValidityWithSpentTxOuts(
+            active_chainstate, active_tip->GetBlockHash(), block, std::move(spent), check_pow, check_merkle);
+    }
+    assert(state1.IsValid() == state2.IsValid());
+    assert(state1.IsInvalid() == state2.IsInvalid());
+    if (state1.IsInvalid()) {
+        assert(state1.GetResult() == state2.GetResult());
+        assert(state1.GetRejectReason() == state2.GetRejectReason());
+        assert(state1.GetDebugMessage() == state2.GetDebugMessage());
+    }
+}
+
+FUZZ_TARGET(test_block_validity_with_spent, .init = initialize_setup)
+{
+    SeedRandomStateForTest(SeedRand::ZEROS);
+    SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
+    FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
+    Chainstate& active_chainstate = g_setup->m_node.chainman->ActiveChainstate();
+    CBlockIndex* active_tip = active_chainstate.m_chain.Tip();
+    Assert(active_tip != nullptr);
+    std::vector<CTxIn> additional_utxo;
+    CBlock block;
+    {
+        LOCK(::cs_main);
+        block = g_setup->ConsumeBlock(fuzzed_data_provider, *g_setup->LastBlock(), active_tip->nHeight + 1, additional_utxo);
+    }
+    std::vector<TxOutput> spent;
+    g_setup->AddRandomUTXOs(spent, fuzzed_data_provider);
+    if (fuzzed_data_provider.ConsumeBool()) g_setup->AddSpend(block, spent, fuzzed_data_provider);
+    const bool check_pow = fuzzed_data_provider.ConsumeBool();
+    const bool check_merkle = fuzzed_data_provider.ConsumeBool();
+    const CBlockIndex* tip_before;
+    BlockValidationState state;
+    {
+        LOCK(::cs_main);
+        tip_before = active_chainstate.m_chain.Tip();
+        state = TestBlockValidityWithSpentTxOuts(
+            active_chainstate, tip_before->GetBlockHash(), block, std::move(spent), check_pow, check_merkle);
+    }
+    // TestBlockValidityWithSpentTxOuts must not alter chain state.
+    assert(active_chainstate.m_chain.Tip() == tip_before);
     // Exactly one of IsValid/IsInvalid/IsError must be set.
     assert(state.IsValid() + state.IsInvalid() + state.IsError() == 1);
 }
