@@ -49,6 +49,30 @@ FUZZ_TARGET(connect_block, .init = initialize_setup)
     Assert(success == state.IsValid());
 }
 
+FUZZ_TARGET(test_block_validity, .init = initialize_setup)
+{
+    SeedRandomStateForTest(SeedRand::ZEROS);
+    SetMockTime(g_setup->m_list_blocks.back()->GetBlockTime() + 2);
+    FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
+    Chainstate& active_chainstate = g_setup->m_node.chainman->ActiveChainstate();
+    CBlockIndex* active_tip = active_chainstate.m_chain.Tip();
+    Assert(active_tip != nullptr);
+    std::vector<CTxIn> additional_utxo;
+    CBlock block;
+    {
+        LOCK(::cs_main);
+        block = g_setup->ConsumeBlock(fuzzed_data_provider, *g_setup->m_list_blocks.back(), active_tip->nHeight + 1, additional_utxo);
+    }
+    const bool check_pow = fuzzed_data_provider.ConsumeBool();
+    const bool check_merkle = fuzzed_data_provider.ConsumeBool();
+    const int height_before = active_chainstate.m_chain.Height();
+    const BlockValidationState state = TestBlockValidity(active_chainstate, block, check_pow, check_merkle);
+    // TestBlockValidity must not alter chain state.
+    assert(active_chainstate.m_chain.Height() == height_before);
+    // Exactly one of IsValid/IsInvalid/IsError must be set.
+    assert(state.IsValid() + state.IsInvalid() + state.IsError() == 1);
+}
+
 // Tests ActivateBestChainStep across a forward extension and a potential single-step reorg:
 // writes up to 3 valid blocks on one branch then activates step-by-step, writes
 // up to 5 blocks on a competing branch from the same origin tip then activates
