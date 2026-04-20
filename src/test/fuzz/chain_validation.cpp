@@ -23,7 +23,7 @@ static void initialize_setup()
     g_setup = setup.get();
 }
 
-FUZZ_TARGET(connect_block, .init = initialize_setup)
+FUZZ_TARGET(chainstate_connect_block, .init = initialize_setup)
 {
     SeedRandomStateForTest(SeedRand::ZEROS);
     SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
