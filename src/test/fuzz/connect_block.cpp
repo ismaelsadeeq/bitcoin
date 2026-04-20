@@ -23,7 +23,7 @@ static void initialize_setup()
 FUZZ_TARGET(connect_block, .init = initialize_setup)
 {
     SeedRandomStateForTest(SeedRand::ZEROS);
-    SetMockTime(g_setup->m_list_blocks.back()->GetBlockTime() + 2);
+    SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     Chainstate& active_chainstate = g_setup->m_node.chainman->ActiveChainstate();
     CBlockIndex* active_tip = active_chainstate.m_chain.Tip();
@@ -32,7 +32,7 @@ FUZZ_TARGET(connect_block, .init = initialize_setup)
     CBlock block;
     {
         LOCK(::cs_main);
-        block = g_setup->ConsumeBlock(fuzzed_data_provider, *g_setup->m_list_blocks.back(), active_tip->nHeight + 1, additional_utxo);
+        block = g_setup->ConsumeBlock(fuzzed_data_provider, *g_setup->LastBlock(), active_tip->nHeight + 1, additional_utxo);
     }
     uint256 current_hash = block.GetHash();
     CBlockIndex new_index(block);
@@ -52,7 +52,7 @@ FUZZ_TARGET(connect_block, .init = initialize_setup)
 FUZZ_TARGET(test_block_validity, .init = initialize_setup)
 {
     SeedRandomStateForTest(SeedRand::ZEROS);
-    SetMockTime(g_setup->m_list_blocks.back()->GetBlockTime() + 2);
+    SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     Chainstate& active_chainstate = g_setup->m_node.chainman->ActiveChainstate();
     CBlockIndex* active_tip = active_chainstate.m_chain.Tip();
@@ -61,7 +61,7 @@ FUZZ_TARGET(test_block_validity, .init = initialize_setup)
     CBlock block;
     {
         LOCK(::cs_main);
-        block = g_setup->ConsumeBlock(fuzzed_data_provider, *g_setup->m_list_blocks.back(), active_tip->nHeight + 1, additional_utxo);
+        block = g_setup->ConsumeBlock(fuzzed_data_provider, *g_setup->LastBlock(), active_tip->nHeight + 1, additional_utxo);
     }
     const bool check_pow = fuzzed_data_provider.ConsumeBool();
     const bool check_merkle = fuzzed_data_provider.ConsumeBool();
@@ -80,15 +80,15 @@ FUZZ_TARGET(test_block_validity, .init = initialize_setup)
 FUZZ_TARGET(activate_best_chain_step, .init = initialize_setup)
 {
     SeedRandomStateForTest(SeedRand::ZEROS);
-    SetMockTime(g_setup->m_list_blocks.back()->GetBlockTime() + 2);
+    SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
     // Restore chain to known state from previous iteration.
     // m_block_index_modified is set when WriteBlock adds entries to the in-memory
     // block index that cannot be removed by disconnecting; we must destroy and
     // recreate the chainman via RecreateAndReplayChain to get a clean slate.
     // We also reinit if the active tip has drifted (e.g. a prior ActivateBestChainStep
     // call extended the chain) so each iteration starts from the same known tip.
-    const uint256 expected_tip = g_setup->m_list_blocks.back()->GetHash();
-    if (g_setup->m_block_index_modified ||
+    const uint256 expected_tip = g_setup->LastBlock()->GetHash();
+    if (g_setup->IsBlockIndexModified() ||
         WITH_LOCK(::cs_main, return g_setup->m_node.chainman->ActiveTip()->GetBlockHash()) != expected_tip) {
         g_setup->RecreateAndReplayChain();
     } else {
@@ -108,9 +108,9 @@ FUZZ_TARGET(activate_best_chain_step, .init = initialize_setup)
     // origin_tip until ActivateBestChainStep is called below.
     {
         LOCK(::cs_main);
-        // WriteBlock does not update m_list_blocks, so back() still points
+        // WriteBlock does not update the block list, so LastBlock() still points
         // to the pre-harness tip regardless of how many blocks are written.
-        current_block = g_setup->m_list_blocks.back();
+        current_block = g_setup->LastBlock();
         LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 3)
         {
             CBlock block = g_setup->ConsumeBlock(fuzzed_data_provider, *current_block, current_tip_index->nHeight + 1, additional_utxo, true);
@@ -142,7 +142,7 @@ FUZZ_TARGET(activate_best_chain_step, .init = initialize_setup)
     current_block = nullptr;
     {
         LOCK(::cs_main);
-        current_block = g_setup->m_list_blocks.back();
+        current_block = g_setup->LastBlock();
         current_tip_index = origin_tip;
         LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 5)
         {
@@ -174,7 +174,7 @@ FUZZ_TARGET(activate_best_chain_step, .init = initialize_setup)
 FUZZ_TARGET(activate_best_chain, .init = initialize_setup)
 {
     SeedRandomStateForTest(SeedRand::ZEROS);
-    SetMockTime(g_setup->m_list_blocks.back()->GetBlockTime() + 2);
+    SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
     // WriteAndActivateBlock may modify the in-memory block index, so
     // we must recreate the chainman every iteration to start from a clean slate.
     g_setup->RecreateAndReplayChain();
@@ -193,7 +193,7 @@ FUZZ_TARGET(activate_best_chain, .init = initialize_setup)
     CBlockIndex* current_tip_index = origin_tip;
     {
         LOCK(::cs_main);
-        current_block = g_setup->m_list_blocks.back();
+        current_block = g_setup->LastBlock();
         LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 3)
         {
             branch_1.push_back(std::make_shared<CBlock>(g_setup->ConsumeBlock(fuzzed_data_provider, *current_block, current_tip_index->nHeight + 1, additional_utxo, true)));
@@ -217,7 +217,7 @@ FUZZ_TARGET(activate_best_chain, .init = initialize_setup)
     current_block = nullptr;
     {
         LOCK(::cs_main);
-        current_block = g_setup->m_list_blocks.back();
+        current_block = g_setup->LastBlock();
         current_tip_index = origin_tip;
         // Keep consuming until branch_2 is strictly longer than branch_1 so the
         // second ActivateBestChain call is guaranteed to trigger a reorg.

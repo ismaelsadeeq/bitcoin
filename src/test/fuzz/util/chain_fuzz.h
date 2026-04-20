@@ -89,7 +89,6 @@ class ChainValidationFuzzSetup : public TestingSetup
      */
     void AddExtraTxsInMempool();
 
-public:
     /** Blocks indexed by height from genesis to tip.
      * Updated by LoadCurrentChain() and LoadCurrentBlock(). */
     std::vector<std::shared_ptr<CBlock>> m_list_blocks;
@@ -112,8 +111,14 @@ public:
      * this flag once the chainman is fresh again.
      */
     bool m_block_index_modified{false};
+
+public:
     ChainValidationFuzzSetup(ChainType chain_type, TestOpts opts);
     ~ChainValidationFuzzSetup() = default;
+    /** Return the most recently appended block (the current chain tip). */
+    std::shared_ptr<const CBlock> LastBlock() const { return m_list_blocks.back(); }
+    /** Return whether WriteBlock or WriteAndActivateBlock has modified the block index. */
+    bool IsBlockIndexModified() const { return m_block_index_modified; }
     /** Evict all transactions from the mempool. */
     void ClearMemPool();
     /**
