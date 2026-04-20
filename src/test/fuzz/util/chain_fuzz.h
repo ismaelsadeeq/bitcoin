@@ -88,6 +88,13 @@ class ChainValidationFuzzSetup : public TestingSetup
      * it regardless of its feerate.
      */
     void AddExtraTxsInMempool();
+    /**
+     * Apply up to 5 rounds of stateless vtx mutations to @p block:
+     * duplicate a transaction, swap two transactions, clear all vtx,
+     * insert a transaction with fuzz-driven inputs/outputs, or remove a
+     * transaction. Recomputes hashMerkleRoot after all mutations.
+     */
+    void MutateBlock(CBlock& block, FuzzedDataProvider& fuzzed_data_provider) const;
 
     /** Blocks indexed by height from genesis to tip.
      * Updated by LoadCurrentChain() and LoadCurrentBlock(). */

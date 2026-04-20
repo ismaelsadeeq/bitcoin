@@ -6,6 +6,7 @@
 
 #include <addresstype.h>
 #include <consensus/merkle.h>
+#include <test/fuzz/fuzz.h>
 #include <node/kernel_notifications.h>
 #include <pow.h>
 #include <pubkey.h>
@@ -293,7 +294,11 @@ CBlock ChainValidationFuzzSetup::ConsumeBlock(FuzzedDataProvider& fuzzed_data_pr
     static_cast<CBlockHeader&>(block) = InitBlockHeader(prev_block);
     if (!force_valid_block) MutateBlockHeader(fuzzed_data_provider, block);
     AddBlockTransactions(fuzzed_data_provider, block, additional_utxo, target_height);
-    block.hashMerkleRoot = BlockMerkleRoot(block);
+    if (!force_valid_block) {
+        MutateBlock(block, fuzzed_data_provider);
+    } else {
+        block.hashMerkleRoot = BlockMerkleRoot(block);
+    }
     if (!force_valid_block && fuzzed_data_provider.ConsumeBool()) block.hashMerkleRoot = ConsumeUInt256(fuzzed_data_provider);
     const auto& blockman = m_node.chainman->m_blockman;
     bool need_valid_nonce = force_valid_block || fuzzed_data_provider.ConsumeBool() || blockman.LookupBlockIndex(block.GetHash());
@@ -352,6 +357,54 @@ void MutateBlockHeader(FuzzedDataProvider& fuzzed_data_provider, CBlockHeader& h
     if (fuzzed_data_provider.ConsumeBool()) header.hashPrevBlock = ConsumeUInt256(fuzzed_data_provider);
     if (fuzzed_data_provider.ConsumeBool()) header.nTime = fuzzed_data_provider.ConsumeIntegral<uint32_t>();
     if (fuzzed_data_provider.ConsumeBool()) header.nBits = fuzzed_data_provider.ConsumeIntegral<uint32_t>();
+}
+
+void ChainValidationFuzzSetup::MutateBlock(CBlock& block, FuzzedDataProvider& fuzzed_data_provider) const
+{
+    if (fuzzed_data_provider.remaining_bytes() == 0) return;
+    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 5)
+    {
+        CallOneOf(
+            fuzzed_data_provider,
+            [&] {
+                // Duplicate a random transaction.
+                if (!block.vtx.empty()) {
+                    const size_t idx = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, block.vtx.size() - 1);
+                    block.vtx.push_back(block.vtx[idx]);
+                }
+            },
+            [&] {
+                // Swap two random transactions.
+                if (block.vtx.size() >= 2) {
+                    const size_t idx1 = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, block.vtx.size() - 1);
+                    const size_t idx2 = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, block.vtx.size() - 1);
+                    std::swap(block.vtx[idx1], block.vtx[idx2]);
+                }
+            },
+            [&] { block.vtx.clear(); },
+            [&] {
+                // Insert a transaction with fuzz-driven inputs and outputs.
+                if (!block.vtx.empty()) {
+                    CMutableTransaction mtx;
+                    mtx.vin.resize(fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, 5));
+                    for (auto& vin : mtx.vin) {
+                        vin.prevout.hash = Txid::FromUint256(ConsumeUInt256(fuzzed_data_provider));
+                        vin.prevout.n = fuzzed_data_provider.ConsumeIntegralInRange<uint32_t>(0, 10);
+                    }
+                    ConsumeOutputs(fuzzed_data_provider, mtx);
+                    const size_t pos = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, block.vtx.size() - 1);
+                    block.vtx.insert(block.vtx.begin() + pos, MakeTransactionRef(std::move(mtx)));
+                }
+            },
+            [&] {
+                // Remove a random transaction.
+                if (!block.vtx.empty()) {
+                    const size_t idx = fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, block.vtx.size() - 1);
+                    block.vtx.erase(block.vtx.begin() + idx);
+                }
+            });
+    }
+    block.hashMerkleRoot = BlockMerkleRoot(block);
 }
 
 void ChainValidationFuzzSetup::AddRandomUTXOs(std::vector<TxOutput>& spent, FuzzedDataProvider& fuzzed_data_provider) const
