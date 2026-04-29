@@ -238,4 +238,28 @@ FUZZ_TARGET(activate_best_chain, .init = initialize_setup)
     if (!active_chainstate.ActivateBestChain(state, current_block)) return;
 }
 
+FUZZ_TARGET(test_block_validity, .init = initialize_setup)
+{
+    SeedRandomStateForTest(SeedRand::ZEROS);
+    SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
+    FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
+    Chainstate& active_chainstate = g_setup->m_node.chainman->ActiveChainstate();
+    CBlockIndex* active_tip = active_chainstate.m_chain.Tip();
+    Assert(active_tip != nullptr);
+    std::vector<CTxIn> additional_utxo;
+    CBlock block;
+    {
+        LOCK(::cs_main);
+        block = g_setup->ConsumeBlock(fuzzed_data_provider, *g_setup->LastBlock(), active_tip->nHeight + 1, additional_utxo);
+    }
+    const bool check_pow = fuzzed_data_provider.ConsumeBool();
+    const bool check_merkle = fuzzed_data_provider.ConsumeBool();
+    const int height_before = active_chainstate.m_chain.Height();
+    const BlockValidationState state = WITH_LOCK(::cs_main, return TestBlockValidity(active_chainstate, block, check_pow, check_merkle));
+    // TestBlockValidity must not alter chain state.
+    assert(active_chainstate.m_chain.Height() == height_before);
+    // Exactly one of IsValid/IsInvalid/IsError must be set.
+    assert(state.IsValid() + state.IsInvalid() + state.IsError() == 1);
+}
+
 } // namespace
