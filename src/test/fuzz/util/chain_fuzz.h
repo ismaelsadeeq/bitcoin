@@ -119,6 +119,11 @@ public:
      * if the block fails ContextualCheckBlockHeader, CheckBlock, or
      * ContextualCheckBlock. Sets m_block_index_modified on success. */
     CBlockIndex* WriteBlock(const CBlock& block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    /** Submit @p block via AcceptBlock (writing it to disk and the block index).
+     * If the block is already in the index, validates it contextually and
+     * returns nullptr if validation fails. Returns nullptr if AcceptBlock fails.
+     * Sets m_block_index_modified on success. */
+    CBlockIndex* WriteAndActivateBlock(const CBlock& block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
     /**
      * Return a CTxIn that spends output @p vout_index of @p tx.
      * scriptSig / scriptWitness are filled for P2WSH_OP_TRUE,

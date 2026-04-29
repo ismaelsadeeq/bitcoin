@@ -163,6 +163,30 @@ CBlockIndex* ChainValidationFuzzSetup::WriteBlock(const CBlock& block)
     return block_index;
 }
 
+CBlockIndex* ChainValidationFuzzSetup::WriteAndActivateBlock(const CBlock& block)
+{
+    ChainstateManager& chainman = *m_node.chainman;
+    CBlockIndex* block_index = chainman.m_blockman.LookupBlockIndex(block.GetHash());
+    if (block_index == nullptr) {
+        BlockValidationState state;
+        bool is_new_block = false;
+        if (!chainman.AcceptBlock(std::make_shared<CBlock>(block), state, &block_index, true, nullptr, &is_new_block, true)) {
+            return nullptr;
+        }
+        m_block_index_modified = true;
+    } else {
+        BlockValidationState state;
+        const auto& consensus = m_node.chainman->GetConsensus();
+        if (!ContextualCheckBlockHeader(block, state, chainman, block_index->pprev) ||
+            !CheckBlock(block, state, consensus) ||
+            !ContextualCheckBlock(block, state, chainman, block_index->pprev)) {
+            return nullptr;
+        }
+    }
+    Assert(block_index != nullptr);
+    return block_index;
+}
+
 CTxIn ChainValidationFuzzSetup::MakeSpendingInput(const CTransaction& tx, unsigned vout_index) const
 {
     Assert(vout_index < tx.vout.size());

@@ -143,4 +143,99 @@ FUZZ_TARGET(activate_best_chain_step, .init = initialize_setup)
     }
 }
 
+// Tests ActivateBestChain across a guaranteed reorg: writes and activates two
+// branches (up to 3 and up to 5 blocks) built from the same origin tip via the
+// full AcceptBlock path. Branch 2 is always longer than branch 1, ensuring a
+// reorg occurs on the second activation. Stateful: always recreates the chainman.
+FUZZ_TARGET(activate_best_chain, .init = initialize_setup)
+{
+    SeedRandomStateForTest(SeedRand::ZEROS);
+    SetMockTime(g_setup->LastBlock()->GetBlockTime() + 2);
+    // WriteAndActivateBlock may modify the in-memory block index, so
+    // we must recreate the chainman every iteration to start from a clean slate.
+    g_setup->RecreateAndReplayChain();
+    FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
+    Chainstate& active_chainstate = g_setup->m_node.chainman->ActiveChainstate();
+    BlockValidationState state;
+    std::vector<CTxIn> additional_utxo;
+    const auto& consensus = g_setup->m_node.chainman->GetConsensus();
+    std::vector<std::shared_ptr<CBlock>> branch_1;
+    // local_indices holds locally-constructed CBlockIndex objects that stand in
+    // for the real block index entries during contextual validation, since the
+    // blocks are not committed to the chainman's index until WriteAndActivateBlock.
+    std::vector<std::unique_ptr<CBlockIndex>> local_indices;
+    std::shared_ptr<const CBlock> current_block;
+    CBlockIndex* origin_tip = active_chainstate.m_chain.Tip();
+    CBlockIndex* current_tip_index = origin_tip;
+    {
+        LOCK(::cs_main);
+        current_block = g_setup->LastBlock();
+        LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 3)
+        {
+            branch_1.push_back(std::make_shared<CBlock>(g_setup->ConsumeBlock(fuzzed_data_provider, *current_block, current_tip_index->nHeight + 1, additional_utxo, true)));
+            current_block = branch_1.back();
+            // Validate before writing to disk so invalid blocks are skipped
+            // without leaving partial state in the block index.
+            if (!ContextualCheckBlockHeader(*current_block, state, *g_setup->m_node.chainman, current_tip_index) ||
+                !CheckBlock(*current_block, state, consensus) ||
+                !ContextualCheckBlock(*current_block, state, *g_setup->m_node.chainman, current_tip_index)) {
+                return;
+            }
+            local_indices.emplace_back(std::make_unique<CBlockIndex>(*current_block));
+            local_indices.back()->nHeight = current_tip_index->nHeight + 1;
+            local_indices.back()->pprev = current_tip_index;
+            current_tip_index = local_indices.back().get();
+        }
+    }
+    std::vector<std::shared_ptr<CBlock>> branch_2;
+    additional_utxo.clear();
+    local_indices.clear();
+    current_block = nullptr;
+    {
+        LOCK(::cs_main);
+        current_block = g_setup->LastBlock();
+        current_tip_index = origin_tip;
+        // Keep consuming until branch_2 is strictly longer than branch_1 so the
+        // second ActivateBestChain call is guaranteed to trigger a reorg.
+        LIMITED_WHILE(fuzzed_data_provider.ConsumeBool() || branch_2.size() <= branch_1.size(), 5)
+        {
+            branch_2.push_back(std::make_shared<CBlock>(g_setup->ConsumeBlock(fuzzed_data_provider, *current_block, current_tip_index->nHeight + 1, additional_utxo, true)));
+            current_block = branch_2.back();
+            if (!ContextualCheckBlockHeader(*current_block, state, *g_setup->m_node.chainman, current_tip_index) ||
+                !CheckBlock(*current_block, state, consensus) ||
+                !ContextualCheckBlock(*current_block, state, *g_setup->m_node.chainman, current_tip_index)) {
+                return;
+            }
+            local_indices.emplace_back(std::make_unique<CBlockIndex>(*current_block));
+            local_indices.back()->nHeight = current_tip_index->nHeight + 1;
+            local_indices.back()->pprev = current_tip_index;
+            current_tip_index = local_indices.back().get();
+        }
+    }
+    // Write branch 1 to the block index via the full AcceptBlock path and
+    // activate it. current_block tracks the tip so ActivateBestChain can use
+    // it as a hint to avoid re-reading the block from disk.
+    current_tip_index = origin_tip;
+    for (const auto& blk : branch_1) {
+        LOCK(::cs_main);
+        CBlockIndex* block_index = g_setup->WriteAndActivateBlock(*blk);
+        if (!block_index) return;
+        if (block_index->pprev != current_tip_index) return;
+        current_tip_index = block_index;
+        current_block = blk;
+    }
+    if (!active_chainstate.ActivateBestChain(state, current_block)) return;
+    // Write branch 2 and activate; since branch 2 is longer it triggers a reorg.
+    current_tip_index = origin_tip;
+    for (const auto& blk : branch_2) {
+        LOCK(::cs_main);
+        CBlockIndex* block_index = g_setup->WriteAndActivateBlock(*blk);
+        if (!block_index) return;
+        if (block_index->pprev != current_tip_index) return;
+        current_tip_index = block_index;
+        current_block = blk;
+    }
+    if (!active_chainstate.ActivateBestChain(state, current_block)) return;
+}
+
 } // namespace
