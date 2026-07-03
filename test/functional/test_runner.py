@@ -165,6 +165,7 @@ BASE_SCRIPTS = [
     'wallet_abandonconflict.py',
     'wallet_anchor.py',
     'feature_reindex.py',
+    'feature_reindex_deadlock.py',
     'feature_reindex_readonly.py',
     'wallet_labels.py',
     'p2p_compactblocks.py',
