@@ -33,6 +33,7 @@
 #include <boost/multi_index_container.hpp>
 
 #include <atomic>
+#include <functional>
 #include <map>
 #include <optional>
 #include <set>
@@ -394,6 +395,23 @@ public:
     std::vector<FeePerWeight> GetFeerateDiagram() const EXCLUSIVE_LOCKS_REQUIRED(cs);
     FeePerWeight GetMainChunkFeerate(const CTxMemPoolEntry& tx) const EXCLUSIVE_LOCKS_REQUIRED(cs) {
         return m_txgraph->GetMainChunkFeerate(tx);
+    }
+    /** Chunk fee bounds tracking forwarders (see TxGraph). */
+    TxGraph::ChunkFeeBoundsId TrackChunkFeeBounds(
+        int32_t max_weight,
+        FeePerWeight min_feerate,
+        std::function<void(const TxGraph::ChunkFeeBounds&)> on_change = {}) EXCLUSIVE_LOCKS_REQUIRED(!cs)
+    {
+        LOCK(cs);
+        return m_txgraph->TrackChunkFeeBounds(max_weight, min_feerate, std::move(on_change));
+    }
+    void StopTrackingChunkFeeBounds(TxGraph::ChunkFeeBoundsId bounds_id) EXCLUSIVE_LOCKS_REQUIRED(!cs) {
+        LOCK(cs);
+        m_txgraph->StopTrackingChunkFeeBounds(bounds_id);
+    }
+    TxGraph::ChunkFeeBounds GetChunkFeeBounds(TxGraph::ChunkFeeBoundsId bounds_id) EXCLUSIVE_LOCKS_REQUIRED(!cs) {
+        LOCK(cs);
+        return m_txgraph->GetChunkFeeBounds(bounds_id);
     }
     std::vector<const CTxMemPoolEntry*> GetCluster(Txid txid) const EXCLUSIVE_LOCKS_REQUIRED(cs) {
         auto tx = GetIter(txid);
