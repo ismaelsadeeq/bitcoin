@@ -4,18 +4,22 @@
 
 #include <node/block_template_manager.h>
 
+#include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <interfaces/types.h>
 #include <node/kernel_notifications.h>
 #include <node/miner.h>
 #include <node/mining_args.h>
+#include <txmempool.h>
 #include <util/check.h>
 #include <util/signalinterrupt.h>
 #include <validation.h>
 #include <validationinterface.h>
 
 #include <algorithm>
+#include <functional>
 #include <numeric>
+#include <optional>
 
 namespace node {
 
@@ -57,6 +61,43 @@ protected:
         m_found = true;
         m_state = state;
     }
+};
+
+bool BoundsMayReachFeeThreshold(const TxGraph::ChunkFeeBounds& bounds, CAmount held_template_fee, CAmount fee_threshold)
+{
+    Assume(bounds.upper_fee >= bounds.lower_fee);
+    return bounds.upper_fee - held_template_fee >= fee_threshold;
+}
+
+CAmount TemplateFees(const CBlockTemplate& block_template)
+{
+    return std::accumulate(block_template.vTxFees.begin(), block_template.vTxFees.end(), CAmount{0});
+}
+
+bool TemplateReachesFeeThreshold(const CBlockTemplate& block_template, CAmount held_template_fee, CAmount fee_threshold)
+{
+    return TemplateFees(block_template) - held_template_fee >= fee_threshold;
+}
+
+class ScopedChunkFeeBounds
+{
+    CTxMemPool& m_mempool;
+    TxGraph::ChunkFeeBoundsId m_id;
+
+public:
+    ScopedChunkFeeBounds(CTxMemPool& mempool,
+                         int32_t max_weight,
+                         FeePerWeight min_feerate,
+                         std::function<void(const TxGraph::ChunkFeeBounds&)> on_change) :
+        m_mempool{mempool}, m_id{mempool.TrackChunkFeeBounds(max_weight, min_feerate, std::move(on_change))}
+    {
+    }
+    ~ScopedChunkFeeBounds() { m_mempool.StopTrackingChunkFeeBounds(m_id); }
+
+    ScopedChunkFeeBounds(const ScopedChunkFeeBounds&) = delete;
+    ScopedChunkFeeBounds& operator=(const ScopedChunkFeeBounds&) = delete;
+
+    TxGraph::ChunkFeeBounds Get() const { return m_mempool.GetChunkFeeBounds(m_id); }
 };
 } // namespace
 
@@ -114,19 +155,42 @@ std::unique_ptr<CBlockTemplate> BlockTemplateManager::WaitAndCreateNewBlock(
     const BlockCreateOptions& create_options,
     bool& interrupt_wait)
 {
-    // Delay calculating the current template fees, just in case a new block
-    // comes in before the next tick.
-    CAmount current_fees = -1;
+    const bool track_fees{wait_options.fee_threshold < MAX_MONEY};
 
-    // Alternate waiting for a new tip and checking if fees have risen.
-    // The latter check is expensive so we only run it once per second.
+    // Resolve the chunk selection weight budget and per-weight fee floor to track.
+    const auto resolved{FlattenMiningOptions(MergeMiningOptions(create_options, m_init_block_create_options))};
+    const int32_t chunk_weight_limit{static_cast<int32_t>(*resolved.block_max_weight - *resolved.block_reserved_weight)};
+    const auto min_fee_per_vsize{resolved.block_min_fee_rate->GetFeePerVSize()};
+    const FeePerWeight min_chunk_feerate{min_fee_per_vsize.fee, min_fee_per_vsize.size * WITNESS_SCALE_FACTOR};
+
+    const CAmount held_template_fee{track_fees ? TemplateFees(*block_template) : 0};
+    enum class WaitResult { NONE, TIP_CHANGED, FEE_THRESHOLD };
+    bool fee_threshold_may_be_reached{false};
+
+    std::optional<ScopedChunkFeeBounds> tracked_bounds;
+    if (track_fees) {
+        tracked_bounds.emplace(m_mempool, chunk_weight_limit, min_chunk_feerate, [&](const TxGraph::ChunkFeeBounds& bounds) {
+            const bool may_reach_fee_threshold{BoundsMayReachFeeThreshold(bounds, held_template_fee, wait_options.fee_threshold)};
+            LOCK(m_notifications.m_tip_block_mutex);
+            if (fee_threshold_may_be_reached == may_reach_fee_threshold) return;
+            fee_threshold_may_be_reached = may_reach_fee_threshold;
+            if (fee_threshold_may_be_reached) m_notifications.m_tip_block_cv.notify_all();
+        });
+
+        // Compare to the held template fee so pre-existing mempool inflow can trigger immediately.
+        if (BoundsMayReachFeeThreshold(tracked_bounds->Get(), held_template_fee, wait_options.fee_threshold)) {
+            auto new_template{CreateNewTemplate(create_options)};
+            if (TemplateReachesFeeThreshold(*new_template, held_template_fee, wait_options.fee_threshold)) return new_template;
+        }
+    }
+
     auto now{NodeClock::now()};
     const auto deadline = now + wait_options.timeout;
     const MillisecondsDouble tick{1000};
     const bool allow_min_difficulty{m_chainman.GetParams().GetConsensus().fPowAllowMinDifficultyBlocks};
 
     do {
-        bool tip_changed{false};
+        WaitResult result{WaitResult::NONE};
         {
             WAIT_LOCK(m_notifications.m_tip_block_mutex, lock);
             // Note that wait_until() checks the predicate before waiting
@@ -136,8 +200,16 @@ std::unique_ptr<CBlockTemplate> BlockTemplateManager::WaitAndCreateNewBlock(
                 // We assume tip_block is set, because this is an instance
                 // method on BlockTemplate and no template could have been
                 // generated before a tip exists.
-                tip_changed = Assume(tip_block) && tip_block != block_template->block.hashPrevBlock;
-                return tip_changed || m_chainman.m_interrupt || interrupt_wait;
+                if (Assume(tip_block) && tip_block != block_template->block.hashPrevBlock) {
+                    result = WaitResult::TIP_CHANGED;
+                    return true;
+                }
+                if (fee_threshold_may_be_reached) {
+                    fee_threshold_may_be_reached = false;
+                    result = WaitResult::FEE_THRESHOLD;
+                    return true;
+                }
+                return m_chainman.m_interrupt || interrupt_wait;
             });
             if (interrupt_wait) {
                 interrupt_wait = false;
@@ -146,43 +218,21 @@ std::unique_ptr<CBlockTemplate> BlockTemplateManager::WaitAndCreateNewBlock(
         }
 
         if (m_chainman.m_interrupt) return nullptr;
-        // At this point the tip changed, a full tick went by or we reached
-        // the deadline.
+        // At this point the tip changed, a full tick went by or we reached the deadline.
 
-        // Must release m_tip_block_mutex before locking cs_main, to avoid deadlocks.
-        LOCK(::cs_main);
-
-        // On test networks return a minimum difficulty block after 20 minutes
-        if (!tip_changed && allow_min_difficulty) {
+        // On test networks return a minimum difficulty block after 20 minutes.
+        if (result == WaitResult::NONE && allow_min_difficulty) {
+            LOCK(::cs_main);
             const NodeClock::time_point tip_time{std::chrono::seconds{m_chainman.ActiveChain().Tip()->GetBlockTime()}};
             if (now > tip_time + 20min) {
-                tip_changed = true;
+                result = WaitResult::TIP_CHANGED;
             }
         }
 
-        /**
-         * We determine if fees increased compared to the previous template by generating
-         * a fresh template. There may be more efficient ways to determine how much
-         * (approximate) fees for the next block increased, perhaps more so after
-         * Cluster Mempool.
-         *
-         * We'll also create a new template if the tip changed during this iteration.
-         */
-        if (wait_options.fee_threshold < MAX_MONEY || tip_changed) {
-            auto new_tmpl{CreateNewTemplate(create_options)};
-
-            // If the tip changed, return the new template regardless of its fees.
-            if (tip_changed) return new_tmpl;
-
-            // Calculate the original template total fees if we haven't already
-            if (current_fees == -1) {
-                current_fees = std::accumulate(block_template->vTxFees.begin(), block_template->vTxFees.end(), CAmount{0});
-            }
-
-            // Check if fees increased enough to return the new template
-            const CAmount new_fees = std::accumulate(new_tmpl->vTxFees.begin(), new_tmpl->vTxFees.end(), CAmount{0});
-            Assume(wait_options.fee_threshold != MAX_MONEY);
-            if (new_fees >= current_fees + wait_options.fee_threshold) return new_tmpl;
+        if (result == WaitResult::TIP_CHANGED) return CreateNewTemplate(create_options);
+        if (result == WaitResult::FEE_THRESHOLD) {
+            auto new_template{CreateNewTemplate(create_options)};
+            if (TemplateReachesFeeThreshold(*new_template, held_template_fee, wait_options.fee_threshold)) return new_template;
         }
 
         now = NodeClock::now();
