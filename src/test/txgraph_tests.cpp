@@ -24,6 +24,11 @@ std::strong_ordering PointerComparator(const TxGraph::Ref& a, const TxGraph::Ref
     return (&a) <=> (&b);
 }
 
+std::strong_ordering ReversePointerComparator(const TxGraph::Ref& a, const TxGraph::Ref& b) noexcept
+{
+    return (&b) <=> (&a);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(txgraph_trim_zigzag)
@@ -427,6 +432,182 @@ BOOST_AUTO_TEST_CASE(txgraph_staging)
     graph->CommitStaging();
 
     BOOST_CHECK_EQUAL(graph->GetTransactionCount(TxGraph::Level::MAIN), 1);
+
+    graph->SanityCheck();
+}
+
+BOOST_AUTO_TEST_CASE(txgraph_chunk_fee_bounds)
+{
+    using Bounds = TxGraph::ChunkFeeBounds;
+    auto graph = MakeTxGraph(50, 1000, HIGH_ACCEPTABLE_COST, PointerComparator);
+    auto settle = [&]() { graph->GetWorstMainChunk(); graph->SanityCheck(); };
+
+    const auto all_chunks_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/1000, FeePerWeight{0, 1});
+    {
+        const auto bounds = graph->GetChunkFeeBounds(all_chunks_bounds_id);
+        BOOST_CHECK_EQUAL(bounds.lower_fee, 0);
+        BOOST_CHECK_EQUAL(bounds.upper_fee, 0);
+        BOOST_CHECK_EQUAL(bounds.weight, 0);
+    }
+    {
+        const size_t memory_with_bounds{graph->GetMainMemoryUsage()};
+        const auto memory_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/1000, FeePerWeight{0, 1});
+        BOOST_CHECK_GT(graph->GetMainMemoryUsage(), memory_with_bounds);
+        graph->StopTrackingChunkFeeBounds(memory_bounds_id);
+        BOOST_CHECK_EQUAL(graph->GetMainMemoryUsage(), memory_with_bounds);
+    }
+
+    std::vector<TxGraph::Ref> refs;
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{1000, 100}); // A
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{500, 100});  // B
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{100, 100});  // C
+    settle();
+
+    {
+        const auto bounds = graph->GetChunkFeeBounds(all_chunks_bounds_id);
+        BOOST_CHECK_EQUAL(bounds.lower_fee, 1600);
+        BOOST_CHECK_EQUAL(bounds.upper_fee, 1600);
+        BOOST_CHECK_EQUAL(bounds.weight, 300);
+    }
+
+    const auto exact_weight_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/200, FeePerWeight{0, 1});
+    const auto weight_limited_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/250, FeePerWeight{0, 1});
+    const auto fee_floor_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/1000, FeePerWeight{3, 1});
+    {
+        const auto exact_weight_bounds = graph->GetChunkFeeBounds(exact_weight_bounds_id);
+        BOOST_CHECK_EQUAL(exact_weight_bounds.lower_fee, 1500);
+        BOOST_CHECK_EQUAL(exact_weight_bounds.upper_fee, 1500);
+        BOOST_CHECK_EQUAL(exact_weight_bounds.weight, 200);
+        const auto weight_limited_bounds = graph->GetChunkFeeBounds(weight_limited_bounds_id);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.lower_fee, 1500);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.upper_fee, 1550);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.weight, 200);
+        const auto fee_floor_bounds = graph->GetChunkFeeBounds(fee_floor_bounds_id);
+        BOOST_CHECK_EQUAL(fee_floor_bounds.lower_fee, 1500);
+        BOOST_CHECK_EQUAL(fee_floor_bounds.upper_fee, 1500);
+        BOOST_CHECK_EQUAL(fee_floor_bounds.weight, 200);
+    }
+
+    // D sorts before the selected chunks, forcing the weight-limited selection to trim.
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{2000, 100}); // D
+    settle();
+    {
+        const auto weight_limited_bounds = graph->GetChunkFeeBounds(weight_limited_bounds_id);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.lower_fee, 3000);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.upper_fee, 3250);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.weight, 200);
+        const auto all_chunks_bounds = graph->GetChunkFeeBounds(all_chunks_bounds_id);
+        BOOST_CHECK_EQUAL(all_chunks_bounds.lower_fee, 3600);
+        BOOST_CHECK_EQUAL(all_chunks_bounds.upper_fee, 3600);
+        BOOST_CHECK_EQUAL(all_chunks_bounds.weight, 400);
+    }
+
+    // Removing a selected chunk lets the selection advance to the next eligible chunk.
+    graph->RemoveTransaction(refs[0]); // A
+    settle();
+    {
+        const auto weight_limited_bounds = graph->GetChunkFeeBounds(weight_limited_bounds_id);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.lower_fee, 2500);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.upper_fee, 2550);
+        BOOST_CHECK_EQUAL(weight_limited_bounds.weight, 200);
+    }
+
+    graph->StopTrackingChunkFeeBounds(fee_floor_bounds_id);
+    graph->StopTrackingChunkFeeBounds(exact_weight_bounds_id);
+    BOOST_CHECK_EQUAL(graph->GetChunkFeeBounds(weight_limited_bounds_id).lower_fee, 2500);
+    BOOST_CHECK_EQUAL(graph->GetChunkFeeBounds(all_chunks_bounds_id).lower_fee, 2600);
+
+    int calls{0};
+    Bounds last{};
+    const auto callback_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/250, FeePerWeight{0, 1},
+                                                               [&](const Bounds& new_bounds) { ++calls; last = new_bounds; });
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{50, 100}); // E
+    settle();
+    BOOST_CHECK_EQUAL(calls, 0);
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{3000, 100}); // F
+    settle();
+    BOOST_CHECK_EQUAL(calls, 1);
+    BOOST_CHECK_EQUAL(last.lower_fee, 5000);
+    BOOST_CHECK_EQUAL(last.upper_fee, 5250);
+    BOOST_CHECK_EQUAL(last.weight, 200);
+    graph->StopTrackingChunkFeeBounds(callback_bounds_id);
+
+    int weight_calls{0};
+    Bounds weight_last{};
+    const auto weight_callback_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/1000, FeePerWeight{0, 1},
+                                                                      [&](const Bounds& new_bounds) { ++weight_calls; weight_last = new_bounds; });
+    const auto weight_initial_bounds = graph->GetChunkFeeBounds(weight_callback_bounds_id);
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{0, 100}); // G
+    settle();
+    BOOST_CHECK_EQUAL(weight_calls, 1);
+    BOOST_CHECK_EQUAL(weight_last.lower_fee, weight_initial_bounds.lower_fee);
+    BOOST_CHECK_EQUAL(weight_last.upper_fee, weight_initial_bounds.upper_fee);
+    BOOST_CHECK_EQUAL(weight_last.weight, 600);
+    graph->StopTrackingChunkFeeBounds(weight_callback_bounds_id);
+
+    int stop_tracking_calls{0};
+    TxGraph::ChunkFeeBoundsId stopping_bounds_id{0};
+    stopping_bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/1000, FeePerWeight{0, 1},
+                                                    [&](const Bounds&) {
+                                                        ++stop_tracking_calls;
+                                                        graph->StopTrackingChunkFeeBounds(stopping_bounds_id);
+                                                    });
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{0, 100}); // H
+    settle();
+    BOOST_CHECK_EQUAL(stop_tracking_calls, 1);
+
+    graph->SanityCheck();
+}
+
+BOOST_AUTO_TEST_CASE(txgraph_chunk_fee_bounds_equal_feerate_boundary)
+{
+    auto graph = MakeTxGraph(50, 1000, HIGH_ACCEPTABLE_COST, ReversePointerComparator);
+    auto settle = [&]() { graph->GetWorstMainChunk(); graph->SanityCheck(); };
+
+    std::vector<TxGraph::Ref> refs;
+    refs.reserve(4);
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{100, 100}); // A
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{100, 100}); // B
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{100, 100}); // C
+    settle();
+
+    const auto bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/200, FeePerWeight{0, 1});
+    {
+        const auto bounds = graph->GetChunkFeeBounds(bounds_id);
+        BOOST_CHECK_EQUAL(bounds.lower_fee, 200);
+        BOOST_CHECK_EQUAL(bounds.upper_fee, 200);
+        BOOST_CHECK_EQUAL(bounds.weight, 200);
+    }
+
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{100, 100}); // D
+    settle();
+    {
+        const auto bounds = graph->GetChunkFeeBounds(bounds_id);
+        BOOST_CHECK_EQUAL(bounds.lower_fee, 200);
+        BOOST_CHECK_EQUAL(bounds.upper_fee, 200);
+        BOOST_CHECK_EQUAL(bounds.weight, 200);
+    }
+
+    graph->SanityCheck();
+}
+
+BOOST_AUTO_TEST_CASE(txgraph_chunk_fee_bounds_getter_settles)
+{
+    auto graph = MakeTxGraph(50, 1000, HIGH_ACCEPTABLE_COST, PointerComparator);
+    auto settle = [&]() { graph->GetWorstMainChunk(); graph->SanityCheck(); };
+
+    std::vector<TxGraph::Ref> refs;
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{1000, 100});
+    graph->AddTransaction(refs.emplace_back(), FeePerWeight{500, 100});
+    settle();
+
+    const auto bounds_id = graph->TrackChunkFeeBounds(/*max_weight=*/1000, FeePerWeight{0, 1});
+    graph->RemoveTransaction(refs[0]);
+
+    const auto bounds = graph->GetChunkFeeBounds(bounds_id);
+    BOOST_CHECK_EQUAL(bounds.lower_fee, 500);
+    BOOST_CHECK_EQUAL(bounds.upper_fee, 500);
+    BOOST_CHECK_EQUAL(bounds.weight, 100);
 
     graph->SanityCheck();
 }

@@ -13,6 +13,7 @@
 
 #include <compare>
 #include <functional>
+#include <map>
 #include <memory>
 #include <ranges>
 #include <set>
@@ -547,6 +548,23 @@ private:
     /** Cache of discarded ChunkIndex node handles to reuse, avoiding additional allocation. */
     std::vector<ChunkIndex::node_type> m_main_chunkindex_discarded;
 
+    /** Selected chunks are the contiguous mining-order prefix
+     *  [m_main_chunkindex.begin(), first_unselected_chunk), maximal while fitting max_weight and
+     *  clearing min_feerate. */
+    struct ChunkFeeBoundsState {
+        int32_t max_weight;
+        FeePerWeight min_feerate;
+        int64_t selected_fee{0};                           //!< Total fee of the selected chunks.
+        int32_t selected_weight{0};                        //!< Total weight of the selected chunks.
+        ChunkIndex::const_iterator first_unselected_chunk; //!< First unselected chunk, or end().
+        ChunkFeeBounds last_notified;
+        std::function<void(const ChunkFeeBounds&)> on_change;
+    };
+    /** Deterministic iteration and stable references across tracked chunk-bounds insertions. */
+    std::map<ChunkFeeBoundsId, ChunkFeeBoundsState> m_tracked_chunk_fee_bounds;
+    ChunkFeeBoundsId m_next_chunk_fee_bounds_id{1};
+    bool m_chunk_fee_bounds_dirty{false};
+
     /** A Locator that describes whether, where, and in which Cluster an Entry appears.
      *  Every Entry has MAX_LEVELS locators, as it may appear in one Cluster per level.
      *
@@ -692,6 +710,23 @@ public:
     void ClearChunkData(Entry& entry) noexcept;
     /** Give an Entry a ChunkData object. */
     void CreateChunkData(GraphIndex idx, LinearizationIndex chunk_count) noexcept;
+
+    // Tracked chunk fee bounds helpers.
+    /** Cached feerate of the chunk an iterator points to; safe during chunk-index mutations. */
+    FeePerWeight ChunkFeerate(ChunkIndex::const_iterator it) const noexcept { return m_entries[it->m_graph_index].m_main_chunk_feerate; }
+    /** Return whether it points before first_unselected_chunk; it must not equal
+     *  first_unselected_chunk. */
+    bool IsBeforeFirstUnselected(ChunkIndex::const_iterator it, const ChunkFeeBoundsState& bounds_state) const noexcept;
+    /** Advance first_unselected_chunk while preserving the maximal selected-prefix invariant. */
+    void SelectMoreChunks(ChunkFeeBoundsState& bounds_state) noexcept;
+    /** Retreat first_unselected_chunk enough to restore selected_weight <= max_weight. */
+    void TrimSelectedChunks(ChunkFeeBoundsState& bounds_state) noexcept;
+    ChunkFeeBounds ComputeChunkFeeBounds(const ChunkFeeBoundsState& bounds_state) const noexcept;
+    void MarkChangedChunkFeeBounds(const ChunkFeeBoundsState& bounds_state, const ChunkFeeBounds& old_bounds) noexcept;
+    void RecomputeChunkFeeBounds(ChunkFeeBoundsState& bounds_state) const noexcept;
+    void OnChunkInserted(ChunkIndex::iterator it) noexcept;
+    void OnChunkErased(ChunkIndex::iterator it) noexcept;
+    void NotifyChangedChunkFeeBounds() noexcept;
     /** Create an empty GenericClusterImpl object. */
     std::unique_ptr<GenericClusterImpl> CreateEmptyGenericCluster() noexcept
     {
@@ -826,6 +861,9 @@ public:
 
     std::unique_ptr<BlockBuilder> GetBlockBuilder() noexcept final;
     std::pair<std::vector<Ref*>, FeePerWeight> GetWorstMainChunk() noexcept final;
+    ChunkFeeBoundsId TrackChunkFeeBounds(int32_t max_weight, FeePerWeight min_feerate, std::function<void(const ChunkFeeBounds&)> on_change) noexcept final;
+    void StopTrackingChunkFeeBounds(ChunkFeeBoundsId id) noexcept final;
+    ChunkFeeBounds GetChunkFeeBounds(ChunkFeeBoundsId id) noexcept final;
 
     size_t GetMainMemoryUsage() noexcept final;
 
@@ -882,6 +920,8 @@ void TxGraphImpl::ClearChunkData(Entry& entry) noexcept
 {
     if (entry.m_main_chunkindex_iterator != m_main_chunkindex.end()) {
         Assume(m_main_chunkindex_observers == 0);
+        // The erased chunk's cached feerate is needed while its iterator is still valid.
+        if (!m_tracked_chunk_fee_bounds.empty()) OnChunkErased(entry.m_main_chunkindex_iterator);
         // If the Entry has a non-empty m_main_chunkindex_iterator, extract it, and move the handle
         // to the cache of discarded chunkindex entries.
         m_main_chunkindex_discarded.emplace_back(m_main_chunkindex.extract(entry.m_main_chunkindex_iterator));
@@ -910,6 +950,7 @@ void TxGraphImpl::CreateChunkData(GraphIndex idx, LinearizationIndex chunk_count
         Assume(emplace_result.second);
         entry.m_main_chunkindex_iterator = emplace_result.first;
     }
+    if (!m_tracked_chunk_fee_bounds.empty()) OnChunkInserted(entry.m_main_chunkindex_iterator);
 }
 
 size_t GenericClusterImpl::TotalMemoryUsage() const noexcept
@@ -2224,6 +2265,8 @@ void TxGraphImpl::MakeAllAcceptable(int level) noexcept
             MakeAcceptable(*queue.back().get(), level);
         }
     }
+    // Callbacks are deferred until the chunk index is settled.
+    if (level == 0 && m_chunk_fee_bounds_dirty) NotifyChangedChunkFeeBounds();
 }
 
 GenericClusterImpl::GenericClusterImpl(uint64_t sequence) noexcept : Cluster{sequence} {}
@@ -3122,6 +3165,26 @@ void TxGraphImpl::SanityCheck() const
         last_chunk_feerate = chunk_feerate;
     }
     assert(actual_chunkindex == expected_chunkindex);
+
+    for (const auto& [_, bounds_state] : m_tracked_chunk_fee_bounds) {
+        assert(bounds_state.selected_weight >= 0);
+        assert(bounds_state.selected_weight <= bounds_state.max_weight);
+        const ChunkFeeBounds bounds{ComputeChunkFeeBounds(bounds_state)};
+        assert(bounds.lower_fee <= bounds.upper_fee);
+        assert(bounds.lower_fee == bounds_state.selected_fee);
+        assert(bounds.weight == bounds_state.selected_weight);
+        ChunkFeeBoundsState oracle;
+        oracle.max_weight = bounds_state.max_weight;
+        oracle.min_feerate = bounds_state.min_feerate;
+        RecomputeChunkFeeBounds(oracle);
+        assert(bounds_state.selected_fee == oracle.selected_fee);
+        assert(bounds_state.selected_weight == oracle.selected_weight);
+        assert(bounds_state.first_unselected_chunk == oracle.first_unselected_chunk);
+        const ChunkFeeBounds oracle_bounds{ComputeChunkFeeBounds(oracle)};
+        assert(bounds.lower_fee == oracle_bounds.lower_fee);
+        assert(bounds.upper_fee == oracle_bounds.upper_fee);
+        assert(bounds.weight == oracle_bounds.weight);
+    }
 }
 
 bool TxGraphImpl::DoWork(uint64_t max_cost) noexcept
@@ -3294,6 +3357,172 @@ std::pair<std::vector<TxGraph::Ref*>, FeePerWeight> TxGraphImpl::GetWorstMainChu
         ret.second = chunk_end_entry.m_main_chunk_feerate;
     }
     return ret;
+}
+
+bool TxGraphImpl::IsBeforeFirstUnselected(ChunkIndex::const_iterator it, const ChunkFeeBoundsState& bounds_state) const noexcept
+{
+    if (bounds_state.first_unselected_chunk == m_main_chunkindex.end()) {
+        return true;
+    }
+    const auto& compare{m_main_chunkindex.key_comp()};
+    if (compare(*it, *bounds_state.first_unselected_chunk)) return true;
+    Assume(compare(*bounds_state.first_unselected_chunk, *it));
+    return false;
+}
+
+TxGraph::ChunkFeeBounds TxGraphImpl::ComputeChunkFeeBounds(const ChunkFeeBoundsState& bounds_state) const noexcept
+{
+    ChunkFeeBounds bounds;
+    bounds.lower_fee = bounds_state.selected_fee;
+    bounds.weight = bounds_state.selected_weight;
+    bounds.upper_fee = bounds_state.selected_fee;
+    if (bounds_state.first_unselected_chunk != m_main_chunkindex.end()) {
+        const FeePerWeight first_unselected_feerate{ChunkFeerate(bounds_state.first_unselected_chunk)};
+        if (!(ByRatio{first_unselected_feerate} < ByRatio{bounds_state.min_feerate})) {
+            const int32_t remaining_weight{bounds_state.max_weight - bounds_state.selected_weight};
+            bounds.upper_fee = bounds_state.selected_fee + first_unselected_feerate.EvaluateFeeUp(remaining_weight);
+        }
+    }
+    return bounds;
+}
+
+void TxGraphImpl::MarkChangedChunkFeeBounds(const ChunkFeeBoundsState& bounds_state, const ChunkFeeBounds& old_bounds) noexcept
+{
+    if (ComputeChunkFeeBounds(bounds_state) != old_bounds) m_chunk_fee_bounds_dirty = true;
+}
+
+void TxGraphImpl::SelectMoreChunks(ChunkFeeBoundsState& bounds_state) noexcept
+{
+    while (bounds_state.first_unselected_chunk != m_main_chunkindex.end()) {
+        const FeePerWeight chunk_feerate{ChunkFeerate(bounds_state.first_unselected_chunk)};
+        if (ByRatio{chunk_feerate} < ByRatio{bounds_state.min_feerate}) break;
+        if (chunk_feerate.size > bounds_state.max_weight - bounds_state.selected_weight) break;
+        bounds_state.selected_fee += chunk_feerate.fee;
+        bounds_state.selected_weight += chunk_feerate.size;
+        ++bounds_state.first_unselected_chunk;
+    }
+}
+
+void TxGraphImpl::TrimSelectedChunks(ChunkFeeBoundsState& bounds_state) noexcept
+{
+    while (bounds_state.selected_weight > bounds_state.max_weight) {
+        --bounds_state.first_unselected_chunk;
+        const FeePerWeight chunk_feerate{ChunkFeerate(bounds_state.first_unselected_chunk)};
+        bounds_state.selected_fee -= chunk_feerate.fee;
+        bounds_state.selected_weight -= chunk_feerate.size;
+    }
+}
+
+void TxGraphImpl::RecomputeChunkFeeBounds(ChunkFeeBoundsState& bounds_state) const noexcept
+{
+    bounds_state.selected_fee = 0;
+    bounds_state.selected_weight = 0;
+    bounds_state.first_unselected_chunk = m_main_chunkindex.end();
+    for (auto it = m_main_chunkindex.begin(); it != m_main_chunkindex.end(); ++it) {
+        const FeePerWeight chunk_feerate{ChunkFeerate(it)};
+        if (ByRatio{chunk_feerate} < ByRatio{bounds_state.min_feerate} ||
+            chunk_feerate.size > bounds_state.max_weight - bounds_state.selected_weight) {
+            bounds_state.first_unselected_chunk = it;
+            break;
+        }
+        bounds_state.selected_fee += chunk_feerate.fee;
+        bounds_state.selected_weight += chunk_feerate.size;
+    }
+}
+
+void TxGraphImpl::OnChunkInserted(ChunkIndex::iterator it) noexcept
+{
+    const FeePerWeight chunk_feerate{ChunkFeerate(it)};
+    for (auto& [_, bounds_state] : m_tracked_chunk_fee_bounds) {
+        if (!IsBeforeFirstUnselected(it, bounds_state)) continue;
+        const ChunkFeeBounds old_bounds{ComputeChunkFeeBounds(bounds_state)};
+        if (!(ByRatio{chunk_feerate} < ByRatio{bounds_state.min_feerate})) {
+            bounds_state.selected_fee += chunk_feerate.fee;
+            bounds_state.selected_weight += chunk_feerate.size;
+            TrimSelectedChunks(bounds_state);
+            SelectMoreChunks(bounds_state);
+        } else {
+            bounds_state.first_unselected_chunk = it;
+        }
+        MarkChangedChunkFeeBounds(bounds_state, old_bounds);
+    }
+}
+
+void TxGraphImpl::OnChunkErased(ChunkIndex::iterator it) noexcept
+{
+    const FeePerWeight chunk_feerate{ChunkFeerate(it)};
+    for (auto& [_, bounds_state] : m_tracked_chunk_fee_bounds) {
+        if (it == bounds_state.first_unselected_chunk) {
+            const ChunkFeeBounds old_bounds{ComputeChunkFeeBounds(bounds_state)};
+            bounds_state.first_unselected_chunk = std::next(it);
+            SelectMoreChunks(bounds_state);
+            MarkChangedChunkFeeBounds(bounds_state, old_bounds);
+            continue;
+        }
+        if (!IsBeforeFirstUnselected(it, bounds_state)) continue;
+        const ChunkFeeBounds old_bounds{ComputeChunkFeeBounds(bounds_state)};
+        if (!(ByRatio{chunk_feerate} < ByRatio{bounds_state.min_feerate})) {
+            bounds_state.selected_fee -= chunk_feerate.fee;
+            bounds_state.selected_weight -= chunk_feerate.size;
+            SelectMoreChunks(bounds_state);
+        } else {
+            Assume(false);
+        }
+        MarkChangedChunkFeeBounds(bounds_state, old_bounds);
+    }
+}
+
+void TxGraphImpl::NotifyChangedChunkFeeBounds() noexcept
+{
+    m_chunk_fee_bounds_dirty = false;
+    std::vector<ChunkFeeBoundsId> changed_ids;
+    for (auto& [id, bounds_state] : m_tracked_chunk_fee_bounds) {
+        const ChunkFeeBounds bounds{ComputeChunkFeeBounds(bounds_state)};
+        if (bounds_state.on_change && bounds != bounds_state.last_notified) {
+            changed_ids.push_back(id);
+        }
+    }
+    for (const ChunkFeeBoundsId id : changed_ids) {
+        auto it = m_tracked_chunk_fee_bounds.find(id);
+        if (it == m_tracked_chunk_fee_bounds.end()) continue;
+        ChunkFeeBoundsState& bounds_state{it->second};
+        const ChunkFeeBounds bounds{ComputeChunkFeeBounds(bounds_state)};
+        if (!bounds_state.on_change || bounds == bounds_state.last_notified) continue;
+        const auto on_change{bounds_state.on_change};
+        bounds_state.last_notified = bounds;
+        on_change(bounds);
+    }
+}
+
+TxGraph::ChunkFeeBoundsId TxGraphImpl::TrackChunkFeeBounds(int32_t max_weight, FeePerWeight min_feerate, std::function<void(const ChunkFeeBounds&)> on_change) noexcept
+{
+    Assume(max_weight >= 0);
+    // Settle main so the initial full scan reads a consistent index.
+    MakeAllAcceptable(0);
+    Assume(m_main_clusterset.m_deps_to_add.empty());
+    const ChunkFeeBoundsId id{m_next_chunk_fee_bounds_id++};
+    ChunkFeeBoundsState bounds_state;
+    bounds_state.max_weight = max_weight;
+    bounds_state.min_feerate = min_feerate;
+    bounds_state.on_change = std::move(on_change);
+    RecomputeChunkFeeBounds(bounds_state);
+    bounds_state.last_notified = ComputeChunkFeeBounds(bounds_state);
+    m_tracked_chunk_fee_bounds.emplace(id, std::move(bounds_state));
+    return id;
+}
+
+void TxGraphImpl::StopTrackingChunkFeeBounds(ChunkFeeBoundsId id) noexcept
+{
+    m_tracked_chunk_fee_bounds.erase(id);
+}
+
+TxGraph::ChunkFeeBounds TxGraphImpl::GetChunkFeeBounds(ChunkFeeBoundsId id) noexcept
+{
+    MakeAllAcceptable(0);
+    Assume(m_main_clusterset.m_deps_to_add.empty());
+    const auto it = m_tracked_chunk_fee_bounds.find(id);
+    if (!Assume(it != m_tracked_chunk_fee_bounds.end())) return {};
+    return ComputeChunkFeeBounds(it->second);
 }
 
 std::vector<TxGraph::Ref*> TxGraphImpl::Trim() noexcept
@@ -3553,11 +3782,13 @@ size_t TxGraphImpl::GetMainMemoryUsage() noexcept
     ApplyDependencies(/*level=*/0);
     // Compute memory usage
     size_t usage = /* From clusters */
-                   m_main_clusterset.m_cluster_usage +
-                   /* From Entry objects. */
-                   sizeof(Entry) * m_main_clusterset.m_txcount +
-                   /* From the chunk index. */
-                   memusage::DynamicUsage(m_main_chunkindex);
+        m_main_clusterset.m_cluster_usage +
+        /* From Entry objects. */
+        sizeof(Entry) * m_main_clusterset.m_txcount +
+        /* From tracked chunk fee bounds. */
+        memusage::DynamicUsage(m_tracked_chunk_fee_bounds) +
+        /* From the chunk index. */
+        memusage::DynamicUsage(m_main_chunkindex);
     return usage;
 }
 

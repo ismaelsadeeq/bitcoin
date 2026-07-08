@@ -368,6 +368,13 @@ FUZZ_TARGET(txgraph)
     /** Currently active block builders. */
     std::vector<BlockBuilderData> block_builders;
 
+    struct TrackedChunkBoundsRec {
+        TxGraph::ChunkFeeBoundsId id;
+        int32_t max_weight;
+        FeePerWeight min_feerate;
+    };
+    std::vector<TrackedChunkBoundsRec> tracked_chunk_bounds;
+
     /** Function to pick any SimTxObject (for either sim in sims: from sim.simmap or sim.removed, or the
      *  empty one). */
     auto pick_fn = [&]() noexcept -> SimTxObject* {
@@ -898,6 +905,24 @@ FUZZ_TARGET(txgraph)
                     assert(sum == worst_chunk_feerate);
                 }
                 break;
+            } else if (block_builders.empty() && !main_sim.IsOversized() && tracked_chunk_bounds.size() < 4 && command-- == 0) {
+                const int32_t max_weight{provider.ConsumeIntegralInRange<int32_t>(0, 0x7fffff)};
+                const FeePerWeight min_feerate{provider.ConsumeIntegralInRange<int64_t>(0, 1000), 1};
+                const auto bounds_id = real->TrackChunkFeeBounds(max_weight, min_feerate);
+                tracked_chunk_bounds.push_back({bounds_id, max_weight, min_feerate});
+                break;
+            } else if (!tracked_chunk_bounds.empty() && command-- == 0) {
+                const size_t chunk_bounds_index{provider.ConsumeIntegralInRange<size_t>(0, tracked_chunk_bounds.size() - 1)};
+                real->StopTrackingChunkFeeBounds(tracked_chunk_bounds[chunk_bounds_index].id);
+                tracked_chunk_bounds.erase(tracked_chunk_bounds.begin() + chunk_bounds_index);
+                break;
+            } else if (block_builders.empty() && !tracked_chunk_bounds.empty() && command-- == 0) {
+                const auto& tracked_chunk_bound = tracked_chunk_bounds[provider.ConsumeIntegralInRange<size_t>(0, tracked_chunk_bounds.size() - 1)];
+                const auto bounds = real->GetChunkFeeBounds(tracked_chunk_bound.id);
+                assert(bounds.weight >= 0);
+                assert(bounds.weight <= tracked_chunk_bound.max_weight);
+                assert(bounds.lower_fee <= bounds.upper_fee);
+                break;
             } else if ((block_builders.empty() || sims.size() > 1) && command-- == 0) {
                 // Trim.
                 bool was_oversized = top_sim.IsOversized();
@@ -1046,8 +1071,8 @@ FUZZ_TARGET(txgraph)
                     auto usage2 = real->GetMainMemoryUsage();
                     assert(usage == usage2);
                 }
-                // Only empty graphs have 0 memory usage.
-                if (main_sim.GetTransactionCount() == 0) {
+                // Only empty graphs with no tracked chunk fee bounds have 0 memory usage.
+                if (main_sim.GetTransactionCount() == 0 && tracked_chunk_bounds.empty()) {
                     assert(usage == 0);
                 } else {
                     assert(usage > 0);

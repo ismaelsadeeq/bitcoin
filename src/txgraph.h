@@ -205,11 +205,37 @@ public:
      *  graph must not be oversized. If the graph is empty, {{}, FeePerWeight{}} is returned. */
     virtual std::pair<std::vector<Ref*>, FeePerWeight> GetWorstMainChunk() noexcept = 0;
 
+    /** Opaque handle for tracked chunk fee bounds. */
+    using ChunkFeeBoundsId = uint64_t;
+
+    /** Fee bounds for selected chunks from the front of the mining-order chunk index that stay
+     *  within a configured max_weight and at or above a configured min_feerate.
+     *  - lower_fee is the selected chunks' total fee.
+     *  - upper_fee additionally fills the remaining weight at the feerate of the first unselected
+     *    chunk that clears the fee floor.
+     *  Invariants: 0 <= weight <= max_weight, lower_fee <= upper_fee. */
+    struct ChunkFeeBounds {
+        int64_t lower_fee{0};
+        int64_t upper_fee{0};
+        int32_t weight{0};
+
+        friend bool operator==(const ChunkFeeBounds&, const ChunkFeeBounds&) noexcept = default;
+    };
+
+    /** Track chunk fee bounds for the (max_weight, min_feerate) pair. If @p on_change is set, it
+     *  is invoked after the main graph settles whenever these bounds change. Mutating calls may
+     *  defer callbacks until a later call settles the graph. */
+    virtual ChunkFeeBoundsId TrackChunkFeeBounds(int32_t max_weight, FeePerWeight min_feerate, std::function<void(const ChunkFeeBounds&)> on_change = {}) noexcept = 0;
+    /** Stop tracking chunk fee bounds. */
+    virtual void StopTrackingChunkFeeBounds(ChunkFeeBoundsId id) noexcept = 0;
+    /** Get tracked chunk fee bounds. Settles the main graph before returning. */
+    virtual ChunkFeeBounds GetChunkFeeBounds(ChunkFeeBoundsId id) noexcept = 0;
+
     /** Get the approximate memory usage for this object, just counting the main graph. If a
      *  staging graph is present, return a number corresponding to memory usage after
      *  AbortStaging() would be called. BlockBuilders' memory usage, memory usage of internally
      *  queued operations, and memory due to temporary caches, is not included here. Can always be
-     *  called. */
+     *  called. Callback target allocations are not included. */
     virtual size_t GetMainMemoryUsage() noexcept = 0;
 
     /** Perform an internal consistency check on this object. */
