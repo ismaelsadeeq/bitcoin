@@ -1032,6 +1032,8 @@ void TxGraphImpl::ClearLocator(int level, GraphIndex idx, bool oversized_tx) noe
     auto& entry = m_entries[idx];
     auto& clusterset = GetClusterSet(level);
     Assume(entry.m_locator[level].IsPresent());
+    // Chunk index ordering depends on the main locator, so remove ChunkData before clearing it.
+    if (level == 0) ClearChunkData(entry);
     // Change the locator from Present to Missing or Removed.
     if (level == 0 || !entry.m_locator[level - 1].IsPresent()) {
         entry.m_locator[level].SetMissing();
@@ -1051,7 +1053,6 @@ void TxGraphImpl::ClearLocator(int level, GraphIndex idx, bool oversized_tx) noe
             m_staging_clusterset->m_txcount_oversized -= oversized_tx;
         }
     }
-    if (level == 0) ClearChunkData(entry);
 }
 
 void GenericClusterImpl::RemoveChunkData(TxGraphImpl& graph) noexcept
