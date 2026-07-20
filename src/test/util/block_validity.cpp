@@ -72,6 +72,20 @@ BlockValidationState ValidationBlockValidityTestingSetup::ConnectBlock(CBlock& b
     return state;
 }
 
+BlockValidationState ValidationBlockValidityTestingSetup::ValidateBlock(CBlock& block)
+{
+    ResetBlock(block);
+    BlockValidationState state;
+    const CBlockIndex* index{nullptr};
+    if (!m_node.chainman->ProcessNewBlockHeaders({{block}}, /*min_pow_checked=*/true, state, &index)) {
+        return state;
+    }
+    Assert(index);
+    LOCK(cs_main);
+    CCoinsViewCache view_dummy{&m_chainstate.CoinsTip()};
+    return m_node.chainman->ValidateBlock(block, *index, view_dummy);
+}
+
 BlockValidationState ValidationBlockValidityTestingSetup::ProcessNewBlock(CBlock& block, bool force_processing, bool min_pow_checked)
 {
     ResetBlock(block);

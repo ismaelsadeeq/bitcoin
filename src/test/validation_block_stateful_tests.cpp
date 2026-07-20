@@ -41,6 +41,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_accumulated_fee_outofrange)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -60,6 +61,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_missingorspent)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -81,6 +83,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputvalues_outofrange)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -104,6 +107,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_in_belowout)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -127,6 +131,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_sum_overflow)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -148,6 +153,7 @@ BOOST_AUTO_TEST_CASE(tbv_block_script_verify_flag_failed)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -173,6 +179,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip147_null_dummy)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -200,6 +207,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip66_non_der_sig)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -226,6 +234,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip65_cltv_violation)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -260,6 +269,7 @@ BOOST_AUTO_TEST_CASE(tbv_taproot_invalid_sig)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -284,6 +294,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip112_csv_violation)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -307,6 +318,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip16_p2sh_invalid_redeem_script)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -331,6 +343,7 @@ BOOST_AUTO_TEST_CASE(tbv_segwit_v0_invalid_witness_script)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -367,6 +380,7 @@ BOOST_AUTO_TEST_CASE(tbv_tapscript_invalid_script_path)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -398,6 +412,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip143_wrong_amount_in_sighash)
     CheckScriptViolation(TestValidity(block), block, outpoint, reason);
     CheckScriptViolation(ConnectBlock(block), block, outpoint, reason);
     SolveBlockPoW(block);
+    CheckScriptViolation(ValidateBlock(block), block, outpoint, reason);
     CheckScriptViolation(ProcessNewBlock(block), block, outpoint, reason);
 }
 
@@ -417,6 +432,7 @@ BOOST_AUTO_TEST_CASE(tbv_empty_scriptsig)
     CheckBlockValid(TestValidity(block));
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockValid(ValidateBlock(block));
     CheckBlockValid(ProcessNewBlock(block));
 }
 
@@ -436,6 +452,7 @@ BOOST_AUTO_TEST_CASE(tbv_scriptsig_non_push)
     CheckBlockValid(TestValidity(block));
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockValid(ValidateBlock(block));
     CheckBlockValid(ProcessNewBlock(block));
 }
 
@@ -459,6 +476,7 @@ BOOST_AUTO_TEST_CASE(tbv_double_spend_same_block)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -479,6 +497,7 @@ BOOST_AUTO_TEST_CASE(tbv_zero_value_output)
     CheckBlockValid(TestValidity(block));
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockValid(ValidateBlock(block));
     CheckBlockValid(ProcessNewBlock(block));
 }
 

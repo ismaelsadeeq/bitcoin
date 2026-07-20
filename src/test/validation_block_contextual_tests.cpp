@@ -31,6 +31,7 @@ BOOST_AUTO_TEST_CASE(tbv_immature_coinbase)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -47,6 +48,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_amount)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -64,6 +66,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_height)
     const auto debug = "block height mismatch in coinbase";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -86,6 +89,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_nonfinal)
     const auto debug = "non-final transaction";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -111,6 +115,7 @@ BOOST_AUTO_TEST_CASE(tbv_bip113_locktime_uses_mtp)
     const auto debug = "non-final transaction";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -156,6 +161,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_blk_weight)
     const auto debug = "ContextualCheckBlock : weight limit failed";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -190,6 +196,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_blk_sigops)
     const auto debug = "out-of-bounds SigOpCount";
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 

@@ -25,6 +25,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_merkle_root)
     // ConnectBlock calls CheckBlock with fCheckMerkleRoot=false, so the merkle root is not verified.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
@@ -41,6 +42,7 @@ BOOST_AUTO_TEST_CASE(tbv_duplicate_txs_CVE_2012_2459)
     // reaching CheckMerkleRoot (where the general duplicate-txns check lives).
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-multiple", "more than one coinbase");
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
@@ -55,6 +57,7 @@ BOOST_AUTO_TEST_CASE(tbv_no_transactions)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -77,6 +80,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_missing)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -99,6 +103,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_multiple)
     CheckBlockInvalid(TestValidity(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ConnectBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_CONSENSUS, reason, debug);
 }
 
@@ -114,6 +119,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_cb_length)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -131,6 +137,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vin_empty)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -153,6 +160,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_empty)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -175,6 +183,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_negative)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -197,6 +206,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_vout_toolarge)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -218,6 +228,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_txouttotal_toolarge)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -236,6 +247,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_inputs_duplicate)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -259,6 +271,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_txns_prevout_null)
     CheckTxViolation(TestValidity(block), block, reason);
     CheckTxViolation(ConnectBlock(block), block, reason);
     SolveBlockPoW(block);
+    CheckTxViolation(ValidateBlock(block), block, reason);
     CheckTxViolation(ProcessNewBlock(block), block, reason);
 }
 
@@ -280,6 +293,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_witness_nonce_size)
     // CheckWitnessMalleation is called in ContextualCheckBlock, which ConnectBlock does not invoke.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
@@ -302,6 +316,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_witness_merkle_match)
     // CheckWitnessMalleation is called in ContextualCheckBlock, which ConnectBlock does not invoke.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 
@@ -333,6 +348,7 @@ BOOST_AUTO_TEST_CASE(tbv_unexpected_witness)
     CheckScriptViolation(ConnectBlock(block), block, COutPoint(m_coinbase_txns[0]->GetHash(), 0),
                          "block-script-verify-flag-failed (Witness provided for non-witness script)");
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_MUTATED, reason, debug);
 }
 

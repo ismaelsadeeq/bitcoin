@@ -24,6 +24,7 @@ BOOST_AUTO_TEST_CASE(tbv_valid_block)
     CheckBlockValid(ConnectBlock(block));
     BOOST_CHECK_MESSAGE(WITH_LOCK(cs_main, return m_chainstate.m_chain.Height()) == current_height, "Chain tip advanced unexpectedly");
     SolveBlockPoW(block);
+    CheckBlockValid(ValidateBlock(block));
     CheckBlockValid(ProcessNewBlock(block));
     BOOST_CHECK_EQUAL(WITH_LOCK(cs_main, return m_chainstate.m_chain.Height()), current_height + 1);
 }
@@ -39,6 +40,7 @@ BOOST_AUTO_TEST_CASE(tbv_wrong_prev)
     // ConnectBlock builds on the current tip via a dummy index regardless of the block's hashPrevBlock field.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_MISSING_PREV, "prev-blk-not-found", "");
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_MISSING_PREV, "prev-blk-not-found", "");
 }
 
@@ -57,6 +59,7 @@ BOOST_AUTO_TEST_CASE(tbv_high_hash)
     CheckBlockInvalid(TestValidity(block, true), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
     // ConnectBlock calls CheckBlock with fCheckPOW=false, so PoW is not verified.
     CheckBlockValid(ConnectBlock(block));
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
@@ -73,6 +76,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_diffbits)
     // ConnectBlock does not call ContextualCheckBlockHeader, so nBits is not validated.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
@@ -87,6 +91,7 @@ BOOST_AUTO_TEST_CASE(tbv_time_too_old)
     // ConnectBlock does not call ContextualCheckBlockHeader, so the timestamp is not validated.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
@@ -101,6 +106,7 @@ BOOST_AUTO_TEST_CASE(tbv_time_too_new)
     // ConnectBlock does not call ContextualCheckBlockHeader, so the timestamp is not validated.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_TIME_FUTURE, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_TIME_FUTURE, reason, debug);
 }
 
@@ -115,6 +121,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_version)
     // ConnectBlock does not call ContextualCheckBlockHeader, so the block version is not validated.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_INVALID_HEADER, reason, debug);
 }
 
@@ -136,6 +143,7 @@ BOOST_AUTO_TEST_CASE(tbv_bad_prevblk)
     // ConnectBlock does not consult the block index, so it does not detect an invalid prev block.
     CheckBlockValid(ConnectBlock(block));
     SolveBlockPoW(block);
+    CheckBlockInvalid(ValidateBlock(block), BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk", "");
     CheckBlockInvalid(ProcessNewBlock(block), BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk", "");
 }
 
