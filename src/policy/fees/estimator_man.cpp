@@ -31,8 +31,9 @@ util::Expected<FeeRateEstimation, FeeRateEstimationError> FeeRateEstimatorManage
     }
     auto mempool_estimate = m_mempool_estimator->EstimateFeeRate(conservative);
     if (!mempool_estimate) {
-        // A failed mempool estimate is surfaced as a warning rather than silently returning the
-        // block policy estimate, which callers can still request explicitly.
+        // Fall back to the block policy estimate.
+        if (IsNotReady(mempool_estimate.error())) return block_policy_estimate;
+        // Surface other failures; callers can request block policy explicitly.
         auto mempool_error = EstimationError(mempool_estimate.error());
         LogDebug(BCLog::ESTIMATEFEE, "%s", mempool_error.error().reason);
         return mempool_error;

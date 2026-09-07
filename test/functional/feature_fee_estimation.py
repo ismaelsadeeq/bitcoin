@@ -334,6 +334,15 @@ class EstimateFeeTest(BitcoinTestFramework):
         self.restart_node(0)
         assert_equal(self.nodes[0].estimatesmartfee(1, "economical", {"fee_rate_estimator": "block_policy"})["feerate"], fee_rate)
 
+        # Removing the mempool estimator's data leaves it with too few recent blocks, so
+        # "none" falls back to block policy while "mempool_policy" surfaces the error.
+        self.stop_node(0)
+        (self.nodes[0].chain_path / "fees/mempool_policy_estimator.dat").unlink(missing_ok=True)
+        self.start_node(0)
+        self.wait_until(lambda: self.nodes[0].getmempoolinfo()["loaded"])
+        assert "errors" in self.nodes[0].estimatesmartfee(1, "economical", {"fee_rate_estimator": "mempool_policy"})
+        assert_equal(self.nodes[0].estimatesmartfee(1, "economical", {"fee_rate_estimator": "none"})["estimator"], "block_policy")
+
         block_policy_fee_dat = self.nodes[0].chain_path / BLOCK_POLICY_ESTIMATOR_FILE_PATH
         legacy_fee_dat = self.nodes[0].chain_path / "fee_estimates.dat"
 

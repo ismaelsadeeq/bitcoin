@@ -337,4 +337,14 @@ BOOST_AUTO_TEST_CASE(MempoolFeeRateEstimator)
     }
 }
 
+BOOST_AUTO_TEST_CASE(is_not_ready)
+{
+    // Too few recent blocks: fall back.
+    BOOST_CHECK(IsNotReady(MempoolEstimationFailure::INSUFFICIENT_DATA));
+    // Surfaced instead: still loading, unreliable mempool, assembly failure.
+    BOOST_CHECK(!IsNotReady(MempoolEstimationFailure::MEMPOOL_NOT_LOADED));
+    BOOST_CHECK(!IsNotReady(MempoolEstimationFailure::LOW_COVERAGE));
+    BOOST_CHECK(!IsNotReady(MempoolEstimationFailure::BLOCK_TEMPLATE_FAILED));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

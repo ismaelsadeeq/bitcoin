@@ -48,6 +48,9 @@ enum class MempoolEstimationFailure {
 
 std::string_view MempoolEstimationFailureToString(MempoolEstimationFailure failure);
 
+//! Whether a caller should fall back to another estimator for this failure.
+bool IsNotReady(MempoolEstimationFailure failure);
+
 //! Flatten a fee rate estimation failure into a fee rate estimation error.
 util::Unexpected<FeeRateEstimationError> EstimationError(MempoolEstimationFailure failure);
 

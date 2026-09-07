@@ -157,6 +157,20 @@ std::string_view MempoolEstimationFailureToString(MempoolEstimationFailure failu
     assert(false);
 }
 
+bool IsNotReady(MempoolEstimationFailure failure)
+{
+    switch (failure) {
+    case MempoolEstimationFailure::INSUFFICIENT_DATA:
+        return true;
+    case MempoolEstimationFailure::MEMPOOL_NOT_LOADED:
+    case MempoolEstimationFailure::LOW_COVERAGE:
+    case MempoolEstimationFailure::BLOCK_TEMPLATE_FAILED:
+        return false;
+    }
+    // no default case, so the compiler can warn about missing cases
+    assert(false);
+}
+
 util::Unexpected<FeeRateEstimationError> EstimationError(MempoolEstimationFailure failure)
 {
     constexpr auto estimator_type{FeeRateEstimatorType::MEMPOOL_POLICY};

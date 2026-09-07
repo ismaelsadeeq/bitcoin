@@ -46,9 +46,10 @@ static RPCMethod estimatesmartfee()
                 {
                     {"fee_rate_estimator", RPCArg::Type::STR, RPCArg::Default{"none"},
                      "Selects which fee rate estimator to use.\n"
-                     "\"none\" returns the lower of the block policy and mempool estimates. If the mempool\n"
-                     "estimate is unavailable, it returns that error instead of falling back to the block\n"
-                     "policy estimate; use \"block_policy\" in that case to get the block policy estimate.\n"
+                     "\"none\" returns the lower of the block policy and mempool estimates. While the mempool\n"
+                     "estimator has too few recent blocks it falls back to the block policy estimate; other\n"
+                     "mempool errors (still loading, or an unreliable mempool) are returned instead, so use\n"
+                     "\"block_policy\" to get the block policy estimate in that case.\n"
                      "\"block_policy\" uses only the block policy fee rate estimator.\n"
                      "\"mempool_policy\" uses only the mempool fee rate estimator.\n"
                      "Unknown values are treated as \"none\"."},
