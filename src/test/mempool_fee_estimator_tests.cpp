@@ -134,22 +134,18 @@ BOOST_AUTO_TEST_CASE(MempoolFeeRateEstimator)
     BOOST_CHECK_EQUAL(mempool_estimator.MaximumTarget(), MEMPOOL_FEE_ESTIMATOR_MAX_TARGET);
     // Before the mempool has finished loading, no estimate is available.
     {
-        const std::string unloaded_err = strprintf("%s: Mempool not loaded yet, no fee rate estimate available",
-                                                   FeeRateEstimatorTypeToString(FeeRateEstimatorType::MEMPOOL_POLICY));
         const auto result = mempool_estimator.EstimateFeeRate(/*conservative=*/true);
         BOOST_CHECK(!result);
-        BOOST_CHECK_EQUAL(result.error().reason, unloaded_err);
+        BOOST_CHECK(result.error() == MempoolEstimationFailure::MEMPOOL_NOT_LOADED);
     }
     m_node.mempool->SetLoadTried(true);
 
     BOOST_CHECK(!mempool_estimator.IsMempoolHealthy());
-    BOOST_CHECK(mempool_estimator.GetMempoolHealth() == MemPoolFeeRateEstimator::MempoolHealth::INSUFFICIENT_DATA);
+    BOOST_CHECK(mempool_estimator.GetMempoolHealthCheck() == MempoolEstimationFailure::INSUFFICIENT_DATA);
     {
         const auto result = mempool_estimator.EstimateFeeRate(/*conservative=*/true);
-        const std::string insufficient_err{strprintf("%s: Not enough recent block data for fee rate estimation",
-                                                     FeeRateEstimatorTypeToString(FeeRateEstimatorType::MEMPOOL_POLICY))};
         BOOST_CHECK(!result);
-        BOOST_CHECK_EQUAL(result.error().reason, insufficient_err);
+        BOOST_CHECK(result.error() == MempoolEstimationFailure::INSUFFICIENT_DATA);
     }
     {
         MemPoolFeeRateEstimator custom_mempool_estimator{
@@ -199,6 +195,7 @@ BOOST_AUTO_TEST_CASE(MempoolFeeRateEstimator)
     // Total txs weight ~9999k WU (~2.5 blocks), removed txs ~7000k WU (~1.75 blocks); coverage = 70%.
     AddRemovedBlock(mempool_estimator, weight / 2, weight, height);
     BOOST_CHECK(!mempool_estimator.IsMempoolHealthy());
+    BOOST_CHECK(mempool_estimator.GetMempoolHealthCheck() == MempoolEstimationFailure::LOW_COVERAGE);
     block_count = 1;
     while (block_count <= 3) {
         AddRemovedBlock(mempool_estimator, weight, weight, height);

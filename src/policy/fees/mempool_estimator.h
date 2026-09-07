@@ -19,6 +19,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
 class CBlock;
@@ -36,6 +37,19 @@ constexpr std::chrono::seconds CACHE_LIFE{7};
 // Constants for mempool sanity checks.
 constexpr size_t MEMPOOL_HEALTH_WINDOW_BLOCKS = 6;
 constexpr double MEMPOOL_REPRESENTATION_THRESHOLD = 0.75;
+
+//! Why the mempool fee rate estimator fails to return a fee rate estimate.
+enum class MempoolEstimationFailure {
+    MEMPOOL_NOT_LOADED,
+    INSUFFICIENT_DATA,
+    LOW_COVERAGE,
+    BLOCK_TEMPLATE_FAILED,
+};
+
+std::string_view MempoolEstimationFailureToString(MempoolEstimationFailure failure);
+
+//! Flatten a fee rate estimation failure into a fee rate estimation error.
+util::Unexpected<FeeRateEstimationError> EstimationError(MempoolEstimationFailure failure);
 
 //! Weight statistics for a recently mined block, used to assess mempool coverage.
 struct MinedBlockStats {
@@ -105,7 +119,7 @@ public:
      * @param[in] chunk_feerates Block template chunk fee rates sorted by descending mining score.
      */
     static Percentiles CalculateMaxWeightPercentiles(std::span<const FeePerVSize> chunk_feerates);
-    util::Expected<FeeRateEstimation, FeeRateEstimationError> EstimateFeeRate(bool conservative) const
+    util::Expected<FeeRateEstimation, MempoolEstimationFailure> EstimateFeeRate(bool conservative) const
         EXCLUSIVE_LOCKS_REQUIRED(!cs);
     unsigned int MaximumTarget() const
     {
@@ -122,18 +136,11 @@ public:
                                    const std::vector<RemovedMempoolTransactionInfo>& txs_removed_for_block,
                                    unsigned int block_height)
         EXCLUSIVE_LOCKS_REQUIRED(!cs);
-    //! Health of the recent mined-block window for fee rate estimation.
-    enum class MempoolHealth {
-        //! Recent blocks represent the mempool well enough to estimate a fee rate.
-        HEALTHY,
-        //! Too few recent mined blocks to estimate a fee rate.
-        INSUFFICIENT_DATA,
-        //! Recent blocks include too few mempool transactions to estimate a fee rate.
-        LOW_COVERAGE,
-    };
-    MempoolHealth GetMempoolHealth() const EXCLUSIVE_LOCKS_REQUIRED(!cs);
+    //! Check if the mempool is healthy based on the recent mined block stats
+    // if it's not healthy return INSUFFICIENT_DATA or LOW_COVERAGE, return nullopt if healthy.
+    std::optional<MempoolEstimationFailure> GetMempoolHealthCheck() const EXCLUSIVE_LOCKS_REQUIRED(!cs);
     //! Checks if recent mined blocks indicate a healthy mempool state.
-    bool IsMempoolHealthy() const EXCLUSIVE_LOCKS_REQUIRED(!cs) { return GetMempoolHealth() == MempoolHealth::HEALTHY; }
+    bool IsMempoolHealthy() const EXCLUSIVE_LOCKS_REQUIRED(!cs) { return !GetMempoolHealthCheck().has_value(); }
     void FlushMinedBlockStats() EXCLUSIVE_LOCKS_REQUIRED(!cs);
     //! Deserialize mined-block stats without taking ownership of file.
     bool Read(AutoFile& file) EXCLUSIVE_LOCKS_REQUIRED(!cs);
