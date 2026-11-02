@@ -876,13 +876,16 @@ class BlockTemplateImpl : public BlockTemplate
 {
 public:
     explicit BlockTemplateImpl(BlockCreateOptions create_options,
-                               std::unique_ptr<CBlockTemplate> block_template,
+                               std::shared_ptr<CBlockTemplate> block_template,
                                const NodeContext& node) : m_create_options(std::move(create_options)),
                                                           m_block_template(std::move(block_template)),
                                                           m_node(node)
     {
         assert(m_block_template);
+        block_template_manager().RegisterTemplate(m_block_template);
     }
+
+    ~BlockTemplateImpl() { block_template_manager().DeregisterTemplate(m_block_template); }
 
     CBlockHeader getBlockHeader() override
     {
@@ -936,7 +939,7 @@ public:
 
     const BlockCreateOptions m_create_options;
 
-    const std::unique_ptr<CBlockTemplate> m_block_template;
+    const std::shared_ptr<CBlockTemplate> m_block_template;
 
     bool m_interrupt_wait{false};
     node::BlockTemplateManager& block_template_manager() { return *Assert(m_node.block_template_manager); }
@@ -1036,6 +1039,11 @@ public:
             results.emplace_back(m_node.mempool->get(wtxid));
         }
         return results;
+    }
+
+    size_t getMemoryLoad() override
+    {
+        return block_template_manager().GetTemplateMemoryUsage();
     }
 
     const NodeContext* context() override { return &m_node; }

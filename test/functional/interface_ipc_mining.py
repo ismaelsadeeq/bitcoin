@@ -31,6 +31,7 @@ from test_framework.messages import (
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
+    assert_greater_than,
     assert_greater_than_or_equal,
     assert_not_equal,
 )
@@ -756,6 +757,31 @@ class IPCMiningTest(BitcoinTestFramework):
 
         asyncio.run(capnp.run(async_routine()))
 
+    def run_memory_load_test(self):
+        """getMemoryLoad() is reachable over IPC and tracks the lifetime of the
+        templates handed to clients: zero when none are held, positive while one
+        is held, and zero again once it is released. Exact-value accounting (the
+        mempool-exclusion and dedup invariants) is covered by the
+        block_template_manager unit test."""
+        self.log.info("Running memory load test")
+
+        async def async_routine():
+            ctx, mining = await make_mining_ctx(self)
+            self.miniwallet.rescan_utxos()
+            self.miniwallet.send_self_transfer(fee_rate=10, from_node=self.nodes[0])
+
+            self.log.debug("With no template held, memory load is zero")
+            assert_equal((await mining.getMemoryLoad(ctx)).result, 0)
+
+            async with destroying((await mining.createNewBlock(ctx, self.default_block_create_options)).result, ctx):
+                self.log.debug("While a template is held, its footprint is reported")
+                assert_greater_than((await mining.getMemoryLoad(ctx)).result, 0)
+
+            self.log.debug("Once the template is released, memory load returns to zero")
+            assert_equal((await mining.getMemoryLoad(ctx)).result, 0)
+
+        asyncio.run(capnp.run(async_routine()))
+
     def run_low_height_test(self):
         """Test that IPC createNewBlock() works at low block heights on a
         clean chain, in particular with regard to bad-cb-length.
@@ -818,6 +844,7 @@ class IPCMiningTest(BitcoinTestFramework):
         self.run_block_max_weight_test()
         self.run_ipc_option_override_test()
         self.run_transaction_lookup_test()
+        self.run_memory_load_test()
 
         # Needs to run last because it resets the chain.
         self.run_low_height_test()

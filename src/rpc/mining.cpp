@@ -195,7 +195,7 @@ static UniValue generateBlocks(ChainstateManager& chainman, node::BlockTemplateM
 {
     UniValue blockHashes(UniValue::VARR);
     while (nGenerate > 0 && !chainman.m_interrupt) {
-        std::unique_ptr<node::CBlockTemplate> block_template{block_template_manager.CreateNewTemplate({.coinbase_output_script = coinbase_output_script})};
+        std::shared_ptr<const node::CBlockTemplate> block_template{block_template_manager.CreateNewTemplate({.coinbase_output_script = coinbase_output_script})};
         CHECK_NONFATAL(block_template);
 
         std::shared_ptr<const CBlock> block_out;
@@ -407,7 +407,7 @@ static RPCMethod generateblock()
     {
         LOCK(chainman.GetMutex());
         {
-            std::unique_ptr<node::CBlockTemplate> block_template{block_template_manager.CreateNewTemplate({.use_mempool = false, .coinbase_output_script = coinbase_output_script})};
+            std::shared_ptr<const node::CBlockTemplate> block_template{block_template_manager.CreateNewTemplate({.use_mempool = false, .coinbase_output_script = coinbase_output_script})};
             CHECK_NONFATAL(block_template);
 
             block = block_template->block;
@@ -891,7 +891,7 @@ static RPCMethod getblocktemplate()
     // Update block
     static CBlockIndex* pindexPrev;
     static int64_t time_start;
-    static std::unique_ptr<node::CBlockTemplate> block_template;
+    static std::shared_ptr<const node::CBlockTemplate> block_template;
     if (!pindexPrev || pindexPrev->GetBlockHash() != tip ||
         (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - time_start > 5))
     {

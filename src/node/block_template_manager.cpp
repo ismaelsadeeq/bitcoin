@@ -8,14 +8,18 @@
 #include <consensus/amount.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
+#include <core_memusage.h>
 #include <interfaces/types.h>
 #include <kernel/chainparams.h>
+#include <memusage.h>
 #include <node/block_validation_state_catcher.h>
 #include <node/kernel_notifications.h>
 #include <node/miner.h>
 #include <node/mining_args.h>
 #include <primitives/block.h>
+#include <primitives/transaction.h>
 #include <sync.h>
+#include <txmempool.h>
 #include <uint256.h>
 #include <util/check.h>
 #include <util/signalinterrupt.h>
@@ -25,7 +29,9 @@
 #include <algorithm>
 #include <compare>
 #include <condition_variable>
+#include <cstddef>
 #include <numeric>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -40,13 +46,51 @@ BlockTemplateManager::BlockTemplateManager(CTxMemPool& mempool, ChainstateManage
 {
 }
 
-std::unique_ptr<CBlockTemplate> BlockTemplateManager::CreateNewTemplate(const BlockCreateOptions& options)
+std::shared_ptr<CBlockTemplate> BlockTemplateManager::CreateNewTemplate(const BlockCreateOptions& options)
 {
     return BlockAssembler{
         m_chainman.ActiveChainstate(),
         &m_mempool,
         MergeMiningOptions(options, m_block_create_args),
     }.CreateNewBlock();
+}
+
+void BlockTemplateManager::RegisterTemplate(const std::shared_ptr<const CBlockTemplate>& block_template)
+{
+    LOCK(m_templates_mutex);
+    m_templates.push_back(block_template);
+}
+
+void BlockTemplateManager::DeregisterTemplate(const std::shared_ptr<const CBlockTemplate>& block_template)
+{
+    LOCK(m_templates_mutex);
+    std::erase_if(m_templates, [&](const auto& weak) {
+        auto locked = weak.lock();
+        return !locked || locked == block_template;
+    });
+}
+
+size_t BlockTemplateManager::GetTemplateMemoryUsage()
+{
+    LOCK(m_templates_mutex);
+    std::unordered_set<const CTransaction*> counted;
+    size_t usage{0};
+    for (const auto& weak : m_templates) {
+        auto block_template = weak.lock();
+        if (!block_template) continue;
+        // Transactions still in the mempool share its storage, so only the
+        // template is their extra cost once they leave it.
+        for (const auto& tx : block_template->block.vtx) {
+            if (!counted.insert(tx.get()).second) continue;
+            if (m_mempool.exists(tx->GetHash())) continue;
+            usage += RecursiveDynamicUsage(tx);
+        }
+        usage += memusage::DynamicUsage(block_template->block.vtx)
+               + memusage::DynamicUsage(block_template->vTxFees)
+               + memusage::DynamicUsage(block_template->vTxSigOpsCost)
+               + memusage::DynamicUsage(block_template->m_package_feerates);
+    }
+    return usage;
 }
 
 bool BlockTemplateManager::SubmitBlock(const std::shared_ptr<const CBlock>& block, std::string& reason, std::string& debug)
@@ -104,8 +148,8 @@ void BlockTemplateManager::InterruptWait(bool& interrupt_wait)
     m_notifications.m_tip_block_cv.notify_all();
 }
 
-std::unique_ptr<CBlockTemplate> BlockTemplateManager::WaitAndCreateNewBlock(
-    const std::unique_ptr<CBlockTemplate>& block_template,
+std::shared_ptr<CBlockTemplate> BlockTemplateManager::WaitAndCreateNewBlock(
+    const std::shared_ptr<CBlockTemplate>& block_template,
     const BlockWaitOptions& wait_options,
     const BlockCreateOptions& create_options,
     bool& interrupt_wait)

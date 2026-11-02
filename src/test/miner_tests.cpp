@@ -9,9 +9,12 @@
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
+#include <core_memusage.h>
 #include <interfaces/mining.h>
 #include <interfaces/types.h>
 #include <kernel/chainparams.h>
+#include <kernel/mempool_removal_reason.h>
+#include <memusage.h>
 #include <node/block_template_manager.h>
 #include <node/miner.h>
 #include <node/mining_args.h>
@@ -42,6 +45,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <cstddef>
+#include <set>
 #include <cstdint>
 #include <iterator>
 #include <memory>
@@ -980,6 +984,56 @@ BOOST_AUTO_TEST_CASE(block_template_manager)
     BOOST_CHECK(block.vtx[0]->IsCoinBase());
     BOOST_CHECK(block_template->vTxFees.empty());
     BOOST_CHECK(block_template->vTxSigOpsCost.empty());
+}
+
+BOOST_FIXTURE_TEST_CASE(template_memory_usage, TestChain100Setup)
+{
+    node::BlockTemplateManager& manager{*Assert(m_node.block_template_manager)};
+    CTxMemPool& mempool{*Assert(m_node.mempool)};
+    const CScript destination{GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey()))};
+
+    // Recompute the expected figure independently: every transaction not in the
+    // mempool counted once across the given templates, plus each template's own
+    // derived data.
+    auto expected = [&](const std::vector<std::shared_ptr<node::CBlockTemplate>>& templates) {
+        std::set<const CTransaction*> counted;
+        size_t usage{0};
+        for (const auto& t : templates) {
+            for (const auto& tx : t->block.vtx) {
+                if (counted.insert(tx.get()).second && !mempool.exists(tx->GetHash())) usage += RecursiveDynamicUsage(tx);
+            }
+            usage += memusage::DynamicUsage(t->block.vtx) + memusage::DynamicUsage(t->vTxFees) +
+                     memusage::DynamicUsage(t->vTxSigOpsCost) + memusage::DynamicUsage(t->m_package_feerates);
+        }
+        return usage;
+    };
+
+    BOOST_CHECK_EQUAL(manager.GetTemplateMemoryUsage(), 0U);
+
+    // Two templates built over the same mempool share the transaction object.
+    CreateValidMempoolTransaction(m_coinbase_txns[0], /*input_vout=*/0, /*input_height=*/1, coinbaseKey, destination, 49 * COIN);
+    const auto template1{manager.CreateNewTemplate({})};
+    const auto template2{manager.CreateNewTemplate({})};
+    BOOST_REQUIRE(template1->block.vtx[1].get() == template2->block.vtx[1].get());
+
+    manager.RegisterTemplate(template1);
+    BOOST_CHECK_EQUAL(manager.GetTemplateMemoryUsage(), expected({template1}));
+
+    manager.RegisterTemplate(template2);
+    BOOST_CHECK_EQUAL(manager.GetTemplateMemoryUsage(), expected({template1, template2}));
+
+    // Evicting the shared transaction attributes it to the templates, but only once.
+    const size_t before{manager.GetTemplateMemoryUsage()};
+    {
+        LOCK(mempool.cs);
+        mempool.removeRecursive(*template1->block.vtx[1], MemPoolRemovalReason::BLOCK);
+    }
+    BOOST_CHECK_EQUAL(manager.GetTemplateMemoryUsage(), expected({template1, template2}));
+    BOOST_CHECK_EQUAL(manager.GetTemplateMemoryUsage() - before, RecursiveDynamicUsage(template1->block.vtx[1]));
+
+    manager.DeregisterTemplate(template1);
+    manager.DeregisterTemplate(template2);
+    BOOST_CHECK_EQUAL(manager.GetTemplateMemoryUsage(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

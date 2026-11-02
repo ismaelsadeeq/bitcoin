@@ -6,11 +6,14 @@
 #define BITCOIN_NODE_BLOCK_TEMPLATE_MANAGER_H
 
 #include <node/mining_types.h>
+#include <sync.h>
 #include <util/time.h>
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 class CBlock;
 class ChainstateManager;
@@ -37,6 +40,10 @@ private:
     KernelNotifications& m_notifications;
     const BlockCreateOptions m_block_create_args;
 
+    // Non-owning, so accounting never extends a template's lifetime.
+    Mutex m_templates_mutex;
+    std::vector<std::weak_ptr<const CBlockTemplate>> m_templates GUARDED_BY(m_templates_mutex);
+
 public:
     explicit BlockTemplateManager(CTxMemPool& mempool,
                                   ChainstateManager& chainman,
@@ -47,7 +54,14 @@ public:
     const BlockCreateOptions& BlockCreateArgs() const { return m_block_create_args; }
 
     /** Create a fresh block template, applying init-time defaults to any unset options. */
-    std::unique_ptr<CBlockTemplate> CreateNewTemplate(const BlockCreateOptions& options);
+    std::shared_ptr<CBlockTemplate> CreateNewTemplate(const BlockCreateOptions& options);
+
+    void RegisterTemplate(const std::shared_ptr<const CBlockTemplate>& block_template) EXCLUSIVE_LOCKS_REQUIRED(!m_templates_mutex);
+    void DeregisterTemplate(const std::shared_ptr<const CBlockTemplate>& block_template) EXCLUSIVE_LOCKS_REQUIRED(!m_templates_mutex);
+
+    /** @return bytes client templates keep alive for transactions no longer in
+     *  the mempool, plus the templates' own derived data. */
+    size_t GetTemplateMemoryUsage() EXCLUSIVE_LOCKS_REQUIRED(!m_templates_mutex);
 
     /** Submit a block via ProcessNewBlock and capture validation state.
      *  @return whether the block was accepted as a new valid block. */
@@ -95,8 +109,8 @@ public:
 
     /** Return a new block template when fees rise to a certain threshold or
      *  after a new tip; return nullptr if timeout is reached. */
-    std::unique_ptr<CBlockTemplate> WaitAndCreateNewBlock(
-        const std::unique_ptr<CBlockTemplate>& block_template,
+    std::shared_ptr<CBlockTemplate> WaitAndCreateNewBlock(
+        const std::shared_ptr<CBlockTemplate>& block_template,
         const BlockWaitOptions& wait_options,
         const BlockCreateOptions& create_options,
         bool& interrupt_wait);

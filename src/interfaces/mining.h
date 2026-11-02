@@ -204,6 +204,13 @@ public:
      */
     virtual std::vector<CTransactionRef> getTransactionsByWitnessID(const std::vector<Wtxid>& wtxids) = 0;
 
+    /**
+     * Memory held by templates handed out through this interface for
+     * transactions no longer in the mempool. Lets clients observe the footprint
+     * of the templates they keep alive.
+     */
+    virtual size_t getMemoryLoad() = 0;
+
     //! Get internal node context. Useful for RPC and testing,
     //! but not accessible across processes.
     virtual const node::NodeContext* context() { return nullptr; }
